@@ -12,7 +12,7 @@ $featuredSitters = [
         'image' => './Pawhabilin logo.png',
         'badges' => ['Background Check', 'Pet First Aid'],
         'available' => true,
-        'pets' => ['Dogs', 'Cats']
+        'pets' => ['Dogs', 'Cats']  
     ],
     [
         'id' => 2,
@@ -47,7 +47,7 @@ $featuredSitters = [
 $featuredProducts = [
     [
         'id' => 1,
-        'name' => 'Premium Dog Kibble',
+        'name' => 'Premium Dog Kibble 1',
         'category' => 'Dog Food',
         'price' => 1299,
         'originalPrice' => 1599,

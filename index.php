@@ -9,7 +9,7 @@ $featuredSitters = [
         'reviews' => 'Reviews',
         'hourlyRate' => 'Hourly Rate',
         'distance' => 'Location',
-        'image' => '../Pawhabilin logo.png',
+        'image' => './pictures/Pawhabilin logo.png',
         'badges' => ['Background Check', 'Pet First Aid'],
         'available' => true,
         'pets' => ['Dogs', 'Cats']  
@@ -22,7 +22,7 @@ $featuredSitters = [
         'reviews' => 'Reviews',
         'hourlyRate' => 'Hourly Rate',
         'distance' => 'Location',
-        'image' => 'Pawhabilin logo.png',
+        'image' => './pictures/Pawhabilin logo.png',
         'badges' => ['Veterinary Student', '5+ Years'],
         'available' => false,
         'pets' => ['Dogs', 'Cats', 'Birds']
@@ -35,7 +35,7 @@ $featuredSitters = [
         'reviews' => 'Reviews',
         'hourlyRate' => 'Hourly Rate',
         'distance' => 'Location',
-        'image' => 'Pawhabilin logo.png',
+        'image' => './pictures/Pawhabilin logo.png',
         'badges' => ['Student', 'Small Pets'],
         'available' => true,
         'pets' => ['Dogs', 'Cats', 'Rabbits']
@@ -125,7 +125,7 @@ $dogLogo = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZX
             <div class="flex h-16 items-center justify-between">
                 <div class="flex items-center space-x-2">
                     <div class="w-24 h-24 rounded-lg overflow-hidden flex items-center justify-center" style="width:77px; height:77px;">
-                        <img src="Pawhabilin logo.png" alt="Pawhabilin Logo" class="w-full h-full object-contain" />
+                        <img src="./pictures/Pawhabilin logo.png" alt="Pawhabilin Logo" class="w-full h-full object-contain" />
                     </div>
                     <span class="text-xl font-semibold bg-gradient-to-r from-orange-600 to-amber-600 bg-clip-text text-transparent" style="font-family: 'La Lou Big', cursive;">
                         Pawhabilin

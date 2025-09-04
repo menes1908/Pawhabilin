@@ -1,0 +1,37 @@
+.app{display:flex;min-height:100vh}
+:root{--sidebar-bg:#0f1724;--accent:#10b981;--muted:#94a3b8;--card:#0b1220}
+*{box-sizing:border-box;font-family:Inter,system-ui,Segoe UI,Arial}
+body{margin:0;background:#071029;color:#e6eef6}
+/* Sidebar */
+.sidebar{width:78px;background:linear-gradient(180deg,var(--sidebar-bg),#071225);transition:width .22s ease;overflow:hidden}
+.sidebar:hover{width:230px}
+.brand{height:72px;display:flex;align-items:center;padding:12px;gap:12px}
+.brand img{width:44px;height:44px;border-radius:8px}
+.brand h1{font-size:18px;margin:0;opacity:0;transform:translateX(-6px);transition:opacity .18s,transform .18s}
+.sidebar:hover .brand h1{opacity:1;transform:none}
+.nav{padding:8px 6px}
+.nav-item{display:flex;align-items:center;gap:12px;padding:12px;border-radius:8px;color:var(--muted);cursor:pointer;margin:6px}
+.nav-item svg{width:22px;height:22px;flex-shrink:0}
+.nav-item .label{white-space:nowrap;opacity:0;transition:opacity .18s;}
+.sidebar:hover .nav-item .label{opacity:1}
+.nav-item:hover{background:rgba(255,255,255,.04);color:#fff}
+.nav-item.active{background:var(--accent);color:#052018}
+/* Content */
+.content{flex:1;padding:22px}
+.topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin-bottom:18px}
+.card{background:linear-gradient(180deg,rgba(255,255,255,0.02),transparent);padding:14px;border-radius:10px}
+table{width:100%;border-collapse:collapse}
+th,td{padding:8px;text-align:left;border-bottom:1px solid rgba(255,255,255,0.04);font-size:14px}
+.btn{background:var(--accent);color:#042016;padding:8px 12px;border-radius:8px;border:none;cursor:pointer}
+.muted{color:var(--muted)}
+/* Modal */
+.modal{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(2,6,23,.6)}
+.modal.show{display:flex}
+.modal .panel{background:#071827;padding:18px;border-radius:12px;min-width:320px;max-width:720px}
+input,select,textarea{width:100%;padding:8px;margin-top:6px;margin-bottom:12px;border-radius:8px;border:1px solid rgba(255,255,255,0.03);background:#071827;color:#e6eef6}
+.row{display:flex;gap:12px}
+.row > *{flex:1}
+.small{font-size:13px;color:var(--muted)}
+img.preview{max-width:120px;border-radius:8px}
+@media (max-width:700px){.sidebar{display:none}.app{flex-direction:column}.content{padding:12px}}

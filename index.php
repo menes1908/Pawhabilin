@@ -9,10 +9,10 @@ $featuredSitters = [
         'reviews' => 'Reviews',
         'hourlyRate' => 'Hourly Rate',
         'distance' => 'Location',
-        'image' => './pictures/Pawhabilin logo.png',
+        'image' => 'Pawhabilin logo.png',
         'badges' => ['Background Check', 'Pet First Aid'],
         'available' => true,
-        'pets' => ['Dogs', 'Cats']  
+        'pets' => ['Dogs', 'Cats']
     ],
     [
         'id' => 2,
@@ -22,7 +22,7 @@ $featuredSitters = [
         'reviews' => 'Reviews',
         'hourlyRate' => 'Hourly Rate',
         'distance' => 'Location',
-        'image' => './pictures/Pawhabilin logo.png',
+        'image' => 'Pawhabilin logo.png',
         'badges' => ['Veterinary Student', '5+ Years'],
         'available' => false,
         'pets' => ['Dogs', 'Cats', 'Birds']
@@ -35,7 +35,7 @@ $featuredSitters = [
         'reviews' => 'Reviews',
         'hourlyRate' => 'Hourly Rate',
         'distance' => 'Location',
-        'image' => './pictures/Pawhabilin logo.png',
+        'image' => 'Pawhabilin logo.png',
         'badges' => ['Student', 'Small Pets'],
         'available' => true,
         'pets' => ['Dogs', 'Cats', 'Rabbits']
@@ -47,7 +47,7 @@ $featuredSitters = [
 $featuredProducts = [
     [
         'id' => 1,
-        'name' => 'Premium Dog Kibble 1',
+        'name' => 'Premium Dog Kibble',
         'category' => 'Dog Food',
         'price' => 1299,
         'originalPrice' => 1599,
@@ -125,7 +125,7 @@ $dogLogo = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZX
             <div class="flex h-16 items-center justify-between">
                 <div class="flex items-center space-x-2">
                     <div class="w-24 h-24 rounded-lg overflow-hidden flex items-center justify-center" style="width:77px; height:77px;">
-                        <img src="./pictures/Pawhabilin logo.png" alt="Pawhabilin Logo" class="w-full h-full object-contain" />
+                        <img src="Pawhabilin logo.png" alt="Pawhabilin Logo" class="w-full h-full object-contain" />
                     </div>
                     <span class="text-xl font-semibold bg-gradient-to-r from-orange-600 to-amber-600 bg-clip-text text-transparent" style="font-family: 'La Lou Big', cursive;">
                         Pawhabilin
@@ -133,7 +133,7 @@ $dogLogo = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZX
                 </div>
                 
                 <nav class="hidden md:flex items-center space-x-8">
-                    <a href="#featured-sitters" class="text-muted-foreground hover:text-foreground transition-colors">Find a Sitter</a>
+                    <button onclick="window.location.href='find-sitter.php'" class="...">Find a Pet Sitter</button>
                     <a href="#become-sitter" class="text-muted-foreground hover:text-foreground transition-colors">Become a Sitter</a>
                     <a href="#shop" class="text-muted-foreground hover:text-foreground transition-colors">Shop</a>
                     <a href="#support" class="text-muted-foreground hover:text-foreground transition-colors">Support</a>
@@ -221,7 +221,7 @@ $dogLogo = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZX
                     <h2 class="text-3xl lg:text-4xl font-bold mb-2">Featured Pet Sitters</h2>
                     <p class="text-muted-foreground">Trusted pet care providers near you</p>
                 </div>
-                <button class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2 flex items-center gap-2">
+                <button onclick="window.location.href='find-sitter.php'" class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2 flex items-center gap-2">
                     View All <i data-lucide="chevron-right" class="w-4 h-4"></i>
                 </button>
             </div>

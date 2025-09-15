@@ -58,3 +58,220 @@
 |-- utils/
 |   |-- session.php
 |   |-- helpers.php
+
+
+Database: MySQL
+CREATE TABLE `admin_activity_logs` (
+  `admin_activity_logs_id` int(11) NOT NULL,
+  `admin_id` int(11) NOT NULL,
+  `admin_activity_logs_action` varchar(255) NOT NULL,
+  `admin_activity_logs_details` text DEFAULT NULL,
+  `admin_activity_logs_created_at` datetime DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `appointments`
+--
+
+CREATE TABLE `appointments` (
+  `appointments_id` int(11) NOT NULL,
+  `users_id` int(11) NOT NULL,
+  `pets_id` int(11) NOT NULL,
+  `appointments_type` enum('grooming','vaccination','pet_sitting','other') NOT NULL,
+  `appointments_date` datetime NOT NULL,
+  `sitters_id` int(11) DEFAULT NULL,
+  `aa_id` int(11) DEFAULT NULL,
+  `appointments_status` enum('pending','confirmed','completed','cancelled') DEFAULT NULL,
+  `appointments_notes` text DEFAULT NULL,
+  `appointments_created_at` datetime DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `appointment_address`
+--
+
+CREATE TABLE `appointment_address` (
+  `aa_id` int(11) NOT NULL,
+  `appointments_id` int(11) NOT NULL,
+  `aa_type` enum('client_home','sitter_facility') NOT NULL,
+  `aa_address` varchar(255) DEFAULT NULL,
+  `aa_city` varchar(100) DEFAULT NULL,
+  `aa_postal_code` varchar(20) DEFAULT NULL,
+  `aa_notes` text DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `deliveries`
+--
+
+CREATE TABLE `deliveries` (
+  `deliveries_id` int(11) NOT NULL,
+  `transactions_id` int(11) NOT NULL,
+  `deliveries_address` varchar(255) NOT NULL,
+  `deliveries_city` varchar(100) DEFAULT NULL,
+  `deliveries_postal_code` varchar(20) DEFAULT NULL,
+  `deliveries_delivery_status` enum('processing','out_for_delivery','delivered','cancelled') DEFAULT 'processing',
+  `deliveries_estimated_delivery_date` date DEFAULT NULL,
+  `deliveries_actual_delivery_date` date DEFAULT NULL,
+  `deliveries_recipient_signature` varchar(100) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `pets`
+--
+
+CREATE TABLE `pets` (
+  `pets_id` int(11) NOT NULL,
+  `users_id` int(11) NOT NULL,
+  `pets_name` varchar(100) NOT NULL,
+  `pets_species` varchar(50) DEFAULT NULL,
+  `pets_breed` varchar(100) DEFAULT NULL,
+  `pets_gender` enum('male','female','unknown') DEFAULT NULL,
+  `pets_image_url` varchar(255) DEFAULT NULL,
+  `pets_created_at` datetime DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `pickups`
+--
+
+CREATE TABLE `pickups` (
+  `pickups_id` int(11) NOT NULL,
+  `transactions_id` int(11) NOT NULL,
+  `pickups_pickup_date` date NOT NULL,
+  `pickups_pickup_time` time NOT NULL CHECK (`pickups_pickup_time` between '08:00:00' and '17:00:00'),
+  `pickups_pickup_status` enum('scheduled','picked_up','cancelled') DEFAULT 'scheduled'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `products`
+--
+
+CREATE TABLE `products` (
+  `products_id` int(11) NOT NULL,
+  `products_name` varchar(100) NOT NULL,
+  `products_pet_type` varchar(50) DEFAULT NULL,
+  `products_description` text DEFAULT NULL,
+  `products_category` enum('food','accessory','necessity','toy') DEFAULT NULL,
+  `products_price` decimal(10,2) NOT NULL,
+  `products_stock` varchar(255) DEFAULT NULL,
+  `products_image_url` varchar(255) DEFAULT NULL,
+  `products_active` tinyint(1) DEFAULT 1,
+  `products_created_at` datetime DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `sitters`
+--
+
+CREATE TABLE `sitters` (
+  `sitters_id` int(11) NOT NULL,
+  `sitters_name` varchar(100) NOT NULL,
+  `sitters_bio` text DEFAULT NULL,
+  `sitters_contact` varchar(255) DEFAULT NULL,
+  `sitters_image_url` varchar(255) DEFAULT NULL,
+  `sitters_active` tinyint(1) DEFAULT 1,
+  `sitters_created_at` datetime DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `subscriptions`
+--
+
+CREATE TABLE `subscriptions` (
+  `subscriptions_id` int(11) NOT NULL,
+  `subscriptions_name` varchar(100) NOT NULL,
+  `subscriptions_description` text DEFAULT NULL,
+  `subscriptions_price` decimal(10,2) NOT NULL,
+  `subscriptions_duration_days` int(11) NOT NULL,
+  `subscriptions_active` tinyint(1) DEFAULT 1,
+  `subscriptions_created_at` datetime DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `transactions`
+--
+
+CREATE TABLE `transactions` (
+  `transactions_id` int(11) NOT NULL,
+  `users_id` int(11) NOT NULL,
+  `transactions_amount` decimal(10,2) NOT NULL,
+  `transactions_type` enum('product','appointment','subscription') NOT NULL,
+  `transactions_fulfillment_type` enum('delivery','pickup') DEFAULT NULL,
+  `transactions_payment_method` enum('cod','online') DEFAULT NULL,
+  `transactions_created_at` datetime DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `transaction_products`
+--
+
+CREATE TABLE `transaction_products` (
+  `tp_id` int(11) NOT NULL,
+  `transactions_id` int(11) NOT NULL,
+  `products_id` int(11) NOT NULL,
+  `tp_quantity` varchar(255) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `transaction_subscriptions`
+--
+
+CREATE TABLE `transaction_subscriptions` (
+  `ts_id` int(11) NOT NULL,
+  `transactions_id` int(11) NOT NULL,
+  `us_id` int(11) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `users`
+--
+
+CREATE TABLE `users` (
+  `users_id` int(11) NOT NULL,
+  `users_username` varchar(50) NOT NULL,
+  `users_email` varchar(255) NOT NULL,
+  `users_password_hash` varchar(255) NOT NULL,
+  `users_role` varchar(1) NOT NULL,
+  `users_image_url` varchar(255) DEFAULT NULL,
+  `users_created_at` datetime DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `user_subscriptions`
+--
+
+CREATE TABLE `user_subscriptions` (
+  `us_id` int(11) NOT NULL,
+  `users_id` int(11) NOT NULL,
+  `subscriptions_id` int(11) NOT NULL,
+  `us_start_date` datetime NOT NULL,
+  `us_end_date` datetime DEFAULT NULL,
+  `us_status` enum('active','expired','cancelled') DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;

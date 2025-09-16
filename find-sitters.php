@@ -234,7 +234,7 @@
             <div class="flex h-16 items-center justify-between">
                 <div class="flex items-center space-x-2">
                     <div class="w-24 h-24 rounded-lg overflow-hidden flex items-center justify-center" style="width:77px; height:77px;">
-                        <img src="Pawhabilin logo.png" alt="Pawhabilin Logo" class="w-full h-full object-contain" />
+                        <img src="./pictures/Pawhabilin logo.png" alt="Pawhabilin Logo" class="w-full h-full object-contain" />
                     </div>
                     <a href="index.php" class="text-xl font-semibold bg-gradient-to-r from-orange-600 to-amber-600 bg-clip-text text-transparent" style="font-family: 'La Lou Big', cursive;">
                         Pawhabilin

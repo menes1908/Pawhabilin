@@ -21,7 +21,7 @@ session_start();
   <div class="app">
     <aside class="sidebar" aria-label="Main navigation">
       <div class="brand">
-        <img src="../pictures/Pawhabilin logo.png" alt="logo">
+        <img src="./pictures/Pawhabilin logo.png" alt="logo">
         <h1>Pawhabilin Admin</h1>
       </div>
       <nav class="nav" role="navigation">

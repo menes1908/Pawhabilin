@@ -1,63 +1,63 @@
 / (root)
-|-- index.php                # Landing page, handles routing
+|-- index.php  /             # Landing page, handles routing
 |-- config/
-|   |-- db.php               # Database connection settings
+|   |-- db.php /               # Database connection settings
 |
 |-- models/
-|   |-- User.php
-|   |-- Pet.php
-|   |-- Appointment.php
-|   |-- Product.php
-|   |-- Sitter.php
-|   |-- Subscription.php
-|   |-- Transaction.php
+|   |-- User.php  /
+|   |-- Pet.php /
+|   |-- Appointment.php /
+|   |-- Product.php /
+|   |-- Sitter.php /
+|   |-- Subscription.php /
+|   |-- Transaction.php /
 |
 |-- controllers/
 |   |-- users/
-|   |   |-- AuthController.php           # User login/register
-|   |   |-- PetController.php            # User manage own pets
-|   |   |-- AppointmentController.php    # Book/view own appointments
-|   |   |-- ProductController.php        # Buy/view products
-|   |   |-- SitterController.php         # Book/view sitters
-|   |   |-- SubscriptionController.php   # Subscribe/redeem
+|   |   |-- AuthController.php           # User login/register /
+|   |   |-- PetController.php            # User manage own pets /
+|   |   |-- AppointmentController.php    # Book/view own appointments /
+|   |   |-- ProductController.php        # Buy/view products / 
+|   |   |-- SitterController.php         # Book/view sitters / 
+|   |   |-- SubscriptionController.php   # Subscribe/redeem / 
 |   |
 |   |-- admin/
-|       |-- AdminController.php          # Dashboard, logs, general admin
-|       |-- PetController.php            # View all pets
-|       |-- AppointmentController.php    # View/manage all appointments
-|       |-- ProductController.php        # Add/edit/delete products
-|       |-- SitterController.php         # Add/edit/delete sitters
-|       |-- SubscriptionController.php   # View/manage subscribers
+|       |-- AdminController.php          # Dashboard, logs, general admin /
+|       |-- PetController.php            # View all pets /
+|       |-- AppointmentController.php    # View/manage all appointments /
+|       |-- ProductController.php        # Add/edit/delete products / 
+|       |-- SitterController.php         # Add/edit/delete sitters / 
+|       |-- SubscriptionController.php   # View/manage subscribers /
 |
 |-- views/
 |   |-- users/
-|   |   |-- landing.php                  # User homepage
-|   |   |-- login.php
-|   |   |-- register.php
-|   |   |-- book_grooming.php
+|   |   |-- landing.php            /      # User homepage
+|   |   |-- login.php/
+|   |   |-- register.php/
+|   |   |-- book_grooming.php/
 |   |   |-- book_vaccination.php
-|   |   |-- buy_products.php
-|   |   |-- animal_sitting.php
-|   |   |-- my_pets.php
-|   |   |-- my_appointments.php
+|   |   |-- buy_products.php/
+|   |   |-- animal_sitting.php/
+|   |   |-- my_pets.php/
+|   |   |-- my_appointments.php/
 |   |
 |   |-- admin/
-|       |-- dashboard.php                # Admin landing page
-|       |-- transactions.php
-|       |-- activity_logs.php
-|       |-- manage_sitters.php
-|       |-- manage_products.php
-|       |-- appointments.php
-|       |-- pets.php
-|       |-- subscribers.php
+|       |-- dashboard.php       /         # Admin landing page
+|       |-- transactions.php/
+|       |-- activity_logs.php/
+|       |-- manage_sitters.php/
+|       |-- manage_products.php/
+|       |-- appointments.php/
+|       |-- pets.php/
+|       |-- subscribers.php/
 |
 |-- assets/
 |   |-- css/
 |   |-- js/
 |
 |-- utils/
-|   |-- session.php
-|   |-- helpers.php
+|   |-- session.php /
+|   |-- helpers.php / 
 
 
 Database: MySQL

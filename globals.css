@@ -417,6 +417,20 @@ html {
   transform: rotate(180deg);
 }
 
+/* Dropdown navigation helpers */
+.nav-dropdown {
+  transition: transform 200ms ease, opacity 200ms ease;
+  transform: translateY(8px);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.nav-dropdown.open {
+  transform: translateY(0);
+  opacity: 1;
+  pointer-events: auto;
+}
+
 /* Gradient Text */
 .gradient-text {
   background: linear-gradient(135deg, #f97316, #d97706);

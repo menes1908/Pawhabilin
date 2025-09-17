@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Sep 15, 2025 at 05:30 PM
+-- Generation Time: Sep 17, 2025 at 05:23 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.0.30
 
@@ -219,6 +219,8 @@ CREATE TABLE `transaction_subscriptions` (
 
 CREATE TABLE `users` (
   `users_id` int(11) NOT NULL,
+  `users_firstname` varchar(255) NOT NULL,
+  `users_lastname` varchar(255) NOT NULL,
   `users_username` varchar(50) NOT NULL,
   `users_email` varchar(255) NOT NULL,
   `users_password_hash` varchar(255) NOT NULL,

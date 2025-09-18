@@ -1,20 +1,51 @@
 <?php
 session_start();
+require_once __DIR__ . '/database.php';
+
+$email = '';
 
 // Handle login form submission
-if ($_POST && isset($_POST['email']) && isset($_POST['password'])) {
-    $email = filter_var($_POST['email'], FILTER_SANITIZE_EMAIL);
-    $password = $_POST['password'];
-    
-    // Here you would typically validate against a database
-    // For demo purposes, we'll just simulate a login
-    if (!empty($email) && !empty($password)) {
-        $_SESSION['user_logged_in'] = true;
-        $_SESSION['user_email'] = $email;
-        header('Location: index.php');
-        exit();
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $email = trim(filter_var($_POST['email'] ?? '', FILTER_SANITIZE_EMAIL));
+    $password = $_POST['password'] ?? '';
+
+    if ($email === '' || $password === '') {
+        $error_message = 'Please fill in all fields.';
+    } elseif (!$connections) {
+        $error_message = 'Database connection failed.';
     } else {
-        $error_message = "Please fill in all fields.";
+        $stmt = mysqli_prepare($connections, 'SELECT users_id, users_firstname, users_lastname, users_username, users_email, users_password_hash, users_role FROM users WHERE users_email = ? LIMIT 1');
+        if ($stmt) {
+            mysqli_stmt_bind_param($stmt, 's', $email);
+            mysqli_stmt_execute($stmt);
+            $result = mysqli_stmt_get_result($stmt);
+            if ($row = mysqli_fetch_assoc($result)) {
+                // Compare plain text password as per current storage
+                if ($password === $row['users_password_hash']) {
+                    $_SESSION['user_logged_in'] = true;
+                    $_SESSION['user_id'] = (int)$row['users_id'];
+                    $_SESSION['user_email'] = $row['users_email'];
+                    $_SESSION['user_name'] = $row['users_firstname'];
+                    $_SESSION['user_role'] = $row['users_role'];
+
+                    // Role-based redirect: 1 => admin dashboard, else user dashboard
+                    $role = (string)$row['users_role'];
+                    if ($role === '1' || (int)$role === 1) {
+                        header('Location: views/admin/admin');
+                    } else {
+                        header('Location: views/users/index');
+                    }
+                    exit();
+                } else {
+                    $error_message = 'Invalid email or password.';
+                }
+            } else {
+                $error_message = 'Invalid email or password.';
+            }
+            mysqli_stmt_close($stmt);
+        } else {
+            $error_message = 'Login failed. Please try again.';
+        }
     }
 }
 ?>
@@ -165,7 +196,7 @@ if ($_POST && isset($_POST['email']) && isset($_POST['password'])) {
         }
     </style>
 </head>
-<body class="min-h-screen gradient-bg relative overflow-hidden">
+<body class="min-h-screen gradient-bg relative overflow-x-hidden overflow-y-auto">
     <!-- Animated Background Elements -->
     <div class="absolute inset-0 overflow-hidden pointer-events-none">
         <!-- Floating Paw Prints -->
@@ -197,21 +228,64 @@ if ($_POST && isset($_POST['email']) && isset($_POST['password'])) {
     </div>
 
     <!-- Header -->
-    <header class="relative z-10 border-b glass">
+    <header class="sticky top-0 z-50 border-b bg-background/80 backdrop-blur-sm">
         <div class="container mx-auto px-4">
             <div class="flex h-16 items-center justify-between">
-                <a href="index.php" class="flex items-center space-x-2 group">
-                    <div class="w-10 h-10 rounded-lg overflow-hidden transform group-hover:rotate-12 transition-transform duration-300">
-                        <img src="pictures/Pawhabilin logo.png" alt="Pawhabilin Logo" class="w-full h-full object-cover" />
+                <div class="flex items-center space-x-2">
+                    <div class="w-24 h-24 rounded-lg overflow-hidden flex items-center justify-center" style="width:77px; height:77px;">
+                        <img src="./pictures/Pawhabilin logo.png" alt="Pawhabilin Logo" class="w-full h-full object-contain" />
                     </div>
                     <span class="text-xl font-semibold bg-gradient-to-r from-orange-600 to-amber-600 bg-clip-text text-transparent" style="font-family: 'La Lou Big', cursive;">
                         Pawhabilin
                     </span>
-                </a>
+                </div>
                 
+                <nav class="hidden md:flex items-center space-x-8">
+                    <a href="index" class="text-muted-foreground hover:text-foreground transition-colors">About</a>
+                    <!-- Pet Sitter Dropdown -->
+                    <div class="relative" id="petsitterWrapper">
+                        
+                        <button id="petsitterButton" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="petsitterMenu" class="text-muted-foreground hover:text-foreground transition-colors inline-flex items-center gap-2">
+                            Pet Sitter
+                            <i data-lucide="chevron-down" class="w-4 h-4 transition-transform duration-200"></i>
+                        </button>
+
+                        <div id="petsitterMenu" class="absolute left-0 mt-2 w-56 origin-top-left rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 nav-dropdown transition-all duration-200" role="menu" aria-hidden="true">
+                            <div class="py-1">
+                                <a href="find-sitters" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">Find a Pet Sitter</a>
+                                <a href="views/users/become_sitter" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">Become a Sitter</a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <a href="shop" class="text-muted-foreground hover:text-foreground transition-colors">Shop</a>
+                    
+                    
+                    <div class="relative" id="appointmentsWrapper">
+                        <button id="appointmentsButton" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="appointmentsMenu" class="text-muted-foreground hover:text-foreground transition-colors inline-flex items-center gap-2">
+                            Appointments
+                            <i data-lucide="chevron-down" class="w-4 h-4 transition-transform duration-200"></i>
+                        </button>
+
+                        <div id="appointmentsMenu" class="absolute right-0 mt-2 w-48 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 nav-dropdown transition-all duration-200" role="menu" aria-hidden="true">
+                            <div class="py-1">
+                                <a href="views/users/book_grooming" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">Grooming Appointment</a>
+                                <a href="views/users/book_appointment" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">Vet Appointment</a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <a href="views/users/subscriptions" class="text-muted-foreground hover:text-foreground transition-colors">Subscription</a>
+
+                    
+                    <a href="#support" class="text-muted-foreground hover:text-foreground transition-colors">Support</a>
+                </nav>
+
                 <div class="flex items-center gap-3">
-                    <span class="text-gray-600">Don't have an account?</span>
-                    <a href="registration" class="inline-flex items-center px-4 py-2 border border-orange-200 text-orange-600 hover:bg-orange-50 rounded-lg transition-colors duration-300">
+                    <a href="login" class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2">
+                        Log In
+                    </a>
+                    <a href="registration" class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 h-10 px-4 py-2 bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white">
                         Sign Up
                     </a>
                 </div>
@@ -331,7 +405,7 @@ if ($_POST && isset($_POST['email']) && isset($_POST['password'])) {
                         </div>
 
                         <!-- Login Form -->
-                        <form method="POST" action="login.php" class="space-y-5" id="loginForm">
+                        <form method="POST" action="login" class="space-y-5" id="loginForm">
                             <!-- Email Field -->
                             <div class="space-y-2">
                                 <label class="text-sm font-medium text-gray-700">Email Address</label>
@@ -341,6 +415,7 @@ if ($_POST && isset($_POST['email']) && isset($_POST['password'])) {
                                         name="email"
                                         type="email"
                                         placeholder="Enter your email"
+                                        value="<?php echo htmlspecialchars($email ?? ''); ?>"
                                         class="form-input w-full pl-12 h-12 border border-gray-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 rounded-lg transition-all duration-300 outline-none"
                                         required
                                     />
@@ -381,7 +456,7 @@ if ($_POST && isset($_POST['email']) && isset($_POST['password'])) {
                                     <span class="text-sm text-gray-600 group-hover:text-gray-800 transition-colors duration-300">Remember me</span>
                                 </label>
                                 <a 
-                                    href="forgot-password.php" 
+                                    href="forgot-password" 
                                     class="text-sm text-orange-600 hover:text-orange-700 hover:underline transition-all duration-300"
                                 >
                                     Forgot password?
@@ -632,6 +707,75 @@ if ($_POST && isset($_POST['email']) && isset($_POST['password'])) {
                 }
             });
         }
+    </script>
+    <script>
+        // Dropdown initializer copied from index.php
+        (function() {
+            function initDropdown({ wrapperId, buttonId, menuId }) {
+                const wrapper = document.getElementById(wrapperId);
+                const btn = document.getElementById(buttonId);
+                const menu = document.getElementById(menuId);
+                const chevron = btn && btn.querySelector('i[data-lucide="chevron-down"]');
+                let persist = false;
+                let hoverTimeout = null;
+
+                if (!wrapper || !btn || !menu) return;
+
+                function setOpen(open) {
+                    if (open) {
+                        menu.classList.add('open');
+                        menu.classList.remove('opacity-0');
+                        menu.classList.remove('translate-y-2');
+                        menu.setAttribute('aria-hidden', 'false');
+                        btn.setAttribute('aria-expanded', 'true');
+                        if (chevron) chevron.style.transform = 'rotate(180deg)';
+                    } else {
+                        menu.classList.remove('open');
+                        menu.classList.add('opacity-0');
+                        menu.classList.add('translate-y-2');
+                        menu.setAttribute('aria-hidden', 'true');
+                        btn.setAttribute('aria-expanded', 'false');
+                        if (chevron) chevron.style.transform = '';
+                    }
+                }
+
+                wrapper.addEventListener('mouseenter', function() {
+                    if (hoverTimeout) clearTimeout(hoverTimeout);
+                    setOpen(true);
+                });
+
+                wrapper.addEventListener('mouseleave', function() {
+                    if (persist) return;
+                    hoverTimeout = setTimeout(function() { setOpen(false); }, 150);
+                });
+
+                btn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    persist = !persist;
+                    setOpen(persist);
+                });
+
+                document.addEventListener('click', function(e) {
+                    if (!wrapper.contains(e.target)) {
+                        persist = false;
+                        setOpen(false);
+                    }
+                });
+
+                document.addEventListener('keydown', function(e) {
+                    if (e.key === 'Escape') {
+                        persist = false;
+                        setOpen(false);
+                    }
+                });
+
+                setOpen(false);
+            }
+
+            // Initialize both dropdowns
+            initDropdown({ wrapperId: 'appointmentsWrapper', buttonId: 'appointmentsButton', menuId: 'appointmentsMenu' });
+            initDropdown({ wrapperId: 'petsitterWrapper', buttonId: 'petsitterButton', menuId: 'petsitterMenu' });
+        })();
     </script>
 </body>
 </html>

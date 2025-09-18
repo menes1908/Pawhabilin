@@ -210,7 +210,7 @@ session_start();
     if(document.querySelector('.nav-item.active').dataset.section === 'products') loadProducts()
 
     // simple logout hook
-    document.getElementById('logoutBtn').addEventListener('click', ()=>{ window.location.href = '../logout.php' })
+  document.getElementById('logoutBtn').addEventListener('click', ()=>{ window.location.href = '../users/logout' })
   </script>
 </body>
 </html>

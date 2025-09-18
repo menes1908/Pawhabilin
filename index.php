@@ -133,8 +133,10 @@ $dogLogo = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZX
                 </div>
                 
                 <nav class="hidden md:flex items-center space-x-8">
+                    <a href="index.php" class="text-muted-foreground hover:text-foreground transition-colors">About</a>
                     <!-- Pet Sitter Dropdown -->
                     <div class="relative" id="petsitterWrapper">
+                        
                         <button id="petsitterButton" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="petsitterMenu" class="text-muted-foreground hover:text-foreground transition-colors inline-flex items-center gap-2">
                             Pet Sitter
                             <i data-lucide="chevron-down" class="w-4 h-4 transition-transform duration-200"></i>

@@ -1,32 +1,105 @@
 <?php
 session_start();
+require_once __DIR__ . '/database.php';
 
-// Handle registration form submission
-if ($_POST && isset($_POST['email']) && isset($_POST['password'])) {
-    $full_name = filter_var($_POST['full_name'], FILTER_SANITIZE_STRING);
-    $email = filter_var($_POST['email'], FILTER_SANITIZE_EMAIL);
-    $password = $_POST['password'];
-    $confirm_password = $_POST['confirm_password'];
-    $phone = filter_var($_POST['phone'], FILTER_SANITIZE_STRING);
-    $user_type = filter_var($_POST['user_type'], FILTER_SANITIZE_STRING);
-    $terms_accepted = isset($_POST['terms_accepted']);
-    
-    // Basic validation
-    if (empty($full_name) || empty($email) || empty($password)) {
-        $error_message = "Please fill in all required fields.";
+$errors = [
+    'first_name' => '',
+    'last_name' => '',
+    'username' => '',
+    'email' => '',
+    'password' => '',
+    'confirm_password' => ''
+];
+
+$values = [
+    'first_name' => '',
+    'last_name' => '',
+    'username' => '',
+    'email' => ''
+];
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $values['first_name'] = trim(filter_input(INPUT_POST, 'first_name', FILTER_SANITIZE_FULL_SPECIAL_CHARS));
+    $values['last_name'] = trim(filter_input(INPUT_POST, 'last_name', FILTER_SANITIZE_FULL_SPECIAL_CHARS));
+    $values['username'] = trim(filter_input(INPUT_POST, 'username', FILTER_SANITIZE_FULL_SPECIAL_CHARS));
+    $values['email'] = trim(filter_input(INPUT_POST, 'email', FILTER_SANITIZE_EMAIL));
+    $password = $_POST['password'] ?? '';
+    $confirm_password = $_POST['confirm_password'] ?? '';
+
+    if ($values['first_name'] === '') {
+        $errors['first_name'] = 'First name is required.';
+    }
+    if ($values['last_name'] === '') {
+        $errors['last_name'] = 'Last name is required.';
+    }
+    if ($values['username'] === '') {
+        $errors['username'] = 'Username is required.';
+    } elseif (!preg_match('/^[A-Za-z0-9_\.\-]{3,30}$/', $values['username'])) {
+        $errors['username'] = 'Use 3-30 chars: letters, numbers, _ . - only.';
+    }
+    if ($values['email'] === '' || !filter_var($values['email'], FILTER_VALIDATE_EMAIL)) {
+        $errors['email'] = 'Enter a valid email address.';
+    }
+
+    $policy = '/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/';
+    if ($password === '') {
+        $errors['password'] = 'Password is required.';
+    } elseif (!preg_match($policy, $password)) {
+        $errors['password'] = 'Min 8 chars with 1 uppercase, 1 lowercase, 1 number, 1 special.';
+    }
+    if ($confirm_password === '') {
+        $errors['confirm_password'] = 'Confirm your password.';
     } elseif ($password !== $confirm_password) {
-        $error_message = "Passwords do not match.";
-    } elseif (!$terms_accepted) {
-        $error_message = "Please accept the terms and conditions.";
-    } else {
-        // Here you would typically save to database
-        // For demo purposes, we'll just simulate a successful registration
-        $_SESSION['user_registered'] = true;
-        $_SESSION['user_email'] = $email;
-        $_SESSION['user_name'] = $full_name;
-        $_SESSION['user_type'] = $user_type;
-        header('Location: login.php?registered=1');
-        exit();
+        $errors['confirm_password'] = 'Passwords do not match.';
+    }
+
+    $hasErrors = array_filter($errors, fn($e) => $e !== '');
+
+    if (!$hasErrors) {
+        if (!$connections) {
+            $errors['email'] = 'Database connection failed.';
+        } else {
+            $stmt = mysqli_prepare($connections, 'SELECT users_id, users_username, users_email FROM users WHERE users_username = ? OR users_email = ? LIMIT 1');
+            if ($stmt) {
+                mysqli_stmt_bind_param($stmt, 'ss', $values['username'], $values['email']);
+                mysqli_stmt_execute($stmt);
+                $result = mysqli_stmt_get_result($stmt);
+                if ($row = mysqli_fetch_assoc($result)) {
+                    if (strcasecmp($row['users_username'], $values['username']) === 0) {
+                        $errors['username'] = 'This username is already taken.';
+                    }
+                    if (strcasecmp($row['users_email'], $values['email']) === 0) {
+                        $errors['email'] = 'This email is already registered.';
+                    }
+                }
+                mysqli_stmt_close($stmt);
+            } else {
+                $errors['email'] = 'Could not prepare user lookup.';
+            }
+        }
+    }
+
+    $hasErrors = array_filter($errors, fn($e) => $e !== '');
+
+    if (!$hasErrors) {
+        $hash = $password; 
+        $role = '0';
+        $stmt = mysqli_prepare($connections, 'INSERT INTO users (users_firstname, users_lastname, users_username, users_email, users_password_hash, users_role) VALUES (?, ?, ?, ?, ?, ?)');
+        if ($stmt) {
+            mysqli_stmt_bind_param($stmt, 'ssssss', $values['first_name'], $values['last_name'], $values['username'], $values['email'], $hash, $role);
+            if (mysqli_stmt_execute($stmt)) {
+                $_SESSION['user_registered'] = true;
+                $_SESSION['user_email'] = $values['email'];
+                $_SESSION['user_name'] = $values['first_name'];
+                header('Location: login.php?registered=1');
+                exit();
+            } else {
+                $errors['email'] = 'Registration failed. Please try again.';
+            }
+            mysqli_stmt_close($stmt);
+        } else {
+            $errors['email'] = 'Could not prepare registration.';
+        }
     }
 }
 ?>
@@ -348,9 +421,11 @@ if ($_POST && isset($_POST['email']) && isset($_POST['password'])) {
             <div class="flex h-16 items-center justify-between">
                 <a href="index" class="flex items-center space-x-2 group">
                     <div class="w-10 h-10 rounded-lg overflow-hidden transform group-hover:rotate-12 transition-transform duration-300">
-                        <img src="https://images.unsplash.com/photo-1601758124096-1e57c2b0b5c2?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxkb2clMjBsb2dvJTIwcGV0fGVufDF8fHx8MTc1NjQ1MjEyOXww&ixlib=rb-4.1.0&q=80&w=400" alt="pawhabilin Logo" class="w-full h-full object-contain" />
+                        <img src="pictures/Pawhabilin logo.png" alt="pawhabilin Logo" class="w-full h-full object-cover" />
                     </div>
-                    <span class="text-xl font-semibold">Pawhabilin</span>
+                    <span class="text-xl font-semibold bg-gradient-to-r from-orange-600 to-amber-600 bg-clip-text text-transparent" style="font-family: 'La Lou Big', cursive;">
+                        Pawhabilin
+                    </span>
                 </a>
                 
                 <div class="flex items-center gap-3">
@@ -378,7 +453,7 @@ if ($_POST && isset($_POST['email']) && isset($_POST['password'])) {
                     <h1 class="text-4xl lg:text-5xl font-bold leading-tight">
                         <span class="block text-gray-800">Welcome to the</span>
                         <span class="block bg-gradient-to-r from-orange-600 via-amber-600 to-green-600 bg-clip-text text-transparent">
-                            pawhabilin Family
+                            Pawhabilin Family
                         </span>
                     </h1>
                     
@@ -421,29 +496,7 @@ if ($_POST && isset($_POST['email']) && isset($_POST['password'])) {
                     </div>
                 </div>
 
-                <!-- Testimonial -->
-                <div class="glass rounded-2xl p-6 border border-orange-100">
-                    <div class="flex items-center gap-3 mb-4">
-                        <div class="w-12 h-12 rounded-full overflow-hidden">
-                            <img src="https://images.unsplash.com/photo-1494790108755-2616b612045b?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx3b21hbiUyMHNtaWxpbmd8ZW58MXx8fHwxNzU2NDUyMTI5fDA&ixlib=rb-4.1.0&q=80&w=400" alt="Happy customer" class="w-full h-full object-cover" />
-                        </div>
-                        <div>
-                            <div class="font-semibold text-gray-800">Maria Santos</div>
-                            <div class="text-sm text-gray-600">Pet Parent since 2023</div>
-                        </div>
-                    </div>
-                    <p class="text-gray-600 italic">
-                        "pawhabilin helped me find the perfect sitter for my golden retriever. 
-                        The peace of mind knowing my dog is in loving hands is priceless!"
-                    </p>
-                    <div class="flex items-center gap-1 mt-3">
-                        <i data-lucide="star" class="w-4 h-4 text-yellow-400 fill-current"></i>
-                        <i data-lucide="star" class="w-4 h-4 text-yellow-400 fill-current"></i>
-                        <i data-lucide="star" class="w-4 h-4 text-yellow-400 fill-current"></i>
-                        <i data-lucide="star" class="w-4 h-4 text-yellow-400 fill-current"></i>
-                        <i data-lucide="star" class="w-4 h-4 text-yellow-400 fill-current"></i>
-                    </div>
-                </div>
+                
             </div>
 
             <!-- Right Side - Registration Form -->
@@ -508,73 +561,92 @@ if ($_POST && isset($_POST['email']) && isset($_POST['password'])) {
                         </div>
 
                         <!-- Registration Form -->
-                        <form method="POST" action="registration.php" class="space-y-5" id="registrationForm">
-                            <!-- User Type Selection -->
-                            <div class="space-y-3">
-                                <label class="text-sm font-semibold text-gray-700">I want to:</label>
-                                <div class="grid grid-cols-2 gap-3">
-                                    <div class="user-type-card glass p-4 rounded-xl text-center" onclick="selectUserType('pet_owner', this)">
-                                        <input type="radio" name="user_type" value="pet_owner" class="hidden" checked>
-                                        <i data-lucide="heart" class="card-icon w-8 h-8 mx-auto mb-2 text-gray-400 transition-all duration-300"></i>
-                                        <div class="font-semibold text-sm text-gray-700">Find Pet Care</div>
-                                        <div class="text-xs text-gray-500">I'm a pet parent</div>
-                                    </div>
-                                    <div class="user-type-card glass p-4 rounded-xl text-center" onclick="selectUserType('pet_sitter', this)">
-                                        <input type="radio" name="user_type" value="pet_sitter" class="hidden">
-                                        <i data-lucide="users" class="card-icon w-8 h-8 mx-auto mb-2 text-gray-400 transition-all duration-300"></i>
-                                        <div class="font-semibold text-sm text-gray-700">Provide Pet Care</div>
-                                        <div class="text-xs text-gray-500">I'm a pet sitter</div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Full Name -->
-                            <div class="space-y-2">
-                                <label class="text-sm font-semibold text-gray-700">Full Name *</label>
+                        <form method="POST" action="registration.php" class="space-y-5" id="registrationForm" novalidate>
+                            <!-- First Name -->
+                            <div class="space-y-1">
+                                <label class="text-sm font-semibold text-gray-700" for="first_name">First Name *</label>
                                 <div class="form-group relative">
                                     <i data-lucide="user" class="form-icon absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5 transition-all duration-300"></i>
                                     <input
-                                        name="full_name"
+                                        id="first_name"
+                                        name="first_name"
                                         type="text"
-                                        placeholder="Enter your full name"
+                                        placeholder="Enter your first name"
+                                        value="<?php echo htmlspecialchars($values['first_name'] ?? ''); ?>"
                                         class="form-input w-full pl-12 h-12 border border-gray-200 rounded-lg transition-all duration-300 outline-none bg-white"
                                         required
                                     />
                                 </div>
+                                <?php if (!empty($errors['first_name'])): ?>
+                                    <div class="text-xs text-red-500"><?php echo htmlspecialchars($errors['first_name']); ?></div>
+                                <?php endif; ?>
+                            </div>
+
+                            <!-- Last Name -->
+                            <div class="space-y-1">
+                                <label class="text-sm font-semibold text-gray-700" for="last_name">Last Name *</label>
+                                <div class="form-group relative">
+                                    <i data-lucide="user" class="form-icon absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5 transition-all duration-300"></i>
+                                    <input
+                                        id="last_name"
+                                        name="last_name"
+                                        type="text"
+                                        placeholder="Enter your last name"
+                                        value="<?php echo htmlspecialchars($values['last_name'] ?? ''); ?>"
+                                        class="form-input w-full pl-12 h-12 border border-gray-200 rounded-lg transition-all duration-300 outline-none bg-white"
+                                        required
+                                    />
+                                </div>
+                                <?php if (!empty($errors['last_name'])): ?>
+                                    <div class="text-xs text-red-500"><?php echo htmlspecialchars($errors['last_name']); ?></div>
+                                <?php endif; ?>
+                            </div>
+
+                            <!-- Username -->
+                            <div class="space-y-1">
+                                <label class="text-sm font-semibold text-gray-700" for="username">Username *</label>
+                                <div class="form-group relative">
+                                    <i data-lucide="at-sign" class="form-icon absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5 transition-all duration-300"></i>
+                                    <input
+                                        id="username"
+                                        name="username"
+                                        type="text"
+                                        placeholder="Choose a username"
+                                        value="<?php echo htmlspecialchars($values['username'] ?? ''); ?>"
+                                        class="form-input w-full pl-12 h-12 border border-gray-200 rounded-lg transition-all duration-300 outline-none bg-white"
+                                        required
+                                    />
+                                </div>
+                                <?php if (!empty($errors['username'])): ?>
+                                    <div class="text-xs text-red-500"><?php echo htmlspecialchars($errors['username']); ?></div>
+                                <?php else: ?>
+                                    <div class="text-xs text-gray-500">3-30 chars. Letters, numbers, underscore, dot, or hyphen.</div>
+                                <?php endif; ?>
                             </div>
 
                             <!-- Email -->
-                            <div class="space-y-2">
-                                <label class="text-sm font-semibold text-gray-700">Email Address *</label>
+                            <div class="space-y-1">
+                                <label class="text-sm font-semibold text-gray-700" for="email">Email Address *</label>
                                 <div class="form-group relative">
                                     <i data-lucide="mail" class="form-icon absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5 transition-all duration-300"></i>
                                     <input
+                                        id="email"
                                         name="email"
                                         type="email"
                                         placeholder="Enter your email address"
+                                        value="<?php echo htmlspecialchars($values['email'] ?? ''); ?>"
                                         class="form-input w-full pl-12 h-12 border border-gray-200 rounded-lg transition-all duration-300 outline-none bg-white"
                                         required
                                     />
                                 </div>
-                            </div>
-
-                            <!-- Phone Number -->
-                            <div class="space-y-2">
-                                <label class="text-sm font-semibold text-gray-700">Phone Number</label>
-                                <div class="form-group relative">
-                                    <i data-lucide="phone" class="form-icon absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5 transition-all duration-300"></i>
-                                    <input
-                                        name="phone"
-                                        type="tel"
-                                        placeholder="09XX XXX XXXX"
-                                        class="form-input w-full pl-12 h-12 border border-gray-200 rounded-lg transition-all duration-300 outline-none bg-white"
-                                    />
-                                </div>
+                                <?php if (!empty($errors['email'])): ?>
+                                    <div class="text-xs text-red-500"><?php echo htmlspecialchars($errors['email']); ?></div>
+                                <?php endif; ?>
                             </div>
 
                             <!-- Password -->
-                            <div class="space-y-2">
-                                <label class="text-sm font-semibold text-gray-700">Password *</label>
+                            <div class="space-y-1">
+                                <label class="text-sm font-semibold text-gray-700" for="passwordField">Password *</label>
                                 <div class="form-group relative">
                                     <i data-lucide="lock" class="form-icon absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5 transition-all duration-300"></i>
                                     <input
@@ -595,12 +667,16 @@ if ($_POST && isset($_POST['email']) && isset($_POST['password'])) {
                                     </button>
                                 </div>
                                 <div class="password-strength" id="passwordStrength"></div>
-                                <div class="text-xs text-gray-500" id="passwordHint">Password should be at least 8 characters long</div>
+                                <?php if (!empty($errors['password'])): ?>
+                                    <div class="text-xs text-red-500"><?php echo htmlspecialchars($errors['password']); ?></div>
+                                <?php else: ?>
+                                    <div class="text-xs text-gray-500" id="passwordHint">Min 8 chars, 1 uppercase, 1 lowercase, 1 number, 1 special.</div>
+                                <?php endif; ?>
                             </div>
 
                             <!-- Confirm Password -->
-                            <div class="space-y-2">
-                                <label class="text-sm font-semibold text-gray-700">Confirm Password *</label>
+                            <div class="space-y-1">
+                                <label class="text-sm font-semibold text-gray-700" for="confirmPasswordField">Confirm Password *</label>
                                 <div class="form-group relative">
                                     <i data-lucide="lock" class="form-icon absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5 transition-all duration-300"></i>
                                     <input
@@ -620,36 +696,11 @@ if ($_POST && isset($_POST['email']) && isset($_POST['password'])) {
                                         <i data-lucide="eye" id="eyeIcon2" class="w-5 h-5"></i>
                                     </button>
                                 </div>
-                                <div class="text-xs text-gray-500" id="passwordMatchHint"></div>
-                            </div>
-
-                            <!-- Terms and Conditions -->
-                            <div class="space-y-4">
-                                <label class="flex items-start gap-3 cursor-pointer group">
-                                    <input 
-                                        type="checkbox" 
-                                        name="terms_accepted"
-                                        class="terms-checkbox mt-1"
-                                        required
-                                    />
-                                    <span class="text-sm text-gray-600 leading-relaxed group-hover:text-gray-800 transition-colors duration-300">
-                                        I agree to the 
-                                        <a href="#" class="text-orange-600 hover:text-orange-700 hover:underline font-medium">Terms of Service</a> 
-                                        and 
-                                        <a href="#" class="text-orange-600 hover:text-orange-700 hover:underline font-medium">Privacy Policy</a>
-                                    </span>
-                                </label>
-
-                                <label class="flex items-start gap-3 cursor-pointer group">
-                                    <input 
-                                        type="checkbox" 
-                                        name="newsletter_subscribe"
-                                        class="terms-checkbox mt-1"
-                                    />
-                                    <span class="text-sm text-gray-600 leading-relaxed group-hover:text-gray-800 transition-colors duration-300">
-                                        I'd like to receive updates and special offers via email
-                                    </span>
-                                </label>
+                                <?php if (!empty($errors['confirm_password'])): ?>
+                                    <div class="text-xs text-red-500" id="passwordMatchHint"><?php echo htmlspecialchars($errors['confirm_password']); ?></div>
+                                <?php else: ?>
+                                    <div class="text-xs text-gray-500" id="passwordMatchHint"></div>
+                                <?php endif; ?>
                             </div>
 
                             <!-- Register Button -->

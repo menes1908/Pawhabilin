@@ -402,13 +402,51 @@ function resolveImageUrl($path) {
 
                     <div class="bg-white rounded-lg border border-gray-200">
                         <div class="p-6 border-b border-gray-200">
-                            <div class="flex items-center justify-between">
-                                <h3 class="text-lg font-semibold">Product Inventory</h3>
-                                <div class="flex items-center gap-2">
-                                    <input type="text" placeholder="Search products..." class="px-3 py-2 border border-gray-300 rounded-md w-64">
-                                    <button class="px-3 py-2 border border-gray-300 rounded-md hover:bg-gray-50">
-                                        <i data-lucide="filter" class="w-4 h-4"></i>
-                                    </button>
+                            <div class="flex items-start justify-between gap-4">
+                                <div>
+                                    <h3 class="text-lg font-semibold">Product Inventory</h3>
+                                    <p class="text-sm text-gray-600">Filter by pet types, category, status and stock</p>
+                                </div>
+                                <div class="flex items-center gap-3">
+                                    <div class="relative">
+                                        <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4"></i>
+                                        <input id="productsSearch" type="text" placeholder="Search products..." class="pl-9 pr-3 py-2 border border-gray-300 rounded-md w-72" />
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="mt-4 grid grid-cols-1 lg:grid-cols-4 gap-4">
+                                <div>
+                                    <p class="text-xs font-medium text-gray-500 mb-2">Pet Types</p>
+                                    <div class="flex flex-wrap gap-3 text-sm">
+                                        <label class="inline-flex items-center gap-2"><input type="checkbox" class="form-checkbox" name="petType" value="Dog"> Dog</label>
+                                        <label class="inline-flex items-center gap-2"><input type="checkbox" class="form-checkbox" name="petType" value="Cat"> Cat</label>
+                                        <label class="inline-flex items-center gap-2"><input type="checkbox" class="form-checkbox" name="petType" value="Bird"> Bird</label>
+                                        <label class="inline-flex items-center gap-2"><input type="checkbox" class="form-checkbox" name="petType" value="Fish"> Fish</label>
+                                        <label class="inline-flex items-center gap-2"><input type="checkbox" class="form-checkbox" name="petType" value="Small Pet"> Small Pet</label>
+                                    </div>
+                                </div>
+                                <div>
+                                    <p class="text-xs font-medium text-gray-500 mb-2">Category</p>
+                                    <div class="flex flex-wrap gap-3 text-sm">
+                                        <label class="inline-flex items-center gap-2"><input type="checkbox" class="form-checkbox" name="category" value="food"> Food</label>
+                                        <label class="inline-flex items-center gap-2"><input type="checkbox" class="form-checkbox" name="category" value="accessory"> Accessories</label>
+                                        <label class="inline-flex items-center gap-2"><input type="checkbox" class="form-checkbox" name="category" value="necessity"> Grooming</label>
+                                        <label class="inline-flex items-center gap-2"><input type="checkbox" class="form-checkbox" name="category" value="toy"> Treats</label>
+                                    </div>
+                                </div>
+                                <div>
+                                    <p class="text-xs font-medium text-gray-500 mb-2">Status</p>
+                                    <div class="flex flex-wrap gap-3 text-sm">
+                                        <label class="inline-flex items-center gap-2"><input type="checkbox" class="form-checkbox" name="active" value="1"> Active</label>
+                                        <label class="inline-flex items-center gap-2"><input type="checkbox" class="form-checkbox" name="active" value="0"> Inactive</label>
+                                    </div>
+                                </div>
+                                <div>
+                                    <p class="text-xs font-medium text-gray-500 mb-2">Stock</p>
+                                    <div class="flex flex-wrap gap-3 text-sm">
+                                        <label class="inline-flex items-center gap-2"><input type="checkbox" class="form-checkbox" name="stock" value="in"> In stock (>=1)</label>
+                                        <label class="inline-flex items-center gap-2"><input type="checkbox" class="form-checkbox" name="stock" value="out"> Out of stock (0)</label>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -425,7 +463,68 @@ function resolveImageUrl($path) {
                                     </tr>
                                 </thead>
                                 <tbody id="productsTableBody" class="bg-white divide-y divide-gray-200">
-                                    <!-- Products will be populated by JavaScript -->
+                                    <?php
+                                    // Server-render products from DB
+                                    $rows = [];
+                                    if (isset($connections) && $connections) {
+                                        $q = "SELECT products_id, products_name, products_pet_type, products_category, products_price, products_stock, products_image_url, products_active FROM products ORDER BY products_created_at DESC, products_id DESC";
+                                        if ($res = mysqli_query($connections, $q)) {
+                                            while ($r = mysqli_fetch_assoc($res)) { $rows[] = $r; }
+                                            mysqli_free_result($res);
+                                        }
+                                    }
+                                    $catLabel = function($c){
+                                        switch ($c) {
+                                            case 'food': return 'Food';
+                                            case 'accessory': return 'Accessories';
+                                            case 'necessity': return 'Grooming';
+                                            case 'toy': return 'Treats';
+                                            default: return htmlspecialchars((string)$c);
+                                        }
+                                    };
+                                    if (empty($rows)):
+                                    ?>
+                                        <tr><td colspan="6" class="px-6 py-6 text-center text-gray-500">No products found.</td></tr>
+                                    <?php else: foreach ($rows as $p): ?>
+                                        <tr data-name="<?php echo htmlspecialchars(strtolower($p['products_name'])); ?>"
+                                            data-pet-type="<?php echo htmlspecialchars($p['products_pet_type'] ?? ''); ?>"
+                                            data-category="<?php echo htmlspecialchars($p['products_category'] ?? ''); ?>"
+                                            data-active="<?php echo (int)($p['products_active'] ?? 0); ?>"
+                                            data-stock="<?php echo is_numeric($p['products_stock']) ? (int)$p['products_stock'] : 0; ?>">
+                                            <td class="px-6 py-4 whitespace-nowrap">
+                                                <div class="flex items-center gap-3">
+                                                    <div class="w-10 h-10 rounded-lg overflow-hidden bg-gray-100 flex items-center justify-center">
+                                                        <?php if (!empty($p['products_image_url'])): ?>
+                                                            <img src="<?php echo htmlspecialchars(resolveImageUrl($p['products_image_url'])); ?>" alt="<?php echo htmlspecialchars($p['products_name']); ?>" class="w-full h-full object-cover">
+                                                        <?php else: ?>
+                                                            <i data-lucide="image" class="w-4 h-4 text-gray-400"></i>
+                                                        <?php endif; ?>
+                                                    </div>
+                                                    <div>
+                                                        <p class="font-medium"><?php echo htmlspecialchars($p['products_name']); ?></p>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900"><?php echo $catLabel($p['products_category']); ?></td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">₱<?php echo number_format((float)$p['products_price'], 2); ?></td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900"><?php echo htmlspecialchars((string)$p['products_stock']); ?></td>
+                                            <td class="px-6 py-4 whitespace-nowrap">
+                                                <span class="px-2 py-1 text-xs rounded-full <?php echo (int)$p['products_active'] === 1 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'; ?>">
+                                                    <?php echo (int)$p['products_active'] === 1 ? 'Active' : 'Inactive'; ?>
+                                                </span>
+                                            </td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                <div class="flex items-center gap-2">
+                                                    <button class="p-1 text-gray-400 hover:text-gray-600" title="Edit">
+                                                        <i data-lucide="edit" class="w-4 h-4"></i>
+                                                    </button>
+                                                    <button class="p-1 text-red-400 hover:text-red-600" title="Delete">
+                                                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    <?php endforeach; endif; ?>
                                 </tbody>
                             </table>
                         </div>
@@ -681,34 +780,65 @@ function resolveImageUrl($path) {
                     <i data-lucide="x" class="w-5 h-5"></i>
                 </button>
             </div>
-            <form id="addProductForm" class="space-y-4">
+            <form id="addProductForm" class="space-y-4" enctype="multipart/form-data">
+                <input type="hidden" name="action" value="add">
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Product Name</label>
-                    <input type="text" name="productName" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Category</label>
-                    <select name="category" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500">
-                        <option value="">Select category</option>
-                        <option value="Dog Food">Dog Food</option>
-                        <option value="Cat Food">Cat Food</option>
-                        <option value="Toys">Toys</option>
-                        <option value="Accessories">Accessories</option>
-                    </select>
+                    <input type="text" name="products_name" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500">
                 </div>
                 <div class="grid grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Price (₱)</label>
-                        <input type="number" name="price" required min="0" step="0.01" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Product Pet Type</label>
+                        <select name="products_pet_type" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500">
+                            <option value="">Select pet type</option>
+                            <option value="Dog">Dog</option>
+                            <option value="Cat">Cat</option>
+                            <option value="Bird">Bird</option>
+                            <option value="Fish">Fish</option>
+                            <option value="Small Pet">Small Pet</option>
+                        </select>
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Stock</label>
-                        <input type="number" name="stock" required min="0" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Product Category</label>
+                        <select name="products_category" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500">
+                            <option value="">Select category</option>
+                            <option value="food">Food</option>
+                            <option value="accessories">Accessories</option>
+                            <option value="grooming">Grooming</option>
+                            <option value="treats">Treats</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Product Price (₱)</label>
+                        <input type="number" name="products_price" required min="0" step="0.01" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Product Stock</label>
+                        <input type="number" name="products_stock" required min="0" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500">
                     </div>
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                    <textarea name="description" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"></textarea>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Product Description</label>
+                    <textarea name="products_description" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"></textarea>
+                </div>
+                <div class="grid grid-cols-1 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Product Image (jpeg, png)</label>
+                        <input type="file" name="products_image" id="products_image" accept="image/jpeg,image/png" class="w-full px-3 py-2 border border-gray-300 rounded-md">
+                        <div class="mt-2 flex items-center gap-3">
+                            <div class="w-20 h-20 rounded border border-gray-200 overflow-hidden bg-gray-50 flex items-center justify-center">
+                                <img id="imagePreview" alt="Preview" class="w-full h-full object-cover hidden" />
+                                <span id="imagePlaceholder" class="text-xs text-gray-400">No image</span>
+                            </div>
+                            <button type="button" id="clearImageBtn" class="text-sm text-gray-600 underline hidden">Remove</button>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <input type="checkbox" id="products_active" name="products_active" class="h-4 w-4 text-orange-600 border-gray-300 rounded" checked>
+                        <label for="products_active" class="text-sm text-gray-700">Product Active</label>
+                    </div>
                 </div>
                 <div class="flex gap-2 pt-4">
                     <button type="submit" class="flex-1 bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white py-2 rounded-md">Add Product</button>
@@ -816,35 +946,7 @@ function resolveImageUrl($path) {
             }
         };
 
-        const mockProducts = [
-            {
-                id: 1,
-                name: "Premium Dog Kibble",
-                category: "Dog Food",
-                price: 1299,
-                stock: 45,
-                status: "active",
-                image: "https://images.unsplash.com/photo-1572950947301-fb417712da10?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxwcmVtaXVtJTIwZG9nJTIwZm9vZCUyMGtpYmJsZXxlbnwxfHx8fDE3NTY1NDM3MTV8MA&ixlib=rb-4.1.0&q=80&w=1080"
-            },
-            {
-                id: 2,
-                name: "Nutritious Cat Food",
-                category: "Cat Food",
-                price: 899,
-                stock: 23,
-                status: "active",
-                image: "https://images.unsplash.com/photo-1734654901149-02a9a5f7993b?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxjYXQlMjBmb29kJTIwYm93bHxlbnwxfHx8fDE3NTY1MDk4MzR8MA&ixlib=rb-4.1.0&q=80&w=1080"
-            },
-            {
-                id: 3,
-                name: "Interactive Dog Toy",
-                category: "Toys",
-                price: 459,
-                stock: 0,
-                status: "out_of_stock",
-                image: "https://images.unsplash.com/photo-1659700097688-f26bf79735af?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxkb2clMjB0b3klMjByb3BlJTIwYmFsbHxlbnwxfHx8fDE3NTY0Njk1Mjd8MA&ixlib=rb-4.1.0&q=80&w=1080"
-            }
-        ];
+        // Removed mockProducts; now rendered from DB in PHP
 
         const mockSitters = [
             {
@@ -969,11 +1071,11 @@ function resolveImageUrl($path) {
         document.addEventListener('DOMContentLoaded', function() {
             lucide.createIcons();
             updateChart();
-            populateProducts();
             populateSitters();
             populateAppointments();
             populatePetOwners();
             populateSubscribers();
+            initProductFilters();
         });
 
         // Sidebar functions
@@ -1115,42 +1217,7 @@ function resolveImageUrl($path) {
         }
 
         // Data population functions
-        function populateProducts() {
-            const tbody = document.getElementById('productsTableBody');
-            tbody.innerHTML = mockProducts.map(product => `
-                <tr>
-                    <td class="px-6 py-4 whitespace-nowrap">
-                        <div class="flex items-center gap-3">
-                            <div class="w-10 h-10 rounded-lg overflow-hidden">
-                                <img src="${product.image}" alt="${product.name}" class="w-full h-full object-cover">
-                            </div>
-                            <div>
-                                <p class="font-medium">${product.name}</p>
-                            </div>
-                        </div>
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${product.category}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">₱${product.price.toLocaleString()}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${product.stock}</td>
-                    <td class="px-6 py-4 whitespace-nowrap">
-                        <span class="px-2 py-1 text-xs rounded-full ${product.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
-                            ${product.status === 'active' ? 'Active' : 'Out of Stock'}
-                        </span>
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        <div class="flex items-center gap-2">
-                            <button class="p-1 text-gray-400 hover:text-gray-600">
-                                <i data-lucide="edit" class="w-4 h-4"></i>
-                            </button>
-                            <button class="p-1 text-red-400 hover:text-red-600">
-                                <i data-lucide="trash-2" class="w-4 h-4"></i>
-                            </button>
-                        </div>
-                    </td>
-                </tr>
-            `).join('');
-            lucide.createIcons();
-        }
+        // Removed populateProducts(); products now server-rendered.
 
         function populateSitters() {
             const tbody = document.getElementById('sittersTableBody');
@@ -1362,12 +1429,101 @@ function resolveImageUrl($path) {
         }
 
         // Form handlers
-        document.getElementById('addProductForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-            // Handle product addition here
-            alert('Product added successfully!');
-            closeAddProductModal();
-        });
+        // Add product form handler (AJAX)
+        (function(){
+            const form = document.getElementById('addProductForm');
+            const imgInput = document.getElementById('products_image');
+            const preview = document.getElementById('imagePreview');
+            const placeholder = document.getElementById('imagePlaceholder');
+            const clearBtn = document.getElementById('clearImageBtn');
+
+            function resetPreview(){
+                preview.src = '';
+                preview.classList.add('hidden');
+                placeholder.classList.remove('hidden');
+                clearBtn.classList.add('hidden');
+            }
+
+            imgInput.addEventListener('change', function(){
+                const file = this.files && this.files[0];
+                if (file) {
+                    const url = URL.createObjectURL(file);
+                    preview.src = url;
+                    preview.classList.remove('hidden');
+                    placeholder.classList.add('hidden');
+                    clearBtn.classList.remove('hidden');
+                } else {
+                    resetPreview();
+                }
+            });
+
+            clearBtn.addEventListener('click', function(){
+                imgInput.value = '';
+                resetPreview();
+            });
+
+            form.addEventListener('submit', async function(e){
+                e.preventDefault();
+                const fd = new FormData(form);
+                try {
+                    const res = await fetch('../../controllers/admin/productcontroller.php?action=add', {
+                        method: 'POST',
+                        body: fd
+                    });
+                    const data = await res.json();
+                    if (!data.success) throw new Error(data.error || 'Failed to add product');
+
+                    // Update table without full reload
+                    const tbody = document.getElementById('productsTableBody');
+                    const p = data.item;
+                    const row = document.createElement('tr');
+                    row.setAttribute('data-name', (p.name || '').toLowerCase());
+                    row.setAttribute('data-pet-type', p.pet_type || '');
+                    row.setAttribute('data-category', p.category_value || '');
+                    row.setAttribute('data-active', p.active ? '1' : '0');
+                    row.setAttribute('data-stock', String(p.stock_int ?? 0));
+                    row.innerHTML = `
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 rounded-lg overflow-hidden">
+                                    ${p.image ? `<img src="${p.image}" alt="${p.name}" class="w-full h-full object-cover">` : ''}
+                                </div>
+                                <div><p class="font-medium">${p.name}</p></div>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${p.category}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">₱${Number(p.price).toLocaleString()}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${p.stock}</td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="px-2 py-1 text-xs rounded-full ${p.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
+                                ${p.status === 'active' ? 'Active' : 'Inactive'}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            <div class="flex items-center gap-2">
+                                <button class="p-1 text-gray-400 hover:text-gray-600">
+                                    <i data-lucide="edit" class="w-4 h-4"></i>
+                                </button>
+                                <button class="p-1 text-red-400 hover:text-red-600">
+                                    <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                </button>
+                            </div>
+                        </td>`;
+                    tbody.prepend(row);
+                    lucide.createIcons();
+
+                    // Re-apply filters after adding
+                    applyProductFilters();
+
+                    alert('Product added successfully!');
+                    closeAddProductModal();
+                    form.reset();
+                    resetPreview();
+                } catch (err) {
+                    alert(err.message);
+                }
+            });
+        })();
 
         document.getElementById('addSitterForm').addEventListener('submit', function(e) {
             e.preventDefault();
@@ -1416,6 +1572,90 @@ function resolveImageUrl($path) {
         })();
 
         // Edit profile modal removed; no helper functions needed
+
+        // Products filtering and search
+        function initProductFilters() {
+            const search = document.getElementById('productsSearch');
+            const filterInputs = Array.from(document.querySelectorAll('input[name="petType"], input[name="category"], input[name="active"], input[name="stock"]'));
+
+            let debounceTimer;
+            function onSearchInput() {
+                clearTimeout(debounceTimer);
+                debounceTimer = setTimeout(applyProductFilters, 120);
+            }
+
+            if (search) search.addEventListener('input', onSearchInput);
+            filterInputs.forEach(el => el.addEventListener('change', applyProductFilters));
+
+            applyProductFilters();
+        }
+
+        function getCheckedValues(name) {
+            return Array.from(document.querySelectorAll(`input[name="${name}"]:checked`)).map(el => el.value);
+        }
+
+        function applyProductFilters() {
+            const searchVal = (document.getElementById('productsSearch')?.value || '').trim().toLowerCase();
+            const petTypes = getCheckedValues('petType');
+            const categories = getCheckedValues('category');
+            const actives = getCheckedValues('active');
+            const stockFilters = getCheckedValues('stock');
+
+            const rows = Array.from(document.querySelectorAll('#productsTableBody tr'));
+            rows.forEach(row => {
+                if (row.querySelector('td')?.getAttribute('colspan') === '6') {
+                    // Skip the "No products" row
+                    return;
+                }
+
+                const name = row.getAttribute('data-name') || '';
+                const pet = row.getAttribute('data-pet-type') || '';
+                const cat = row.getAttribute('data-category') || '';
+                const active = row.getAttribute('data-active') || '';
+                const stockVal = parseInt(row.getAttribute('data-stock') || '0', 10);
+
+                let visible = true;
+
+                // Search: show if name includes any letter typed (even single letter)
+                if (searchVal && !name.includes(searchVal)) visible = false;
+
+                // Pet type filter
+                if (visible && petTypes.length > 0 && !petTypes.includes(pet)) visible = false;
+
+                // Category filter (values match enum values in DB)
+                if (visible && categories.length > 0 && !categories.includes(cat)) visible = false;
+
+                // Active filter (row has '1' or '0')
+                if (visible && actives.length > 0 && !actives.includes(active)) visible = false;
+
+                // Stock filter
+                if (visible && stockFilters.length > 0) {
+                    const inSelected = stockFilters.includes('in');
+                    const outSelected = stockFilters.includes('out');
+                    const isIn = stockVal >= 1;
+                    const isOut = stockVal === 0;
+                    if (!( (inSelected && isIn) || (outSelected && isOut) )) visible = false;
+                }
+
+                row.style.display = visible ? '' : 'none';
+            });
+
+            // Toggle empty state row
+            const tbody = document.getElementById('productsTableBody');
+            const dataRows = rows.filter(r => !(r.querySelector('td')?.getAttribute('colspan') === '6'));
+            const anyVisible = dataRows.some(r => r.style.display !== 'none');
+            let emptyRow = tbody.querySelector('tr[data-empty]');
+            if (!anyVisible) {
+                if (!emptyRow) {
+                    emptyRow = document.createElement('tr');
+                    emptyRow.setAttribute('data-empty', '1');
+                    emptyRow.innerHTML = '<td colspan="6" class="px-6 py-6 text-center text-gray-500">No products match your filters.</td>';
+                    tbody.appendChild(emptyRow);
+                }
+            } else if (emptyRow) {
+                emptyRow.remove();
+            }
+        }
     </script>
 </body>
 </html>

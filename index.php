@@ -204,36 +204,6 @@ $dogLogo = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZX
                     </p>
                 </div>
 
-                <!-- Search Bar -->
-                <div class="max-w-2xl mx-auto">
-                    <div class="rounded-lg border bg-card text-card-foreground shadow-sm p-6 shadow-lg bg-white/80 backdrop-blur-sm border-0">
-                        <form class="flex flex-col md:flex-row gap-4" method="GET" action="search.php">
-                            <div class="flex-1 relative">
-                                <i data-lucide="map-pin" class="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4"></i>
-                                <input 
-                                    type="text" 
-                                    name="location"
-                                    placeholder="Enter your location" 
-                                    class="flex h-12 w-full rounded-md border border-gray-200 bg-background px-3 py-2 pl-10 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 focus:border-orange-500"
-                                />
-                            </div>
-                            <div class="flex-1 relative">
-                                <i data-lucide="calendar" class="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4"></i>
-                                <input 
-                                    type="text" 
-                                    name="date"
-                                    placeholder="When do you need care?" 
-                                    class="flex h-12 w-full rounded-md border border-gray-200 bg-background px-3 py-2 pl-10 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 focus:border-orange-500"
-                                />
-                            </div>
-                            <button type="submit" class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 h-12 px-8 bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white">
-                                <i data-lucide="search" class="w-4 h-4 mr-2"></i>
-                                Find Sitters
-                            </button>
-                        </form>
-                    </div>
-                </div>
-
                 <!-- Stats -->
                 <div class="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-3xl mx-auto pt-8">
                     <?php foreach ($stats as $stat): ?>

@@ -551,7 +551,9 @@ $dogLogo = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZX
                         <div class="w-24 h-24 rounded-lg overflow-hidden flex items-center justify-center" style="width:77px; height:77px;">
                             <img src="./pictures/Pawhabilin logo.png" alt="Pawhabilin Logo" class="w-full h-full object-contain" />
                         </div>
-                        <span class="text-xl font-semibold brand-font">pawhabilin</span>
+                        <span class="text-xl font-semibold bg-gradient-to-r from-orange-600 to-amber-600 bg-clip-text text-transparent" style="font-family: 'La Lou Big', cursive;">
+                        Pawhabilin
+                    </span>
                     </div>
                     <p class="text-gray-400">
                         The Philippines' most trusted pet sitting platform connecting pet parents with verified pet care providers.

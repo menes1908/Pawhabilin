@@ -35,3 +35,18 @@ input,select,textarea{width:100%;padding:8px;margin-top:6px;margin-bottom:12px;b
 .small{font-size:13px;color:var(--muted)}
 img.preview{max-width:120px;border-radius:8px}
 @media (max-width:700px){.sidebar{display:none}.app{flex-direction:column}.content{padding:12px}}
+
+/* Profile floating menu */
+.profile-menu{position:absolute;right:0;margin-top:8px;width:256px;background:#fff;border:1px solid #e5e7eb;border-radius:10px;box-shadow:0 10px 25px rgba(0,0,0,.12);z-index:50}
+.profile-menu .header{display:flex;gap:12px;align-items:center;padding:12px;border-bottom:1px solid #f3f4f6}
+.profile-menu .name{font-weight:600;color:#111827;font-size:14px}
+.profile-menu .email{color:#6b7280;font-size:12px}
+.profile-menu .item{display:block;padding:8px 12px;border-radius:8px;color:#b91c1c}
+.profile-menu .item:hover{background:#fef2f2}
+
+/* Dark mode compatibility */
+body.theme-dark .profile-menu{background:#0b1220;border-color:#1f2937}
+body.theme-dark .profile-menu .header{border-color:#1f2937}
+body.theme-dark .profile-menu .name{color:#e2e8f0}
+body.theme-dark .profile-menu .email{color:#94a3b8}
+body.theme-dark .profile-menu .item:hover{background:#1f2937}

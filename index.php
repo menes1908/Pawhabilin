@@ -103,8 +103,7 @@ $stats = [
     ['number' => '24/7', 'label' => 'Support']
 ];
 
-// Dog logo from the figma asset
-$dogLogo = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTIwIDM4QzMwLjQ5MzQgMzggMzkgMjkuNDkzNCAzOSAyMEMzOSAxMC41MDY2IDMwLjQ5MzQgMiAyMCAyQzEzLjc5NzQgMiA4LjM4ODk0IDUuNjU2ODUgNS42NDAzNyAxMC45NDI3QzQuNTgyODUgMTIuODMxOSA0IDEzLjg2OTUgNCAyMEM0IDI5LjQ5MzQgMTIuNTA2NiAzOCAyMCAzOFoiIGZpbGw9IiNGRkI4NzAiLz4KPGNpcmNsZSBjeD0iMTUiIGN5PSIxNyIgcj0iMiIgZmlsbD0iIzAwMDAwMCIvPgo8Y2lyY2xlIGN4PSIyNSIgY3k9IjE3IiByPSIyIiBmaWxsPSIjMDAwMDAwIi8+CjxwYXRoIGQ9Ik0xNiAyNEMyMCAyOCAyNCAyNCAyOCAyMCIgc3Ryb2tlPSIjMDAwMDAwIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgo8L3N2Zz4K';
+
 ?>
 
 <!DOCTYPE html>
@@ -161,7 +160,7 @@ $dogLogo = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZX
 
                         <div id="appointmentsMenu" class="absolute right-0 mt-2 w-48 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 nav-dropdown transition-all duration-200" role="menu" aria-hidden="true">
                             <div class="py-1">
-                                <a href="views/users/book_grooming.php" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">Grooming Appointment</a>
+                                <a href="models/appointment.php" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">Grooming Appointment</a>
                                 <a href="views/users/book_appointment.php" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">Vet Appointment</a>
                             </div>
                         </div>

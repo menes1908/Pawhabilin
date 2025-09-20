@@ -90,7 +90,7 @@
             <div class="flex h-16 items-center justify-between">
                 <div class="flex items-center space-x-2">
                     <div class="w-24 h-24 rounded-lg overflow-hidden flex items-center justify-center" style="width:77px; height:77px;">
-                        <img src="./pictures/Pawhabilin logo.png" alt="Pawhabilin Logo" class="w-full h-full object-contain" />
+                        <img src="../../pictures/Pawhabilin logo.png" alt="Pawhabilin Logo" class="w-full h-full object-contain" />
                     </div>
                     <span class="text-xl font-semibold bg-gradient-to-r from-orange-600 to-amber-600 bg-clip-text text-transparent" style="font-family: 'La Lou Big', cursive;">
                         Pawhabilin
@@ -101,13 +101,11 @@
                     <a href="index.php" class="text-muted-foreground hover:text-foreground transition-colors">About</a>
                     <!-- Pet Sitter Dropdown -->
                     <div class="relative" id="petsitterWrapper">
-                        
                         <button id="petsitterButton" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="petsitterMenu" class="text-muted-foreground hover:text-foreground transition-colors inline-flex items-center gap-2">
                             Pet Sitter
                             <i data-lucide="chevron-down" class="w-4 h-4 transition-transform duration-200"></i>
                         </button>
-
-                        <div id="petsitterMenu" class="absolute left-0 mt-2 w-56 origin-top-left rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 nav-dropdown transition-all duration-200" role="menu" aria-hidden="true">
+                        <div id="petsitterMenu" class="absolute left-0 mt-2 w-56 origin-top-left rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 nav-dropdown transition-all duration-200 hidden" role="menu" aria-hidden="true">
                             <div class="py-1">
                                 <a href="find-sitters" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">Find a Pet Sitter</a>
                                 <a href="views/users/become_sitter.php" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">Become a Sitter</a>
@@ -124,7 +122,7 @@
                             <i data-lucide="chevron-down" class="w-4 h-4 transition-transform duration-200"></i>
                         </button>
 
-                        <div id="appointmentsMenu" class="absolute right-0 mt-2 w-48 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 nav-dropdown transition-all duration-200" role="menu" aria-hidden="true">
+                        <div id="appointmentsMenu" class="absolute right-0 mt-2 w-48 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 nav-dropdown transition-all duration-200 hidden" role="menu" aria-hidden="true">
                             <div class="py-1">
                                 <a href="models/appointment.php" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">Grooming Appointment</a>
                                 <a href="views/users/book_appointment.php" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">Vet Appointment</a>
@@ -594,6 +592,46 @@
 
         // Run stats animation after page loads
         setTimeout(animateStats, 500);
+
+        // Dropdown logic for Pet Sitter and Appointments
+        function setupDropdown(buttonId, menuId) {
+            const button = document.getElementById(buttonId);
+            const menu = document.getElementById(menuId);
+
+            button.addEventListener('click', function(e) {
+                e.stopPropagation();
+                const expanded = menu.classList.contains('hidden');
+                document.querySelectorAll('.nav-dropdown').forEach(d => d.classList.add('hidden'));
+                menu.classList.toggle('hidden', !expanded);
+                button.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+                menu.setAttribute('aria-hidden', expanded ? 'false' : 'true');
+            });
+        }
+
+        setupDropdown('petsitterButton', 'petsitterMenu');
+        setupDropdown('appointmentsButton', 'appointmentsMenu');
+
+        // Hide dropdowns when clicking outside
+        document.addEventListener('click', function(e) {
+            document.querySelectorAll('.nav-dropdown').forEach(menu => {
+                if (!menu.classList.contains('hidden')) {
+                    menu.classList.add('hidden');
+                    // update ARIA attributes
+                    const btn = menu.parentElement.querySelector('button');
+                    if (btn) {
+                        btn.setAttribute('aria-expanded', 'false');
+                    }
+                    menu.setAttribute('aria-hidden', 'true');
+                }
+            });
+        });
+
+        // Prevent closing when clicking inside dropdown
+        document.querySelectorAll('.nav-dropdown').forEach(menu => {
+            menu.addEventListener('click', function(e) {
+                e.stopPropagation();
+            });
+        });
     </script>
 </body>
 </html>

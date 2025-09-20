@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Sep 17, 2025 at 05:23 PM
+-- Generation Time: Sep 20, 2025 at 07:33 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.0.30
 
@@ -138,6 +138,23 @@ CREATE TABLE `products` (
   `products_created_at` datetime DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+--
+-- Dumping data for table `products`
+--
+
+INSERT INTO `products` (`products_id`, `products_name`, `products_pet_type`, `products_description`, `products_category`, `products_price`, `products_stock`, `products_image_url`, `products_active`, `products_created_at`) VALUES
+(1, 'Goodest Tuna', 'Cat', 'Offer complete and balanced nutrition made with real tuna, natural ingredients, and added vitamins and minerals to support overall health', 'food', 70.00, '50', 'pictures/products/Tender-Tuna-1-1758305460-1056.png', 1, '2025-09-20 02:11:00'),
+(2, 'Pedigree ADULT Food', 'Dog', 'a budget-friendly line of complete and balanced dry and wet food designed to meet the needs of adult dogs, focusing on four key areas: healthy skin and coat (from omega-6 fatty acids and zinc), a strong immune system (via vitamins and minerals), good digestion (with dietary fiber), and dental care (through its kibble texture)', 'food', 250.00, '15', 'pictures/products/jsdoqberm33yvec6iqx6-1758306068-3183.png', 0, '2025-09-20 02:21:08'),
+(3, 'Kibbles n\' Bits', 'Dog', 'dry dog food known for its unique dual-textured food, which combines crunchy kibble with tender, meaty bits for a satisfying and flavorful meal', 'food', 300.00, '30', 'pictures/products/Kibblesn-Bits-Original-Beef-Chicken-Dry-Dog-Food-3-5LB-1024x1024-1758340461-5998.png', 1, '2025-09-20 11:54:21'),
+(4, 'Kibbles n\' Bits MINI BITS', 'Dog', 'small, dry dog food kibbles designed for small breeds, though suitable for all sizes, with flavors like bacon & steak or beef & chicken, featuring crunchy and tender, meat-filled pieces easy to chew and digest', 'food', 250.00, '25', 'pictures/products/Kibblesn-Bits-Bacon-Steak-Flavor-Small-Breeds-Dry-Dog-Food-3-5LB-1758340519-5469.png', 0, '2025-09-20 11:55:19'),
+(5, 'qwaed', 'Dog', 'aqwrfasdf', 'accessory', 23.00, '231', NULL, 1, '2025-09-20 12:04:58'),
+(6, '23qrwa', 'Bird', 'adwasd', 'necessity', 333.00, '23', NULL, 0, '2025-09-20 12:05:12'),
+(7, '23qrweqard', 'Small Pet', 'aes fdsfewas', 'necessity', 234.00, '1234', NULL, 0, '2025-09-20 12:05:26'),
+(8, '23qwra', 'Cat', 'waqdc', 'necessity', 234.00, '234', NULL, 1, '2025-09-20 12:05:36'),
+(9, 'q3awr3weqr', 'Cat', '23wetfesdf', 'necessity', 345.00, '234', NULL, 1, '2025-09-20 12:05:50'),
+(10, 't43wegdxz', 'Bird', 'sdregsdfg', 'necessity', 3425.00, '324', NULL, 1, '2025-09-20 12:06:20'),
+(11, '345rt', 'Bird', '6346', 'necessity', 345.00, '234', NULL, 1, '2025-09-20 12:06:36');
+
 -- --------------------------------------------------------
 
 --
@@ -148,7 +165,10 @@ CREATE TABLE `sitters` (
   `sitters_id` int(11) NOT NULL,
   `sitters_name` varchar(100) NOT NULL,
   `sitters_bio` text DEFAULT NULL,
+  `sitter_email` varchar(255) NOT NULL,
   `sitters_contact` varchar(255) DEFAULT NULL,
+  `sitter_specialty` varchar(255) NOT NULL,
+  `sitter_experience` varchar(255) NOT NULL,
   `sitters_image_url` varchar(255) DEFAULT NULL,
   `sitters_active` tinyint(1) DEFAULT 1,
   `sitters_created_at` datetime DEFAULT current_timestamp()
@@ -228,6 +248,13 @@ CREATE TABLE `users` (
   `users_image_url` varchar(255) DEFAULT NULL,
   `users_created_at` datetime DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `users`
+--
+
+INSERT INTO `users` (`users_id`, `users_firstname`, `users_lastname`, `users_username`, `users_email`, `users_password_hash`, `users_role`, `users_image_url`, `users_created_at`) VALUES
+(1, 'Admin', '', 'ADMIN', 'admin256@admin.com', 'Abcd@1234', '1', NULL, '2025-09-18 21:52:11');
 
 -- --------------------------------------------------------
 
@@ -393,7 +420,7 @@ ALTER TABLE `pickups`
 -- AUTO_INCREMENT for table `products`
 --
 ALTER TABLE `products`
-  MODIFY `products_id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `products_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=12;
 
 --
 -- AUTO_INCREMENT for table `sitters`
@@ -429,7 +456,7 @@ ALTER TABLE `transaction_subscriptions`
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
-  MODIFY `users_id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `users_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT for table `user_subscriptions`

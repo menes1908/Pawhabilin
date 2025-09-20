@@ -101,6 +101,59 @@ function resolveImageUrl($path) {
             transform: translateY(-2px);
             box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
         }
+
+        /* Smooth scaling/transition for sidebar + content shift */
+        .sidebar-transition {
+            transition: width 0.22s ease, transform 0.22s ease, box-shadow 0.22s ease;
+            transform-origin: left center;
+            will-change: width, transform;
+        }
+        .sidebar-transition:hover {
+            transform: scaleX(1.01);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.06);
+        }
+        .content-transition {
+            transition: margin-left 0.22s ease;
+        }
+
+        /* Smooth hover for sidebar nav */
+        .sidebar-item {
+            position: relative;
+            overflow: hidden;
+            transition: background-color 0.25s ease, color 0.25s ease, transform 0.2s ease;
+        }
+        .sidebar-item i {
+            transition: transform 0.2s ease, color 0.25s ease;
+        }
+        .sidebar-item::before {
+            content: '';
+            position: absolute;
+            left: 0.375rem; /* ~px-1.5 from left edge */
+            top: 18%;
+            bottom: 18%;
+            width: 3px;
+            border-radius: 9999px;
+            background: linear-gradient(180deg, #f97316, #f59e0b); /* orange-500 to amber-500 */
+            transform: scaleY(0);
+            transform-origin: top;
+            transition: transform 0.25s ease;
+        }
+        .sidebar-item:hover {
+            background-color: #fff7ed; /* orange-50 */
+            color: #ea580c; /* orange-600 */
+        }
+        .sidebar-item:hover::before {
+            transform: scaleY(1);
+        }
+        .sidebar-item:hover i {
+            color: #ea580c; /* orange-600 */
+            transform: translateX(2px);
+        }
+        /* Preserve active state styling set via JS: show accent bar */
+        .sidebar-item.bg-gradient-to-r::before {
+            transform: scaleY(1);
+            background: linear-gradient(180deg, #f97316, #f59e0b);
+        }
     </style>
 </head>
 <body class="bg-gray-50 font-sans">
@@ -114,13 +167,13 @@ function resolveImageUrl($path) {
             <div class="h-16 flex items-center justify-center border-b border-gray-200">
                 <div id="sidebarLogoExpanded" class="hidden items-center gap-2 px-4">
                     <div class="w-8 h-8 rounded-lg overflow-hidden">
-                        <img src="https://images.unsplash.com/photo-1601758228041-f3b2795255f1?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxoYXBweSUyMGRvZyUyMG93bmVyJTIwaHVnZ2luZ3xlbnwxfHx8fDE3NTY0NTIxMjl8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral" alt="pawhabilin Logo" class="w-full h-full object-contain">
+                        <img src="<?php echo htmlspecialchars(resolveImageUrl('pictures/Pawhabilin logo.png')); ?>" alt="Pawhabilin Logo" class="w-full h-full object-cover">
                     </div>
-                    <span class="font-semibold text-orange-600">pawhabilin</span>
+                    <span class="font-semibold text-orange-600">Pawhabilin</span>
                     <span class="text-xs bg-orange-100 text-orange-600 px-2 py-1 rounded-full">Admin</span>
                 </div>
                 <div id="sidebarLogoCollapsed" class="w-8 h-8 rounded-lg overflow-hidden">
-                    <img src="https://images.unsplash.com/photo-1601758228041-f3b2795255f1?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxoYXBweSUyMGRvZyUyMG93bmVyJTIwaHVnZ2luZ3xlbnwxfHx8fDE3NTY0NTIxMjl8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral" alt="pawhabilin Logo" class="w-full h-full object-contain">
+                    <img src="<?php echo htmlspecialchars(resolveImageUrl('pictures/Pawhabilin logo.png')); ?>" alt="Pawhabilin Logo" class="w-full h-full object-cover">
                 </div>
             </div>
 
@@ -186,7 +239,7 @@ function resolveImageUrl($path) {
         </div>
 
         <!-- Main Content -->
-        <div id="mainContent" class="flex-1 content-transition ml-16">
+    <div id="mainContent" class="flex-1 content-transition ml-16 h-screen overflow-y-auto">
             <!-- Top Header -->
             <header class="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6">
                 <div class="flex items-center gap-4">
@@ -486,7 +539,8 @@ function resolveImageUrl($path) {
                                     ?>
                                         <tr><td colspan="6" class="px-6 py-6 text-center text-gray-500">No products found.</td></tr>
                                     <?php else: foreach ($rows as $p): ?>
-                                        <tr data-name="<?php echo htmlspecialchars(strtolower($p['products_name'])); ?>"
+                                        <tr data-id="<?php echo (int)$p['products_id']; ?>"
+                                            data-name="<?php echo htmlspecialchars(strtolower($p['products_name'])); ?>"
                                             data-pet-type="<?php echo htmlspecialchars($p['products_pet_type'] ?? ''); ?>"
                                             data-category="<?php echo htmlspecialchars($p['products_category'] ?? ''); ?>"
                                             data-active="<?php echo (int)($p['products_active'] ?? 0); ?>"
@@ -515,10 +569,10 @@ function resolveImageUrl($path) {
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                                 <div class="flex items-center gap-2">
-                                                    <button class="p-1 text-gray-400 hover:text-gray-600" title="Edit">
+                                                    <button class="p-1 text-gray-400 hover:text-gray-600 btn-edit" data-action="edit" title="Edit">
                                                         <i data-lucide="edit" class="w-4 h-4"></i>
                                                     </button>
-                                                    <button class="p-1 text-red-400 hover:text-red-600" title="Delete">
+                                                    <button class="p-1 text-red-400 hover:text-red-600 btn-delete" data-action="delete" title="Delete">
                                                         <i data-lucide="trash-2" class="w-4 h-4"></i>
                                                     </button>
                                                 </div>
@@ -527,6 +581,13 @@ function resolveImageUrl($path) {
                                     <?php endforeach; endif; ?>
                                 </tbody>
                             </table>
+                        </div>
+                        <div id="productsPagination" class="p-4 border-t border-gray-100 flex items-center justify-between hidden">
+                            <div id="productsPageInfo" class="text-sm text-gray-600"></div>
+                            <div class="flex items-center gap-2">
+                                <button id="productsPrev" class="px-3 py-1.5 border border-gray-300 rounded-md text-sm text-gray-700 hover:bg-gray-50">Prev</button>
+                                <button id="productsNext" class="px-3 py-1.5 border border-gray-300 rounded-md text-sm text-gray-700 hover:bg-gray-50">Next</button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -848,6 +909,84 @@ function resolveImageUrl($path) {
         </div>
     </div>
 
+    <!-- Edit Product Modal -->
+    <div id="editProductModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+        <div class="bg-white rounded-lg p-6 w-full max-w-md mx-4">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-semibold">Edit Product</h3>
+                <button onclick="closeEditProductModal()" class="text-gray-400 hover:text-gray-600">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <form id="editProductForm" class="space-y-4" enctype="multipart/form-data">
+                <input type="hidden" name="action" value="update">
+                <input type="hidden" name="products_id" id="edit_products_id">
+                <input type="hidden" name="current_image_url" id="edit_current_image_url">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Product Name</label>
+                    <input type="text" name="products_name" id="edit_products_name" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500">
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Product Pet Type</label>
+                        <select name="products_pet_type" id="edit_products_pet_type" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500">
+                            <option value="">Select pet type</option>
+                            <option value="Dog">Dog</option>
+                            <option value="Cat">Cat</option>
+                            <option value="Bird">Bird</option>
+                            <option value="Fish">Fish</option>
+                            <option value="Small Pet">Small Pet</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Product Category</label>
+                        <select name="products_category" id="edit_products_category" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500">
+                            <option value="">Select category</option>
+                            <option value="food">Food</option>
+                            <option value="accessories">Accessories</option>
+                            <option value="grooming">Grooming</option>
+                            <option value="treats">Treats</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Product Price (₱)</label>
+                        <input type="number" name="products_price" id="edit_products_price" required min="0" step="0.01" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Product Stock</label>
+                        <input type="number" name="products_stock" id="edit_products_stock" required min="0" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Product Description</label>
+                    <textarea name="products_description" id="edit_products_description" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"></textarea>
+                </div>
+                <div class="grid grid-cols-1 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Product Image (jpeg, png)</label>
+                        <input type="file" name="products_image" id="edit_products_image" accept="image/jpeg,image/png" class="w-full px-3 py-2 border border-gray-300 rounded-md">
+                        <div class="mt-2 flex items-center gap-3">
+                            <div class="w-20 h-20 rounded border border-gray-200 overflow-hidden bg-gray-50 flex items-center justify-center">
+                                <img id="edit_imagePreview" alt="Preview" class="w-full h-full object-cover hidden" />
+                                <span id="edit_imagePlaceholder" class="text-xs text-gray-400">No image</span>
+                            </div>
+                            <button type="button" id="edit_clearImageBtn" class="text-sm text-gray-600 underline hidden">Remove</button>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <input type="checkbox" id="edit_products_active" name="products_active" class="h-4 w-4 text-orange-600 border-gray-300 rounded">
+                        <label for="edit_products_active" class="text-sm text-gray-700">Product Active</label>
+                    </div>
+                </div>
+                <div class="flex gap-2 pt-4">
+                    <button type="submit" class="flex-1 bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white py-2 rounded-md">Update Product</button>
+                    <button type="button" onclick="closeEditProductModal()" class="flex-1 border border-gray-300 text-gray-700 py-2 rounded-md hover:bg-gray-50">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
     <!-- Add Sitter Modal -->
     <div id="addSitterModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
         <div class="bg-white rounded-lg p-6 w-full max-w-md mx-4">
@@ -1477,6 +1616,7 @@ function resolveImageUrl($path) {
                     const tbody = document.getElementById('productsTableBody');
                     const p = data.item;
                     const row = document.createElement('tr');
+                    row.setAttribute('data-id', String(p.id));
                     row.setAttribute('data-name', (p.name || '').toLowerCase());
                     row.setAttribute('data-pet-type', p.pet_type || '');
                     row.setAttribute('data-category', p.category_value || '');
@@ -1501,10 +1641,10 @@ function resolveImageUrl($path) {
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                             <div class="flex items-center gap-2">
-                                <button class="p-1 text-gray-400 hover:text-gray-600">
+                                <button class="p-1 text-gray-400 hover:text-gray-600 btn-edit" data-action="edit" title="Edit">
                                     <i data-lucide="edit" class="w-4 h-4"></i>
                                 </button>
-                                <button class="p-1 text-red-400 hover:text-red-600">
+                                <button class="p-1 text-red-400 hover:text-red-600 btn-delete" data-action="delete" title="Delete">
                                     <i data-lucide="trash-2" class="w-4 h-4"></i>
                                 </button>
                             </div>
@@ -1536,12 +1676,16 @@ function resolveImageUrl($path) {
         document.addEventListener('click', function(e) {
             const productModal = document.getElementById('addProductModal');
             const sitterModal = document.getElementById('addSitterModal');
+            const editModal = document.getElementById('editProductModal');
             
             if (e.target === productModal) {
                 closeAddProductModal();
             }
             if (e.target === sitterModal) {
                 closeAddSitterModal();
+            }
+            if (e.target === editModal) {
+                closeEditProductModal();
             }
         });
 
@@ -1573,6 +1717,156 @@ function resolveImageUrl($path) {
 
         // Edit profile modal removed; no helper functions needed
 
+        // Edit Product modal helpers
+        function openEditProductModal() {
+            const modal = document.getElementById('editProductModal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+        function closeEditProductModal() {
+            const modal = document.getElementById('editProductModal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+            document.getElementById('editProductForm').reset();
+            resetEditPreview();
+        }
+        function resetEditPreview(){
+            const preview = document.getElementById('edit_imagePreview');
+            const placeholder = document.getElementById('edit_imagePlaceholder');
+            const clearBtn = document.getElementById('edit_clearImageBtn');
+            preview.src='';
+            preview.classList.add('hidden');
+            placeholder.classList.remove('hidden');
+            clearBtn.classList.add('hidden');
+        }
+
+        (function initEditModal(){
+            const imgInput = document.getElementById('edit_products_image');
+            const preview = document.getElementById('edit_imagePreview');
+            const placeholder = document.getElementById('edit_imagePlaceholder');
+            const clearBtn = document.getElementById('edit_clearImageBtn');
+            imgInput.addEventListener('change', function(){
+                const file = this.files && this.files[0];
+                if (file){
+                    const url = URL.createObjectURL(file);
+                    preview.src = url;
+                    preview.classList.remove('hidden');
+                    placeholder.classList.add('hidden');
+                    clearBtn.classList.remove('hidden');
+                } else {
+                    resetEditPreview();
+                }
+            });
+            clearBtn.addEventListener('click', function(){
+                imgInput.value = '';
+                resetEditPreview();
+            });
+        })();
+
+        // Delegate edit/delete buttons
+        document.addEventListener('click', async function(e){
+            const editBtn = e.target.closest('.btn-edit');
+            const delBtn = e.target.closest('.btn-delete');
+            if (editBtn) {
+                const row = editBtn.closest('tr');
+                const id = row?.getAttribute('data-id');
+                if (!id) return;
+                try {
+                    const res = await fetch(`../../controllers/admin/productcontroller.php?action=get&id=${encodeURIComponent(id)}`);
+                    const data = await res.json();
+                    if (!data.success) throw new Error(data.error || 'Failed to fetch product');
+                    const p = data.item;
+                    // Fill form
+                    document.getElementById('edit_products_id').value = p.id;
+                    document.getElementById('edit_products_name').value = p.name || '';
+                    document.getElementById('edit_products_pet_type').value = p.pet_type || '';
+                    // Map enum to input choices for category
+                    const inputCatMap = { accessory: 'accessories', necessity: 'grooming', toy: 'treats', food: 'food' };
+                    document.getElementById('edit_products_category').value = inputCatMap[p.category_value] || p.category_value || '';
+                    document.getElementById('edit_products_price').value = p.price ?? '';
+                    document.getElementById('edit_products_stock').value = p.stock ?? '';
+                    document.getElementById('edit_products_description').value = p.description || '';
+                    document.getElementById('edit_products_active').checked = !!p.active;
+                    document.getElementById('edit_current_image_url').value = p.db_image_url || '';
+                    const preview = document.getElementById('edit_imagePreview');
+                    const placeholder = document.getElementById('edit_imagePlaceholder');
+                    const clearBtn = document.getElementById('edit_clearImageBtn');
+                    if (p.image) {
+                        preview.src = p.image;
+                        preview.classList.remove('hidden');
+                        placeholder.classList.add('hidden');
+                        clearBtn.classList.remove('hidden');
+                    } else {
+                        resetEditPreview();
+                    }
+                    openEditProductModal();
+                } catch(err) {
+                    alert(err.message);
+                }
+            } else if (delBtn) {
+                const row = delBtn.closest('tr');
+                const id = row?.getAttribute('data-id');
+                if (!id) return;
+                if (!confirm('Delete this product? This action cannot be undone.')) return;
+                try {
+                    const fd = new FormData();
+                    fd.append('action', 'delete');
+                    fd.append('products_id', id);
+                    const res = await fetch('../../controllers/admin/productcontroller.php?action=delete', { method: 'POST', body: fd });
+                    const data = await res.json();
+                    if (!data.success) throw new Error(data.error || 'Delete failed');
+                    row.remove();
+                    applyProductFilters();
+                } catch(err) {
+                    alert(err.message);
+                }
+            }
+        });
+
+        // Submit edit form
+        (function(){
+            const form = document.getElementById('editProductForm');
+            form.addEventListener('submit', async function(e){
+                e.preventDefault();
+                const fd = new FormData(form);
+                try {
+                    const res = await fetch('../../controllers/admin/productcontroller.php?action=update', { method: 'POST', body: fd });
+                    const data = await res.json();
+                    if (!data.success) throw new Error(data.error || 'Update failed');
+                    const p = data.item;
+                    const row = document.querySelector(`#productsTableBody tr[data-id="${p.id}"]`);
+                    if (row) {
+                        row.setAttribute('data-name', (p.name || '').toLowerCase());
+                        row.setAttribute('data-pet-type', p.pet_type || '');
+                        row.setAttribute('data-category', p.category_value || '');
+                        row.setAttribute('data-active', p.active ? '1' : '0');
+                        row.setAttribute('data-stock', String(p.stock_int ?? 0));
+                        // Update visible cells
+                        const nameEl = row.querySelector('td:nth-child(1) .font-medium');
+                        if (nameEl) nameEl.textContent = p.name;
+                        const imgEl = row.querySelector('td:nth-child(1) img');
+                        if (imgEl && p.image) imgEl.src = p.image;
+                        const catEl = row.querySelector('td:nth-child(2)');
+                        if (catEl) catEl.textContent = p.category;
+                        const priceEl = row.querySelector('td:nth-child(3)');
+                        if (priceEl) priceEl.textContent = `₱${Number(p.price).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                        const stockEl = row.querySelector('td:nth-child(4)');
+                        if (stockEl) stockEl.textContent = p.stock;
+                        const statusChip = row.querySelector('td:nth-child(5) span');
+                        if (statusChip) {
+                            statusChip.textContent = p.active ? 'Active' : 'Inactive';
+                            statusChip.className = `px-2 py-1 text-xs rounded-full ${p.active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`;
+                        }
+                    }
+                    applyProductFilters();
+                    alert('Product updated successfully!');
+                    closeEditProductModal();
+                } catch(err) {
+                    alert(err.message);
+                }
+            });
+        })();
+
         // Products filtering and search
         function initProductFilters() {
             const search = document.getElementById('productsSearch');
@@ -1581,11 +1875,11 @@ function resolveImageUrl($path) {
             let debounceTimer;
             function onSearchInput() {
                 clearTimeout(debounceTimer);
-                debounceTimer = setTimeout(applyProductFilters, 120);
+                debounceTimer = setTimeout(() => { currentProductsPage = 1; applyProductFilters(); }, 120);
             }
 
             if (search) search.addEventListener('input', onSearchInput);
-            filterInputs.forEach(el => el.addEventListener('change', applyProductFilters));
+            filterInputs.forEach(el => el.addEventListener('change', () => { currentProductsPage = 1; applyProductFilters(); }));
 
             applyProductFilters();
         }
@@ -1593,6 +1887,10 @@ function resolveImageUrl($path) {
         function getCheckedValues(name) {
             return Array.from(document.querySelectorAll(`input[name="${name}"]:checked`)).map(el => el.value);
         }
+
+        // Pagination state
+        let currentProductsPage = 1;
+        const pageSize = 10;
 
         function applyProductFilters() {
             const searchVal = (document.getElementById('productsSearch')?.value || '').trim().toLowerCase();
@@ -1602,6 +1900,8 @@ function resolveImageUrl($path) {
             const stockFilters = getCheckedValues('stock');
 
             const rows = Array.from(document.querySelectorAll('#productsTableBody tr'));
+            // Compute which rows match
+            const matches = [];
             rows.forEach(row => {
                 if (row.querySelector('td')?.getAttribute('colspan') === '6') {
                     // Skip the "No products" row
@@ -1637,13 +1937,13 @@ function resolveImageUrl($path) {
                     if (!( (inSelected && isIn) || (outSelected && isOut) )) visible = false;
                 }
 
-                row.style.display = visible ? '' : 'none';
+                if (visible) matches.push(row);
             });
 
             // Toggle empty state row
             const tbody = document.getElementById('productsTableBody');
             const dataRows = rows.filter(r => !(r.querySelector('td')?.getAttribute('colspan') === '6'));
-            const anyVisible = dataRows.some(r => r.style.display !== 'none');
+            const anyVisible = matches.length > 0;
             let emptyRow = tbody.querySelector('tr[data-empty]');
             if (!anyVisible) {
                 if (!emptyRow) {
@@ -1655,7 +1955,43 @@ function resolveImageUrl($path) {
             } else if (emptyRow) {
                 emptyRow.remove();
             }
+
+            // Apply pagination to matches
+            const pagination = document.getElementById('productsPagination');
+            const pageInfo = document.getElementById('productsPageInfo');
+            const prevBtn = document.getElementById('productsPrev');
+            const nextBtn = document.getElementById('productsNext');
+
+            // Hide all rows first
+            dataRows.forEach(r => { r.style.display = 'none'; });
+
+            const total = matches.length;
+            const totalPages = Math.max(1, Math.ceil(total / pageSize));
+            if (currentProductsPage > totalPages) currentProductsPage = totalPages;
+            const start = (currentProductsPage - 1) * pageSize;
+            const end = start + pageSize;
+            const pageRows = matches.slice(start, end);
+            pageRows.forEach(r => { r.style.display = ''; });
+
+            if (total > pageSize) {
+                pagination.classList.remove('hidden');
+                pageInfo.textContent = `Page ${currentProductsPage} of ${totalPages} • ${total} item${total === 1 ? '' : 's'}`;
+                prevBtn.disabled = currentProductsPage === 1;
+                nextBtn.disabled = currentProductsPage === totalPages;
+                prevBtn.classList.toggle('opacity-50', prevBtn.disabled);
+                nextBtn.classList.toggle('opacity-50', nextBtn.disabled);
+            } else {
+                pagination.classList.add('hidden');
+            }
         }
+
+        // Pagination controls
+        document.addEventListener('click', function(e){
+            const prev = e.target.closest('#productsPrev');
+            const next = e.target.closest('#productsNext');
+            if (prev) { if (currentProductsPage > 1) { currentProductsPage--; applyProductFilters(); } }
+            if (next) { currentProductsPage++; applyProductFilters(); }
+        });
     </script>
 </body>
 </html>

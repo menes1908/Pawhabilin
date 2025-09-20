@@ -599,7 +599,7 @@ function resolveImageUrl($path) {
                             <h1 class="text-3xl font-bold">Pet Sitters Management</h1>
                             <p class="text-gray-600 mt-1">Manage registered pet sitters and their profiles</p>
                         </div>
-                        <button onclick="openAddSitterModal()" class="bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white px-4 py-2 rounded-md flex items-center gap-2">
+                        <button id="openAddSitter" class="bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white px-4 py-2 rounded-md flex items-center gap-2">
                             <i data-lucide="plus" class="w-4 h-4"></i>
                             Add Sitter
                         </button>
@@ -610,10 +610,7 @@ function resolveImageUrl($path) {
                             <div class="flex items-center justify-between">
                                 <h3 class="text-lg font-semibold">Pet Sitters Directory</h3>
                                 <div class="flex items-center gap-2">
-                                    <input type="text" placeholder="Search sitters..." class="px-3 py-2 border border-gray-300 rounded-md w-64">
-                                    <button class="px-3 py-2 border border-gray-300 rounded-md hover:bg-gray-50">
-                                        <i data-lucide="filter" class="w-4 h-4"></i>
-                                    </button>
+                                    <input id="sittersSearch" type="text" placeholder="Search sitters..." class="px-3 py-2 border border-gray-300 rounded-md w-64">
                                 </div>
                             </div>
                         </div>
@@ -621,21 +618,454 @@ function resolveImageUrl($path) {
                             <table class="w-full">
                                 <thead class="bg-gray-50 border-b">
                                     <tr>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sitter</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
                                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contact</th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rating</th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Experience</th>
                                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Specialties</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Experience</th>
                                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody id="sittersTableBody" class="bg-white divide-y divide-gray-200">
-                                    <!-- Sitters will be populated by JavaScript -->
+                                    <?php
+                                    $sitterRows = [];
+                                    if (isset($connections) && $connections) {
+                                        $qs = "SELECT sitters_id, sitters_name, sitters_bio, sitter_email, sitters_contact, sitter_specialty, sitter_experience, sitters_image_url, sitters_active FROM sitters ORDER BY sitters_id DESC";
+                                        if ($res = mysqli_query($connections, $qs)) {
+                                            while ($r = mysqli_fetch_assoc($res)) { $sitterRows[] = $r; }
+                                            mysqli_free_result($res);
+                                        }
+                                    }
+                                    if (empty($sitterRows)):
+                                    ?>
+                                        <tr><td colspan="6" class="px-6 py-6 text-center text-gray-500">No sitters found.</td></tr>
+                                    <?php else: foreach ($sitterRows as $s):
+                                        $email = $s['sitter_email'] ?? '';
+                                        $phone = $s['sitters_contact'] ?? '';
+                                        $experience = $s['sitter_experience'] ?? '';
+                                        $specStr = $s['sitter_specialty'] ?? '';
+                                        $specs = array_filter(array_map('trim', explode(',', (string)$specStr)), function($v){ return $v !== ''; });
+                                        $specColorMap = [
+                                            'dog' => 'bg-orange-50 text-orange-700 border border-orange-200',
+                                            'cat' => 'bg-purple-50 text-purple-700 border border-purple-200',
+                                            'bird' => 'bg-blue-50 text-blue-700 border border-blue-200',
+                                            'fish' => 'bg-cyan-50 text-cyan-700 border border-cyan-200',
+                                            'small pet' => 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                                        ];
+                                    ?>
+                                        <tr data-id="<?php echo (int)$s['sitters_id']; ?>">
+                                            <td class="px-6 py-4 whitespace-nowrap">
+                                                <div class="flex items-center gap-3">
+                                                    <div class="w-10 h-10 rounded-full overflow-hidden bg-gray-100 flex items-center justify-center">
+                                                        <?php if (!empty($s['sitters_image_url'])): ?>
+                                                            <img src="<?php echo htmlspecialchars(resolveImageUrl($s['sitters_image_url'])); ?>" alt="<?php echo htmlspecialchars($s['sitters_name']); ?>" class="w-full h-full object-cover">
+                                                        <?php else: ?>
+                                                            <i data-lucide="user" class="w-4 h-4 text-gray-400"></i>
+                                                        <?php endif; ?>
+                                                    </div>
+                                                    <div>
+                                                        <p class="font-medium"><?php echo htmlspecialchars($s['sitters_name']); ?></p>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                                <div class="space-y-1">
+                                                    <p><?php echo htmlspecialchars($email); ?></p>
+                                                    <p class="text-gray-600"><?php echo htmlspecialchars($phone); ?></p>
+                                                </div>
+                                            </td>
+                                            <td class="px-6 py-4 whitespace-nowrap">
+                                                <div class="flex flex-wrap gap-1">
+                                                    <?php foreach($specs as $sp): $k = strtolower($sp); $cls = $specColorMap[$k] ?? 'bg-gray-50 text-gray-700 border border-gray-200'; ?>
+                                                        <span class="px-2 py-1 text-xs rounded-full <?php echo $cls; ?>"><?php echo htmlspecialchars($sp); ?></span>
+                                                    <?php endforeach; ?>
+                                                </div>
+                                            </td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900"><?php echo htmlspecialchars($experience ?: '-'); ?></td>
+                                            <td class="px-6 py-4 whitespace-nowrap">
+                                                <span class="px-2 py-1 text-xs rounded-full <?php echo (int)$s['sitters_active'] === 1 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'; ?>"><?php echo (int)$s['sitters_active'] === 1 ? 'Active' : 'Inactive'; ?></span>
+                                            </td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                <div class="flex items-center gap-2">
+                                                    <button class="p-1 text-gray-400 hover:text-gray-600 btn-sitter-edit" title="Edit"><i data-lucide="edit" class="w-4 h-4"></i></button>
+                                                    <button class="p-1 text-red-400 hover:text-red-600 btn-sitter-delete" title="Delete"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    <?php endforeach; endif; ?>
                                 </tbody>
                             </table>
                         </div>
                     </div>
+
+                    
+
+                    <!-- Add Sitter Modal -->
+                    <div id="addSitterModal" class="fixed inset-0 bg-black bg-opacity-30 hidden items-center justify-center z-50">
+                        <div class="bg-white rounded-lg shadow-lg w-full max-w-2xl">
+                            <div class="flex items-center justify-between p-4 border-b">
+                                <h3 class="text-lg font-semibold">Add Pet Sitter</h3>
+                                <button id="closeAddSitter" class="text-gray-500 hover:text-gray-700">
+                                    <i data-lucide="x" class="w-5 h-5"></i>
+                                </button>
+                            </div>
+                            <form id="addSitterForm" enctype="multipart/form-data" class="p-6 space-y-4">
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700">Sitter Name</label>
+                                        <input type="text" name="sitters_name" required class="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2">
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700">Email</label>
+                                        <input type="email" name="sitters_email" required class="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2">
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700">Contact Number</label>
+                                        <input type="text" name="sitters_phone" required class="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2">
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700">Experience (years)</label>
+                                        <input type="text" name="sitter_experience" placeholder="e.g., 5 years" class="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2">
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">Bio</label>
+                                    <textarea name="sitters_bio" rows="3" class="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2"></textarea>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">Specialties</label>
+                                    <div class="mt-1 grid grid-cols-2 md:grid-cols-3 gap-2">
+                                        <?php $specs = ['Dog','Cat','Bird','Fish','Small Pet']; foreach ($specs as $sp): ?>
+                                            <label class="inline-flex items-center gap-2">
+                                                <input type="checkbox" name="sitters_specialties[]" value="<?php echo htmlspecialchars($sp); ?>" class="rounded border-gray-300">
+                                                <span><?php echo htmlspecialchars($sp); ?></span>
+                                            </label>
+                                        <?php endforeach; ?>
+                                    </div>
+                                    <div class="mt-3">
+                                        <label class="block text-sm font-medium text-gray-700">Additional pet types (comma-separated)</label>
+                                        <input type="text" name="sitters_specialties_extra" placeholder="e.g., Reptile, Rabbit" class="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2">
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">Image</label>
+                                    <div class="mt-1 flex items-center gap-4">
+                                        <div class="w-20 h-20 rounded-md bg-gray-100 overflow-hidden flex items-center justify-center">
+                                            <img id="sitterImagePreview" src="" alt="Preview" class="hidden w-full h-full object-cover">
+                                            <i id="sitterImageIcon" data-lucide="image" class="w-5 h-5 text-gray-400"></i>
+                                        </div>
+                                        <div class="flex items-center gap-2">
+                                            <input id="sitterImageInput" type="file" name="sitters_image" accept="image/*" class="text-sm">
+                                            <button id="clearSitterImage" type="button" class="px-2 py-1 text-sm border border-gray-300 rounded-md hover:bg-gray-50">Clear</button>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="flex items-center justify-end gap-2 pt-2">
+                                    <button type="button" id="cancelAddSitter" class="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50">Cancel</button>
+                                    <button type="submit" class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700">Save Sitter</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- Edit Sitter Modal -->
+                    <div id="editSitterModal" class="fixed inset-0 bg-black bg-opacity-30 hidden items-center justify-center z-50">
+                        <div class="bg-white rounded-lg shadow-lg w-full max-w-2xl">
+                            <div class="flex items-center justify-between p-4 border-b">
+                                <h3 class="text-lg font-semibold">Edit Pet Sitter</h3>
+                                <button id="closeEditSitter" class="text-gray-500 hover:text-gray-700">
+                                    <i data-lucide="x" class="w-5 h-5"></i>
+                                </button>
+                            </div>
+                            <form id="editSitterForm" enctype="multipart/form-data" class="p-6 space-y-4">
+                                <input type="hidden" name="sitters_id" id="edit_sitters_id">
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700">Sitter Name</label>
+                                        <input type="text" name="sitters_name" id="edit_sitters_name" required class="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2">
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700">Email</label>
+                                        <input type="email" name="sitters_email" id="edit_sitters_email" required class="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2">
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700">Contact Number</label>
+                                        <input type="text" name="sitters_phone" id="edit_sitters_phone" required class="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2">
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700">Experience (years)</label>
+                                        <input type="text" name="sitter_experience" id="edit_sitter_experience" class="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2">
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">Bio</label>
+                                    <textarea name="sitters_bio" id="edit_sitters_bio" rows="3" class="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2"></textarea>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">Specialties</label>
+                                    <div class="mt-1 grid grid-cols-2 md:grid-cols-3 gap-2" id="edit_specialties_group">
+                                        <?php $specs = ['Dog','Cat','Bird','Fish','Small Pet']; foreach ($specs as $sp): ?>
+                                            <label class="inline-flex items-center gap-2">
+                                                <input type="checkbox" name="sitters_specialties[]" value="<?php echo htmlspecialchars($sp); ?>" class="rounded border-gray-300">
+                                                <span><?php echo htmlspecialchars($sp); ?></span>
+                                            </label>
+                                        <?php endforeach; ?>
+                                    </div>
+                                    <div class="mt-3">
+                                        <label class="block text-sm font-medium text-gray-700">Additional pet types (comma-separated)</label>
+                                        <input type="text" name="sitters_specialties_extra" id="edit_sitters_specialties_extra" placeholder="e.g., Reptile, Rabbit" class="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2">
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">Image</label>
+                                    <div class="mt-1 flex items-center gap-4">
+                                        <div class="w-20 h-20 rounded-md bg-gray-100 overflow-hidden flex items-center justify-center">
+                                            <img id="editSitterImagePreview" src="" alt="Preview" class="hidden w-full h-full object-cover">
+                                            <i id="editSitterImageIcon" data-lucide="image" class="w-5 h-5 text-gray-400"></i>
+                                        </div>
+                                        <div class="flex items-center gap-2">
+                                            <input id="editSitterImageInput" type="file" name="sitters_image" accept="image/*" class="text-sm">
+                                            <button id="editClearSitterImage" type="button" class="px-2 py-1 text-sm border border-gray-300 rounded-md hover:bg-gray-50">Clear</button>
+                                            <label class="inline-flex items-center gap-2 ml-2">
+                                                <input type="checkbox" id="edit_remove_image" name="remove_image" value="1" class="rounded border-gray-300">
+                                                <span>Remove current</span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="flex items-center justify-between gap-2 pt-2">
+                                    <label class="inline-flex items-center gap-2">
+                                        <input type="checkbox" name="sitters_active" id="edit_sitters_active" value="1" class="rounded border-gray-300">
+                                        <span>Active</span>
+                                    </label>
+                                    <div class="flex gap-2">
+                                        <button type="button" id="cancelEditSitter" class="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50">Cancel</button>
+                                        <button type="submit" class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700">Update Sitter</button>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+
+                    <script>
+                        (function(){
+                            const openBtn = document.getElementById('openAddSitter');
+                            const modal = document.getElementById('addSitterModal');
+                            const closeBtn = document.getElementById('closeAddSitter');
+                            const cancelBtn = document.getElementById('cancelAddSitter');
+                            const form = document.getElementById('addSitterForm');
+                            const imgInput = document.getElementById('sitterImageInput');
+                            const imgPrev = document.getElementById('sitterImagePreview');
+                            const imgIcon = document.getElementById('sitterImageIcon');
+                            const clearImg = document.getElementById('clearSitterImage');
+                            const tbody = document.getElementById('sittersTableBody');
+                            const search = document.getElementById('sittersSearch');
+                            // Edit modal refs
+                            const editModal = document.getElementById('editSitterModal');
+                            const editCloseBtn = document.getElementById('closeEditSitter');
+                            const editCancelBtn = document.getElementById('cancelEditSitter');
+                            const editForm = document.getElementById('editSitterForm');
+                            const editId = document.getElementById('edit_sitters_id');
+                            const editName = document.getElementById('edit_sitters_name');
+                            const editEmail = document.getElementById('edit_sitters_email');
+                            const editPhone = document.getElementById('edit_sitters_phone');
+                            const editExp = document.getElementById('edit_sitter_experience');
+                            const editBio = document.getElementById('edit_sitters_bio');
+                            const editSpecsExtra = document.getElementById('edit_sitters_specialties_extra');
+                            const editImgInput = document.getElementById('editSitterImageInput');
+                            const editImgPrev = document.getElementById('editSitterImagePreview');
+                            const editImgIcon = document.getElementById('editSitterImageIcon');
+                            const editClearImg = document.getElementById('editClearSitterImage');
+                            const editRemoveImage = document.getElementById('edit_remove_image');
+                            const editActive = document.getElementById('edit_sitters_active');
+
+                            function openEdit(){ editModal.classList.remove('hidden'); editModal.classList.add('flex'); }
+                            function closeEdit(){ editModal.classList.add('hidden'); editModal.classList.remove('flex'); editForm.reset(); resetEditImage(); }
+                            function resetEditImage(){ editImgPrev.src=''; editImgPrev.classList.add('hidden'); editImgIcon.classList.remove('hidden'); editImgInput.value=''; editRemoveImage.checked=false; }
+
+                            function open(){ modal.classList.remove('hidden'); modal.classList.add('flex'); }
+                            function close(){ modal.classList.add('hidden'); modal.classList.remove('flex'); form.reset(); resetImage(); }
+                            function resetImage(){ imgPrev.src=''; imgPrev.classList.add('hidden'); imgIcon.classList.remove('hidden'); imgInput.value=''; }
+
+                            if (openBtn) openBtn.addEventListener('click', open);
+                            if (closeBtn) closeBtn.addEventListener('click', close);
+                            if (cancelBtn) cancelBtn.addEventListener('click', close);
+                            if (modal) modal.addEventListener('click', (e)=>{ if(e.target===modal) close(); });
+
+                            if (imgInput) imgInput.addEventListener('change', (e)=>{
+                                const f = e.target.files && e.target.files[0];
+                                if (!f) return resetImage();
+                                const url = URL.createObjectURL(f);
+                                imgPrev.src = url; imgPrev.classList.remove('hidden'); imgIcon.classList.add('hidden');
+                            });
+                            if (clearImg) clearImg.addEventListener('click', resetImage);
+                            if (editImgInput) editImgInput.addEventListener('change', (e)=>{
+                                const f = e.target.files && e.target.files[0];
+                                if (!f) return resetEditImage();
+                                const url = URL.createObjectURL(f);
+                                editImgPrev.src = url; editImgPrev.classList.remove('hidden'); editImgIcon.classList.add('hidden'); editRemoveImage.checked=false;
+                            });
+                            if (editClearImg) editClearImg.addEventListener('click', resetEditImage);
+                            if (editCloseBtn) editCloseBtn.addEventListener('click', closeEdit);
+                            if (editCancelBtn) editCancelBtn.addEventListener('click', closeEdit);
+
+                            function addr(text){ const td = document.createElement('td'); td.className='px-6 py-4 whitespace-nowrap'; td.innerHTML=text; return td; }
+                            function specClass(name){
+                                const k = String(name||'').trim().toLowerCase();
+                                switch(k){
+                                    case 'dog': return 'bg-orange-50 text-orange-700 border border-orange-200';
+                                    case 'cat': return 'bg-purple-50 text-purple-700 border border-purple-200';
+                                    case 'bird': return 'bg-blue-50 text-blue-700 border border-blue-200';
+                                    case 'fish': return 'bg-cyan-50 text-cyan-700 border border-cyan-200';
+                                    case 'small pet': return 'bg-emerald-50 text-emerald-700 border border-emerald-200';
+                                    default: return 'bg-gray-50 text-gray-700 border border-gray-200';
+                                }
+                            }
+                            function esc(s){ const d=document.createElement('div'); d.textContent=s??''; return d.innerHTML; }
+
+                            if (form) form.addEventListener('submit', async (e)=>{
+                                e.preventDefault();
+                                const fd = new FormData(form);
+                                fd.append('action','add');
+                                try {
+                                    const res = await fetch('../../controllers/admin/sittercontroller.php', { method:'POST', body: fd });
+                                    const data = await res.json();
+                                    if (!data.success){ alert(data.error||data.message||'Failed to add sitter'); return; }
+                                    const s = data.item;
+                                    const tr = document.createElement('tr');
+                                    tr.setAttribute('data-id', String(s.id||''));
+                                    // Name with image
+                                    const nameHTML = `
+                                        <div class="flex items-center gap-3">
+                                            <div class="w-10 h-10 rounded-full overflow-hidden bg-gray-100 flex items-center justify-center">
+                                                ${s.image ? `<img src="${s.image}" alt="${esc(s.name)}" class="w-full h-full object-cover">` : '<i data-lucide="user" class="w-4 h-4 text-gray-400"></i>'}
+                                            </div>
+                                            <div><p class="font-medium">${esc(s.name)}</p></div>
+                                        </div>`;
+                                    tr.appendChild(addr(nameHTML));
+                                    // Contact
+                                    const contactHTML = `<div class="space-y-1"><p>${esc(s.email||'')}</p><p class="text-gray-600">${esc(s.phone||'')}</p>${s.experience?`<p class=\"text-gray-600\">${esc(s.experience)}</p>`:''}</div>`;
+                                    tr.appendChild(addr(contactHTML));
+                                    // Specialties
+                                    const specs = (s.specialties||[]).map(x=>`<span class="px-2 py-1 text-xs rounded-full ${specClass(x)}">${esc(x)}</span>`).join(' ');
+                                    tr.appendChild(addr(`<div class="flex flex-wrap gap-1">${specs}</div>`));
+                                    // Experience
+                                    tr.appendChild(addr(esc(s.experience||'')));
+                                    // Status
+                                    const active = String(s.active)==='1' || s.active===1 || s.active===true;
+                                    tr.appendChild(addr(`<span class="px-2 py-1 text-xs rounded-full ${active?'bg-green-100 text-green-800':'bg-red-100 text-red-800'}">${active?'Active':'Inactive'}</span>`));
+                                    // Actions
+                                    const actions = document.createElement('td');
+                                    actions.className='px-6 py-4 whitespace-nowrap text-sm text-gray-500';
+                                    actions.innerHTML = '<div class="flex items-center gap-2"><button class="p-1 text-gray-400 hover:text-gray-600 btn-sitter-edit" title="Edit"><i data-lucide="edit" class="w-4 h-4"></i></button><button class="p-1 text-red-400 hover:text-red-600 btn-sitter-delete" title="Delete"><i data-lucide="trash-2" class="w-4 h-4"></i></button></div>';
+                                    tr.appendChild(actions);
+                                    tbody.prepend(tr);
+                                    if (window.lucide && lucide.createIcons) lucide.createIcons();
+                                    close();
+                                } catch (err){ console.error(err); alert('Network error adding sitter'); }
+                            });
+
+                            if (search) search.addEventListener('input', ()=>{
+                                const q = search.value.trim().toLowerCase();
+                                [...tbody.querySelectorAll('tr')].forEach(tr=>{
+                                    const text = tr.textContent.toLowerCase();
+                                    tr.style.display = text.includes(q) ? '' : 'none';
+                                });
+                            });
+
+                            // Edit/Delete delegation
+                            tbody.addEventListener('click', async (e)=>{
+                                const editBtn = e.target.closest('.btn-sitter-edit');
+                                const delBtn = e.target.closest('.btn-sitter-delete');
+                                const tr = e.target.closest('tr');
+                                if (!tr) return;
+                                const id = tr.getAttribute('data-id');
+                                if (editBtn) {
+                                    try {
+                                        const res = await fetch(`../../controllers/admin/sittercontroller.php?action=get&id=${encodeURIComponent(id)}`);
+                                        const data = await res.json();
+                                        if (!data.success) { alert(data.error||'Failed to load sitter'); return; }
+                                        const s = data.item;
+                                        editId.value = s.id;
+                                        editName.value = s.name||'';
+                                        editEmail.value = s.email||'';
+                                        editPhone.value = s.phone||'';
+                                        editExp.value = s.experience||'';
+                                        editBio.value = s.bio||'';
+                                        resetEditImage();
+                                        if (s.image) { editImgPrev.src = s.image; editImgPrev.classList.remove('hidden'); editImgIcon.classList.add('hidden'); }
+                                        editActive.checked = String(s.active)==='1' || s.active===1 || s.active===true;
+                                        // Set specialties
+                                        const base = ['Dog','Cat','Bird','Fish','Small Pet'];
+                                        const set = new Set((s.specialties||[]).map(x=>String(x)));
+                                        editForm.querySelectorAll('input[name="sitters_specialties[]"]').forEach(cb=>{ cb.checked = set.has(cb.value); });
+                                        const extras = (s.specialties||[]).filter(x=>!base.includes(String(x)));
+                                        editSpecsExtra.value = extras.join(', ');
+                                        if (window.lucide && lucide.createIcons) lucide.createIcons();
+                                        openEdit();
+                                    } catch(err){ console.error(err); alert('Network error loading sitter'); }
+                                } else if (delBtn) {
+                                    if (!confirm('Delete this sitter?')) return;
+                                    try {
+                                        const fd = new FormData();
+                                        fd.append('action','delete');
+                                        fd.append('sitters_id', id);
+                                        const res = await fetch('../../controllers/admin/sittercontroller.php', { method: 'POST', body: fd });
+                                        const data = await res.json();
+                                        if (!data.success) { alert(data.error||'Failed to delete'); return; }
+                                        tr.remove();
+                                    } catch(err){ console.error(err); alert('Network error deleting sitter'); }
+                                }
+                            });
+
+                            if (editForm) editForm.addEventListener('submit', async (e)=>{
+                                e.preventDefault();
+                                const fd = new FormData(editForm);
+                                fd.append('action','update');
+                                try {
+                                    const res = await fetch('../../controllers/admin/sittercontroller.php', { method:'POST', body: fd });
+                                    const data = await res.json();
+                                    if (!data.success){ alert(data.error||'Failed to update sitter'); return; }
+                                    const s = data.item;
+                                    // Update row
+                                    const row = tbody.querySelector(`tr[data-id="${CSS.escape(String(s.id))}"]`);
+                                    if (row) {
+                                        const tds = row.querySelectorAll('td');
+                                        // Name cell (0): update image and name
+                                        const nameCell = tds[0];
+                                        const imgEl = nameCell.querySelector('img');
+                                        const iconEl = nameCell.querySelector('i[data-lucide="user"]');
+                                        if (s.image) {
+                                            if (imgEl) { imgEl.src = s.image; }
+                                            else {
+                                                const ph = nameCell.querySelector('div.w-10.h-10');
+                                                if (ph) ph.innerHTML = `<img src="${s.image}" alt="${s.name}" class="w-full h-full object-cover">`;
+                                            }
+                                            if (iconEl) iconEl.remove();
+                                        } else {
+                                            if (imgEl) imgEl.remove();
+                                            const holder = nameCell.querySelector('div.w-10.h-10');
+                                            if (holder && !holder.querySelector('i[data-lucide="user"]')) holder.innerHTML = '<i data-lucide="user" class="w-4 h-4 text-gray-400"></i>';
+                                        }
+                                        const nameP = nameCell.querySelector('p.font-medium');
+                                        if (nameP) nameP.textContent = s.name||'';
+                                        // Contact (1)
+                                        const contactCell = tds[1];
+                                        contactCell.innerHTML = `<div class="space-y-1"><p>${esc(s.email||'')}</p><p class="text-gray-600">${esc(s.phone||'')}</p></div>`;
+                                        // Specialties (2)
+                                        const specsHTML = (s.specialties||[]).map(x=>`<span class="px-2 py-1 text-xs rounded-full ${specClass(x)}">${esc(x)}</span>`).join(' ');
+                                        tds[2].innerHTML = `<div class="flex flex-wrap gap-1">${specsHTML}</div>`;
+                                        // Experience (3)
+                                        tds[3].textContent = s.experience||'-';
+                                        // Status (4)
+                                        tds[4].innerHTML = `<span class="px-2 py-1 text-xs rounded-full ${ (String(s.active)==='1'||s.active===1||s.active===true) ? 'bg-green-100 text-green-800':'bg-red-100 text-red-800'}">${ (String(s.active)==='1'||s.active===1||s.active===true) ? 'Active':'Inactive' }</span>`;
+                                        if (window.lucide && lucide.createIcons) lucide.createIcons();
+                                    }
+                                    closeEdit();
+                                } catch(err){ console.error(err); alert('Network error updating sitter'); }
+                            });
+                        })();
+                    </script>
                 </div>
 
                 <!-- Appointments Section -->
@@ -987,43 +1417,6 @@ function resolveImageUrl($path) {
             </form>
         </div>
     </div>
-    <!-- Add Sitter Modal -->
-    <div id="addSitterModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
-        <div class="bg-white rounded-lg p-6 w-full max-w-md mx-4">
-            <div class="flex items-center justify-between mb-4">
-                <h3 class="text-lg font-semibold">Add New Pet Sitter</h3>
-                <button onclick="closeAddSitterModal()" class="text-gray-400 hover:text-gray-600">
-                    <i data-lucide="x" class="w-5 h-5"></i>
-                </button>
-            </div>
-            <form id="addSitterForm" class="space-y-4">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
-                    <input type="text" name="sitterName" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                    <input type="email" name="sitterEmail" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Phone</label>
-                    <input type="tel" name="sitterPhone" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Experience (years)</label>
-                    <input type="number" name="experience" required min="0" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Specialties</label>
-                    <input type="text" name="specialties" placeholder="e.g., Dogs, Cats, Birds" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500">
-                </div>
-                <div class="flex gap-2 pt-4">
-                    <button type="submit" class="flex-1 bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white py-2 rounded-md">Add Sitter</button>
-                    <button type="button" onclick="closeAddSitterModal()" class="flex-1 border border-gray-300 text-gray-700 py-2 rounded-md hover:bg-gray-50">Cancel</button>
-                </div>
-            </form>
-        </div>
-    </div>
 
     <script>
         // Mock data
@@ -1085,36 +1478,7 @@ function resolveImageUrl($path) {
             }
         };
 
-        // Removed mockProducts; now rendered from DB in PHP
-
-        const mockSitters = [
-            {
-                id: 1,
-                name: "Mari Santos",
-                email: "mari@email.com",
-                phone: "+63 912 345 6789",
-                rating: 5.0,
-                reviews: 24,
-                location: "Cebu City",
-                experience: "7 years",
-                specialties: ["Dogs", "Cats", "Birds"],
-                status: "active",
-                image: "https://images.unsplash.com/photo-1727681200723-9513e4e3c394?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxwcm9mZXNzaW9uYWwlMjBwZXQlMjBzaXR0ZXIlMjB3aXRoJTIwZG9nfGVufDF8fHx8MTc1NjQ1MjEyOXww&ixlib=rb-4.1.0&q=80&w=1080"
-            },
-            {
-                id: 2,
-                name: "Anna Cruz",
-                email: "anna@email.com",
-                phone: "+63 917 234 5678",
-                rating: 4.8,
-                reviews: 18,
-                location: "Manila",
-                experience: "5 years",
-                specialties: ["Dogs", "Cats"],
-                status: "active",
-                image: "https://images.unsplash.com/photo-1608582175768-61fefde475a9?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx5b3VuZyUyMHdvbWFuJTIwd2Fsa2luZyUyMGRvZ3N8ZW58MXx8fHwxNzU2NDUyMTI5fDA&ixlib=rb-4.1.0&q=80&w=1080"
-            }
-        ];
+       
 
         const mockAppointments = [
             {
@@ -1210,7 +1574,6 @@ function resolveImageUrl($path) {
         document.addEventListener('DOMContentLoaded', function() {
             lucide.createIcons();
             updateChart();
-            populateSitters();
             populateAppointments();
             populatePetOwners();
             populateSubscribers();
@@ -1344,76 +1707,12 @@ function resolveImageUrl($path) {
             document.getElementById('addProductForm').reset();
         }
 
-        function openAddSitterModal() {
-            document.getElementById('addSitterModal').classList.remove('hidden');
-            document.getElementById('addSitterModal').classList.add('flex');
-        }
-
-        function closeAddSitterModal() {
-            document.getElementById('addSitterModal').classList.add('hidden');
-            document.getElementById('addSitterModal').classList.remove('flex');
-            document.getElementById('addSitterForm').reset();
-        }
+        // Removed legacy sitters modal helpers; replaced by new inline JS
 
         // Data population functions
         // Removed populateProducts(); products now server-rendered.
 
-        function populateSitters() {
-            const tbody = document.getElementById('sittersTableBody');
-            tbody.innerHTML = mockSitters.map(sitter => `
-                <tr>
-                    <td class="px-6 py-4 whitespace-nowrap">
-                        <div class="flex items-center gap-3">
-                            <div class="w-10 h-10 rounded-full overflow-hidden">
-                                <img src="${sitter.image}" alt="${sitter.name}" class="w-full h-full object-cover">
-                            </div>
-                            <div>
-                                <p class="font-medium">${sitter.name}</p>
-                                <p class="text-sm text-gray-600">${sitter.location}</p>
-                            </div>
-                        </div>
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap">
-                        <div class="space-y-1">
-                            <p class="text-sm">${sitter.email}</p>
-                            <p class="text-sm text-gray-600">${sitter.phone}</p>
-                        </div>
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap">
-                        <div class="flex items-center gap-1">
-                            <i data-lucide="star" class="w-4 h-4 fill-yellow-400 text-yellow-400"></i>
-                            <span>${sitter.rating}</span>
-                            <span class="text-sm text-gray-600">(${sitter.reviews})</span>
-                        </div>
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${sitter.experience}</td>
-                    <td class="px-6 py-4 whitespace-nowrap">
-                        <div class="flex gap-1">
-                            ${sitter.specialties.map(specialty => `
-                                <span class="px-2 py-1 bg-gray-100 text-gray-800 text-xs rounded-full">${specialty}</span>
-                            `).join('')}
-                        </div>
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap">
-                        <span class="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">Active</span>
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        <div class="flex items-center gap-2">
-                            <button class="p-1 text-gray-400 hover:text-gray-600">
-                                <i data-lucide="eye" class="w-4 h-4"></i>
-                            </button>
-                            <button class="p-1 text-gray-400 hover:text-gray-600">
-                                <i data-lucide="edit" class="w-4 h-4"></i>
-                            </button>
-                            <button class="p-1 text-red-400 hover:text-red-600">
-                                <i data-lucide="trash-2" class="w-4 h-4"></i>
-                            </button>
-                        </div>
-                    </td>
-                </tr>
-            `).join('');
-            lucide.createIcons();
-        }
+        // Removed populateSitters; sitters are server-rendered
 
         function populateAppointments() {
             const tbody = document.getElementById('appointmentsTableBody');
@@ -1665,12 +1964,7 @@ function resolveImageUrl($path) {
             });
         })();
 
-        document.getElementById('addSitterForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-            // Handle sitter addition here
-            alert('Sitter added successfully!');
-            closeAddSitterModal();
-        });
+        
 
         // Close modals when clicking outside
         document.addEventListener('click', function(e) {

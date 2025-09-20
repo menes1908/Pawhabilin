@@ -101,16 +101,9 @@
                     <a href="index.php" class="text-muted-foreground hover:text-foreground transition-colors">About</a>
                     <!-- Pet Sitter Dropdown -->
                     <div class="relative" id="petsitterWrapper">
-                        <button id="petsitterButton" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="petsitterMenu" class="text-muted-foreground hover:text-foreground transition-colors inline-flex items-center gap-2">
-                            Pet Sitter
-                            <i data-lucide="chevron-down" class="w-4 h-4 transition-transform duration-200"></i>
-                        </button>
-                        <div id="petsitterMenu" class="absolute left-0 mt-2 w-56 origin-top-left rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 nav-dropdown transition-all duration-200 hidden" role="menu" aria-hidden="true">
-                            <div class="py-1">
-                                <a href="find-sitters" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">Find a Pet Sitter</a>
-                                <a href="views/users/become_sitter.php" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">Become a Sitter</a>
-                            </div>
-                        </div>
+                        <a id="petsitterButton" href="../../find-sitters.php" class="text-muted-foreground hover:text-foreground transition-colors inline-flex items-center gap-2">
+                            Find a Sitter
+                         </a>
                     </div>
 
                     <a href="shop" class="text-muted-foreground hover:text-foreground transition-colors">Shop</a>
@@ -492,60 +485,56 @@
     </main>
 
     <!-- Footer -->
-    <footer class="bg-gray-800 text-white py-12 mt-12">
+    <footer class="py-12 bg-gray-900 text-white">
         <div class="container mx-auto px-4">
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
-                <div>
-                    <div class="flex items-center space-x-2 mb-4">
-                        <div class="w-8 h-8 rounded-lg overflow-hidden">
-                            <img src="https://images.unsplash.com/photo-1601758228041-f3b2795255f1?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxoYXBweSUyMGRvZyUyMG93bmVyJTIwaHVnZ2luZ3xlbnwxfHx8fDE3NTY0NTIxMjl8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral" alt="pawhabilin Logo" class="w-full h-full object-contain">
+            <div class="grid md:grid-cols-4 gap-8">
+                <div class="space-y-4">
+                    <div class="flex items-center space-x-2">
+                        <div class="w-24 h-24 rounded-lg overflow-hidden flex items-center justify-center" style="width:77px; height:77px;">
+                            <img src="../../pictures/Pawhabilin logo.png" alt="Pawhabilin Logo" class="w-full h-full object-contain" />
                         </div>
-                        <span class="text-xl font-semibold brand-font">pawhabilin</span>
+                        <span class="text-xl font-semibold bg-gradient-to-r from-orange-600 to-amber-600 bg-clip-text text-transparent" style="font-family: 'La Lou Big', cursive;">
+                        Pawhabilin
+                    </span>
                     </div>
-                    <p class="text-gray-400">Your trusted pet care community for happier, healthier pets.</p>
+                    <p class="text-gray-400">
+                        The Philippines' most trusted pet sitting platform connecting pet parents with verified pet care providers.
+                    </p>
                 </div>
-                
-                <div>
-                    <h3 class="font-semibold mb-4">Quick Links</h3>
+
+                <div class="space-y-4">
+                    <h4 class="font-semibold">For Pet Parents</h4>
                     <ul class="space-y-2 text-gray-400">
-                        <li><a href="../shop.php" class="hover:text-white transition-colors">Shop</a></li>
-                        <li><a href="../find-sitter.php" class="hover:text-white transition-colors">Find Sitter</a></li>
-                        <li><a href="../appointment.php" class="hover:text-white transition-colors">Appointments</a></li>
-                        <li><a href="../user-profile.php" class="hover:text-white transition-colors">My Profile</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">Find a Pet Sitter</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">How it Works</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">Safety</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">Pricing</a></li>
                     </ul>
                 </div>
-                
-                <div>
-                    <h3 class="font-semibold mb-4">Support</h3>
+
+                <div class="space-y-4">
+                    <h4 class="font-semibold">For Pet Sitters</h4>
+                    <ul class="space-y-2 text-gray-400">
+                        <li><a href="#" class="hover:text-white transition-colors">Become a Pet Sitter</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">Sitter Resources</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">Background Check</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">Earnings</a></li>
+                    </ul>
+                </div>
+
+                <div class="space-y-4">
+                    <h4 class="font-semibold">Support</h4>
                     <ul class="space-y-2 text-gray-400">
                         <li><a href="#" class="hover:text-white transition-colors">Help Center</a></li>
                         <li><a href="#" class="hover:text-white transition-colors">Contact Us</a></li>
-                        <li><a href="#" class="hover:text-white transition-colors">Safety Tips</a></li>
-                        <li><a href="#" class="hover:text-white transition-colors">Terms of Service</a></li>
-                    </ul>
-                </div>
-                
-                <div>
-                    <h3 class="font-semibold mb-4">Connect</h3>
-                    <ul class="space-y-2 text-gray-400">
-                        <li class="flex items-center gap-2">
-                            <i data-lucide="phone" class="w-4 h-4"></i>
-                            +63 912 345 6789
-                        </li>
-                        <li class="flex items-center gap-2">
-                            <i data-lucide="mail" class="w-4 h-4"></i>
-                            hello@pawhabilin.com
-                        </li>
-                        <li class="flex items-center gap-2">
-                            <i data-lucide="map-pin" class="w-4 h-4"></i>
-                            Cebu City, Philippines
-                        </li>
+                        <li><a href="#" class="hover:text-white transition-colors">Trust & Safety</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">Community</a></li>
                     </ul>
                 </div>
             </div>
-            
-            <div class="border-t border-gray-700 mt-8 pt-8 text-center text-gray-400">
-                <p>&copy; 2025 pawhabilin. All rights reserved.</p>
+
+            <div class="mt-12 pt-8 border-t border-gray-800 text-center text-gray-400">
+                <p>&copy; 2025 <span class="brand-font">pawhabilin</span> Philippines. All rights reserved.</p>
             </div>
         </div>
     </footer>

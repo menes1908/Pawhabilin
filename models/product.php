@@ -1,9 +1,11 @@
 <?php
 // Product model utilities aligned with products table schema
 // Schema reference:
+// products table columns (active):
 // products_id, products_name, products_pet_type, products_description,
-// products_category ENUM('food','accessory','necessity','toy'), products_price DECIMAL(10,2),
+// products_category ENUM('food','accessory','necessity','toy'), products_price DECIMAL(10,2), products_original_price DECIMAL(10,2),
 // products_stock (varchar - may contain non-numeric, we cast), products_image_url, products_active TINYINT(1), products_created_at
+// Removed legacy columns: products_badge, products_rating, products_variants
 
 if (!function_exists('product_allowed_categories')) {
     function product_allowed_categories(): array {
@@ -81,7 +83,7 @@ if (!function_exists('product_fetch_paginated')) {
         $pages = $total > 0 ? (int)ceil($total / $limit) : 1;
         if ($page > $pages) { $page = $pages; $offset = ($page - 1) * $limit; }
 
-    $sql = "SELECT products_id, products_name, products_pet_type, products_description, products_category, products_price, products_original_price, products_badge, products_rating, products_stock, products_image_url, products_variants, products_active, products_created_at FROM products $where ORDER BY $sort LIMIT ? OFFSET ?";
+    $sql = "SELECT products_id, products_name, products_pet_type, products_description, products_category, products_price, products_original_price, products_stock, products_image_url, products_active, products_created_at FROM products $where ORDER BY $sort LIMIT ? OFFSET ?";
         $stmt = $conn->prepare($sql);
         if ($types !== '') {
             $bindTypes = $types . 'ii';
@@ -107,7 +109,7 @@ if (!function_exists('product_fetch_paginated')) {
 
 if (!function_exists('product_get_by_id')) {
     function product_get_by_id(mysqli $conn, int $id): ?array {
-    $sql = "SELECT products_id, products_name, products_pet_type, products_description, products_category, products_price, products_original_price, products_badge, products_rating, products_stock, products_image_url, products_variants, products_active, products_created_at FROM products WHERE products_id = ? LIMIT 1";
+    $sql = "SELECT products_id, products_name, products_pet_type, products_description, products_category, products_price, products_original_price, products_stock, products_image_url, products_active, products_created_at FROM products WHERE products_id = ? LIMIT 1";
         $stmt = $conn->prepare($sql);
         $stmt->bind_param('i', $id);
         $stmt->execute();

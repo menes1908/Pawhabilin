@@ -6,16 +6,23 @@ require_once __DIR__.'/../database.php';
 require_once __DIR__.'/../models/product.php';
 
 $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
-if($id<=0){ http_response_code(400); echo json_encode(['error'=>'Invalid product id']); exit; }
-$p = product_get_by_id($connections,$id);
-if(!$p || !$p['products_active']){ http_response_code(404); echo json_encode(['error'=>'Not found']); exit; }
+if ($id <= 0) {
+  http_response_code(400);
+  echo json_encode(['error' => 'Invalid product id']);
+  exit;
+}
 
-// normalize variants
-$variants=[]; if(!empty($p['products_variants'])){ $dec=json_decode($p['products_variants'],true); if(is_array($dec)) $variants=$dec; }
-$stock = (int)($p['products_stock']??0);
-$orig = $p['products_original_price']!==null ? (float)$p['products_original_price'] : null;
+$p = product_get_by_id($connections, $id);
+if (!$p || empty($p['products_active'])) {
+  http_response_code(404);
+  echo json_encode(['error' => 'Not found']);
+  exit;
+}
+
+$stock = (int)($p['products_stock'] ?? 0);
+$orig  = isset($p['products_original_price']) ? (float)$p['products_original_price'] : null;
 $price = (float)$p['products_price'];
-$discountPct = ($orig && $orig>$price)? round((($orig-$price)/$orig)*100):0;
+$discountPct = ($orig && $orig > $price) ? round((($orig - $price) / $orig) * 100) : 0;
 
 $out = [
   'id' => (int)$p['products_id'],
@@ -26,11 +33,8 @@ $out = [
   'price' => $price,
   'originalPrice' => $orig,
   'discountPercent' => $discountPct,
-  'badge' => $p['products_badge'],
-  'rating' => $p['products_rating']!==null ? (float)$p['products_rating'] : null,
   'stock' => $stock,
   'image' => $p['products_image_url'],
-  'variants' => $variants,
 ];
 
 echo json_encode($out);

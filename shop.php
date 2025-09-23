@@ -10,6 +10,57 @@ $q=trim($_GET['q']??''); $cat=$_GET['cat']??''; $sort=$_GET['sort']??'new'; $pag
 $cartCount = 0; if(!empty($_SESSION['cart']) && is_array($_SESSION['cart'])){ foreach($_SESSION['cart'] as $c){ $cartCount += (int)($c['qty']??0); } }
 $filters=['q'=>$q,'cat'=>$cat,'page'=>$page,'limit'=>12,'sort'=>$sort];
 $res=product_fetch_paginated($connections,$filters); $items=$res['items']; $total=$res['total']; $pages=$res['pages']; $page=$res['page'];
+// If partial request (?partial=1) return only the products grid + pagination fragments for AJAX
+if(($_GET['partial']??'')==='1'){
+    ob_start();
+    ?>
+    <div class="paw-grid" id="products-grid">
+        <?php if($total===0): ?>
+            <p class="text-center col-span-full text-sm text-gray-500">No products found.</p>
+        <?php else: foreach($items as $p): $stock=(int)($p['products_stock']??0); $img=$p['products_image_url']??''; if($img && !preg_match('/^https?:/i',$img)) $img=ltrim($img,'/'); $disabled=$stock<=0; ?>
+            <div class="product-card" data-product-id="<?= (int)$p['products_id'] ?>" data-category="<?= h($p['products_category']) ?>" data-name="<?= strtolower(h($p['products_name'])) ?>">
+                <?php if($stock<=0): ?><div class="product-badge" style="background:linear-gradient(135deg,#6b7280,#374151)">Out</div><?php endif; ?>
+                <div class="product-image">
+                    <?php if($img): ?><img src="<?= h($img) ?>" alt="<?= h($p['products_name']) ?>" loading="lazy"><?php else: ?><span style="font-size:12px;color:#6b7280;display:flex;align-items:center;justify-content:center;height:100%;">No Image</span><?php endif; ?>
+                    <div class="paw-print-hover" onclick="openQuickViewDb(<?= (int)$p['products_id'] ?>)"><i data-lucide="eye" class="w-4 h-4 text-white"></i></div>
+                </div>
+                <div class="space-y-3">
+                    <div>
+                        <h3 class="text-lg font-bold text-gray-800 mb-1"><?= h($p['products_name']) ?></h3>
+                        <div class="flex items-center gap-2 mb-2">
+                            <div class="text-xs font-medium uppercase tracking-wide text-gray-500"><?= h(product_category_label($p['products_category'])) ?></div>
+                            <span class="text-xs text-gray-400">Stock: <?= $stock ?></span>
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-xl font-bold text-orange-600">₱<?= number_format((float)$p['products_price'],2) ?></span>
+                    </div>
+                    <div class="flex gap-2">
+                        <button type="button" data-qv="<?= (int)$p['products_id'] ?>" class="quick-view-btn flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-2 px-4 rounded-lg transition-all duration-200 flex items-center justify-center gap-2 text-sm">
+                            <i data-lucide="eye" class="w-4 h-4"></i> Quick View
+                        </button>
+                        <form method="post" action="shop/cart_add.php" class="flex gap-2 ajax-cart-add" data-product-id="<?= (int)$p['products_id'] ?>" style="flex:1;">
+                            <input type="hidden" name="csrf" value="<?= h($csrf) ?>" />
+                            <input type="hidden" name="product_id" value="<?= (int)$p['products_id'] ?>" />
+                            <input type="number" name="qty" value="1" min="1" max="<?= max(1,$stock) ?>" class="w-20 rounded-lg border border-gray-300 px-2 py-2 text-sm" <?= $disabled?'disabled':''; ?> />
+                            <button type="submit" class="flex-1 bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white font-medium py-2 px-4 rounded-lg transition-all duration-200 flex items-center justify-center gap-2 text-sm" <?= $disabled?'disabled':''; ?>><i data-lucide="shopping-cart" class="w-4 h-4"></i> Add</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        <?php endforeach; endif; ?>
+    </div>
+    <div id="pagination-wrapper">
+    <?php if($pages>1): ?>
+        <div class="mt-10 flex flex-wrap gap-2 justify-center text-sm">
+            <?php $qs=[]; if($q!=='') $qs['q']=$q; if($cat!=='') $qs['cat']=$cat; if($sort!=='new') $qs['sort']=$sort; for($i=1;$i<=$pages;$i++){ $qs['page']=$i; $href='?'.http_build_query($qs); $active=$i===$page?'background:linear-gradient(135deg,#f97316,#fb923c);color:#fff;border-color:#f97316':'background:#fff;color:#374151;'; echo '<a class="page-link" data-page="'.h($i).'" style="padding:10px 16px;border:2px solid #fcd9b6;border-radius:14px;font-weight:500;'.$active.'" href="'.h($href).'">'.$i.'</a>'; } ?>
+        </div>
+    <?php endif; ?>
+    </div>
+    <?php
+    echo ob_get_clean();
+    exit;
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -21,7 +72,7 @@ $res=product_fetch_paginated($connections,$filters); $items=$res['items']; $tota
     <meta name="keywords" content="pet accessories, dog collars, pet toys, leashes, grooming tools, pet apparel, pawhabilin">
     
         <!-- Global variables & custom base styles -->
-        <link rel="stylesheet" href="globals.css">
+    <link rel="stylesheet" href="globals.css">
 
         <!-- Tailwind CSS (CDN) - added because utilities were not rendering without a build step -->
         <script>
@@ -132,159 +183,18 @@ $res=product_fetch_paginated($connections,$filters); $items=$res['items']; $tota
             animation: pulse-glow 2s ease-in-out infinite;
         }
         
-        .slide-in-up {
-            animation: slide-in-up 0.6s ease-out forwards;
-        }
-        
-        .gradient-bg {
-            background: linear-gradient(-45deg, #f97316, #fb923c, #fbbf24, #f59e0b);
-            background-size: 400% 400%;
-            animation: gradient-shift 6s ease infinite;
-        }
-        
-        /* PawGrid™ Layout */
-        .paw-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-            gap: 24px;
-            padding: 20px 0;
-        }
-        
-        .product-card {
-            background: linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.85));
-            backdrop-filter: blur(15px);
-            border: 2px solid rgba(249, 115, 22, 0.1);
-            border-radius: 20px;
-            padding: 20px;
-            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            position: relative;
-            overflow: hidden;
-            cursor: pointer;
-        }
-        
-        .product-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
-            transition: left 0.5s ease;
-        }
-        
-        .product-card:hover::before {
-            left: 100%;
-        }
-        
-        .product-card:hover {
-            transform: translateY(-10px) scale(1.03);
-            border-color: rgba(249, 115, 22, 0.3);
-            box-shadow: 0 20px 40px rgba(249, 115, 22, 0.2);
-        }
-        
-        .product-image {
-            width: 100%;
-            height: 200px;
-            border-radius: 15px;
-            overflow: hidden;
-            margin-bottom: 16px;
-            position: relative;
-            background: linear-gradient(45deg, #f9fafb, #f3f4f6);
-        }
-        
-        .product-image img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            transition: transform 0.4s ease;
-        }
-        
-        .product-card:hover .product-image img {
-            transform: scale(1.1);
-        }
-        
-        .paw-print-hover {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            width: 30px;
-            height: 30px;
-            background: rgba(249, 115, 22, 0.9);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            opacity: 0;
-            transform: scale(0);
-            transition: all 0.3s ease;
-            cursor: pointer;
-        }
-        
-        .product-card:hover .paw-print-hover {
-            opacity: 1;
-            transform: scale(1);
-            animation: paw-bounce 0.6s ease-in-out;
-        }
-        
-        .product-badge {
-            position: absolute;
-            top: 15px;
-            left: 15px;
-            background: linear-gradient(135deg, #ef4444, #dc2626);
-            color: white;
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        
-        .product-badge.new {
-            background: linear-gradient(135deg, #10b981, #059669);
-        }
-        
-        .product-badge.bundle {
-            background: linear-gradient(135deg, #8b5cf6, #7c3aed);
-        }
-        
-        /* Variant Swatches */
-        .variant-swatches {
-            display: flex;
-            gap: 8px;
-            margin: 12px 0;
-            flex-wrap: wrap;
-        }
-        
-        .variant-swatch {
-            width: 32px;
-            height: 32px;
-            border-radius: 50%;
-            border: 2px solid #e5e7eb;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            position: relative;
-        }
-        
-        .variant-swatch.paw-shape {
-            border-radius: 45% 40% 45% 40%;
-            transform: rotate(45deg);
-        }
-        
-        .variant-swatch.bone-shape {
-            border-radius: 50px 20px 50px 20px;
-        }
-        
-        .variant-swatch:hover {
-            border-color: #f97316;
-            transform: scale(1.1);
-        }
-        
-        .variant-swatch.active {
-            border-color: #f97316;
-            box-shadow: 0 0 0 2px rgba(249, 115, 22, 0.2);
-        }
+        /* Old design core card styles restored */
+        .paw-grid { display:grid; grid-template-columns: repeat(auto-fill,minmax(280px,1fr)); gap:24px; padding:20px 0; }
+        .product-card { background:linear-gradient(135deg,rgba(255,255,255,.95),rgba(255,255,255,.85)); backdrop-filter:blur(15px); border:2px solid rgba(249,115,22,.1); border-radius:20px; padding:20px; transition:all .4s cubic-bezier(.175,.885,.32,1.275); position:relative; overflow:hidden; }
+        .product-card::before { content:''; position:absolute; top:0; left:-100%; width:100%; height:100%; background:linear-gradient(90deg,transparent,rgba(255,255,255,.4),transparent); transition:left .5s ease; }
+        .product-card:hover::before { left:100%; }
+        .product-card:hover { transform:translateY(-10px) scale(1.03); border-color:rgba(249,115,22,.3); box-shadow:0 20px 40px rgba(249,115,22,.2); }
+        .product-image { width:100%; height:200px; border-radius:15px; overflow:hidden; margin-bottom:16px; position:relative; background:linear-gradient(45deg,#f9fafb,#f3f4f6); }
+        .product-image img { width:100%; height:100%; object-fit:cover; transition:transform .4s ease; }
+        .product-card:hover .product-image img { transform:scale(1.1); }
+        .paw-print-hover { position:absolute; top:10px; right:10px; width:30px; height:30px; background:rgba(249,115,22,.9); border-radius:50%; display:flex; align-items:center; justify-content:center; opacity:0; transform:scale(0); transition:all .3s ease; cursor:pointer; }
+        .product-card:hover .paw-print-hover { opacity:1; transform:scale(1); animation:paw-bounce .6s ease-in-out; }
+        .product-badge { position:absolute; top:15px; left:15px; background:linear-gradient(135deg,#6b7280,#374151); color:#fff; padding:4px 12px; border-radius:20px; font-size:12px; font-weight:600; text-transform:uppercase; letter-spacing:.5px; }
         
         /* Sticky Mini Cart */
         .mini-cart {
@@ -365,70 +275,27 @@ $res=product_fetch_paginated($connections,$filters); $items=$res['items']; $tota
             visibility: visible;
         }
         
-        /* Category Filter */
-        .category-tabs {
-            display: flex;
-            gap: 16px;
-            margin-bottom: 32px;
-            flex-wrap: wrap;
-            justify-content: center;
+    .category-tabs { display:flex; gap:10px; margin:20px 0 32px; flex-wrap:nowrap; justify-content:center; overflow:hidden; padding-bottom:4px; width:100%; }
+    .category-tabs::-webkit-scrollbar { height:8px; }
+    .category-tabs::-webkit-scrollbar-track { background:transparent; }
+    .category-tabs::-webkit-scrollbar-thumb { background:linear-gradient(45deg,#f97316,#fb923c); border-radius:4px; }
+        .category-tab { padding:12px 16px; border-radius:25px; background:#fff; border:2px solid #e5e7eb; cursor:pointer; transition:all .3s ease; font-weight:500; position:relative; overflow:hidden; display:inline-flex; align-items:center; line-height:1.15; justify-content:center; flex:1 1 0; min-width:0; font-size:14px; }
+        .category-tab i { margin-right:6px; }
+        @media (max-width:640px){
+            .category-tab { padding:10px 10px; font-size:12px; }
         }
-        
-        .category-tab {
-            padding: 12px 24px;
-            border-radius: 25px;
-            background: white;
-            border: 2px solid #e5e7eb;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            font-weight: 500;
-            position: relative;
-            overflow: hidden;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            white-space: nowrap;
-            height: 52px;
-            flex: 0 0 auto; /* prevent shrinking so horizontal alignment is consistent */
-        }
-        #categoryTabsRow {
-            display: flex;
-            flex-wrap: nowrap;
-            gap: 12px;
-            justify-content: flex-start;
-            overflow-x: auto;
-            padding-bottom: 6px;
-            scrollbar-width: thin;
-        }
-        #categoryTabsRow::-webkit-scrollbar { height: 8px; }
-        #categoryTabsRow::-webkit-scrollbar-track { background: transparent; }
-        #categoryTabsRow::-webkit-scrollbar-thumb { background: linear-gradient(45deg,#f97316,#fb923c); border-radius:4px; }
-        
-        .category-tab::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(249, 115, 22, 0.1), transparent);
-            transition: left 0.5s ease;
-        }
-        
-        .category-tab:hover::before {
-            left: 100%;
-        }
-        
-        .category-tab:hover {
-            border-color: #f97316;
-            color: #f97316;
-        }
-        
-        .category-tab.active {
-            background: linear-gradient(135deg, #f97316, #fb923c);
-            color: white;
-            border-color: #f97316;
-        }
+    .category-tab i { margin-right:8px; }
+        .category-tab::before { content:''; position:absolute; top:0; left:-100%; width:100%; height:100%; background:linear-gradient(90deg,transparent,rgba(249,115,22,.1),transparent); transition:left .5s ease; }
+        .category-tab:hover::before { left:100%; }
+        .category-tab:hover { border-color:#f97316; color:#f97316; }
+        .category-tab.active { background:linear-gradient(135deg,#f97316,#fb923c); color:#fff; border-color:#f97316; }
+    /* Search + Sort bar */
+    .filter-bar { width:100%; display:flex; gap:16px; align-items:center; justify-content:center; flex-wrap:wrap; }
+    .search-wrapper { position:relative; flex:1 1 340px; max-width:480px; }
+    .search-wrapper .search-input { width:100%; }
+    .sort-wrapper { display:flex; align-items:center; gap:8px; }
+    .sort-wrapper select { padding:10px 14px; border:2px solid #e5e7eb; border-radius:25px; font-size:14px; background:#fff; }
+    @media (max-width:640px){ .filter-bar { flex-direction:column; align-items:stretch; } .sort-wrapper { justify-content:flex-start; } }
         
         /* Bundle Deal Cards */
         .bundle-card {
@@ -559,14 +426,14 @@ $res=product_fetch_paginated($connections,$filters); $items=$res['items']; $tota
 </head>
 <body class="min-h-screen bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-50">
     <!-- Header (revised per request: centered, larger, no wishlist, icon-only cart) -->
-    <header class="sticky top-0 z-40 border-b bg-background/80 backdrop-blur-sm">
+    <header class="sticky top-0 z-50 border-b bg-white/80 backdrop-blur-sm">
         <div class="mx-auto px-4 w-full max-w-7xl">
             <div class="flex h-20 items-center justify-between">
                 <a href="index.php" class="flex items-center space-x-2 group">
                     <div class="w-20 h-20 rounded-lg overflow-hidden flex items-center justify-center transition-transform duration-300 hover:rotate-12" style="width:77px; height:77px;">
                         <img src="./pictures/Pawhabilin logo.png" alt="Pawhabilin Logo" class="w-full h-full object-contain" />
                     </div>
-                    <span class="text-xl font-semibold bg-gradient-to-r from-orange-600 to-amber-600 bg-clip-text text-transparent brand-font">
+                    <span class="text-xl font-semibold bg-gradient-to-r from-orange-600 to-amber-600 bg-clip-text text-transparent" style="font-family: 'La Lou Big', cursive;">
                         Pawhabilin
                     </span>
                 </a>
@@ -779,8 +646,21 @@ $res=product_fetch_paginated($connections,$filters); $items=$res['items']; $tota
 
                         <!-- Search + Category (server-side) -->
                         <div class="search-container" style="margin-bottom:28px;">
-                            <form method="get" style="position:relative;display:flex;flex-direction:column;gap:18px;align-items:center;">
-                                <div id="categoryTabsRow">
+                            <form method="get" style="position:relative;display:flex;flex-direction:column;gap:12px;align-items:stretch;width:100%;max-width:1000px;">
+                                <div class="filter-bar">
+                                    <div class="search-wrapper">
+                                        <input type="hidden" name="cat" id="cat-input" value="<?= h($cat) ?>" />
+                                        <input id="search-input" type="text" name="q" class="search-input" placeholder="Search for products..." value="<?= h($q) ?>" />
+                                        <i data-lucide="search" class="search-icon w-5 h-5"></i>
+                                    </div>
+                                    <div class="sort-wrapper">
+                                        <label style="font-size:12px;color:#6b7280;">Sort:</label>
+                                        <select name="sort" onchange="this.form.submit()">
+                                            <?php $opts=['new'=>'Newest','price_asc'=>'Price ↑','price_desc'=>'Price ↓','name_asc'=>'Name A-Z','name_desc'=>'Name Z-A','stock_desc'=>'Stock']; foreach($opts as $k=>$label){ $sel=$sort===$k?'selected':''; echo '<option value="'.h($k).'" '.$sel.'>'.h($label).'</option>'; } ?>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="category-tabs" id="category-tabs">
                                     <?php
                                         $catLabels=[''=>'All Products','food'=>'Feeding & Water','accessory'=>'Collars & Leashes','toy'=>'Toys & Entertainment','necessity'=>'Grooming Tools'];
                                         $catIcons=[''=>'grid-3x3','food'=>'bowl','accessory'=>'circle','toy'=>'gamepad-2','necessity'=>'scissors'];
@@ -795,22 +675,12 @@ $res=product_fetch_paginated($connections,$filters); $items=$res['items']; $tota
                                         }
                                     ?>
                                 </div>
-                                <div style="width:100%;max-width:420px;position:relative;">
-                                    <?php if($cat!==''): ?><input type="hidden" name="cat" value="<?= h($cat) ?>" /><?php endif; ?>
-                                    <input id="search-input" type="text" name="q" class="search-input" placeholder="Search for products..." value="<?= h($q) ?>" />
-                                    <i data-lucide="search" class="search-icon w-5 h-5"></i>
-                                </div>
-                                <div style="display:flex;gap:10px;align-items:center;">
-                                    <label style="font-size:12px;color:#6b7280;">Sort:</label>
-                                    <select name="sort" onchange="this.form.submit()" style="padding:10px 14px;border:2px solid #e5e7eb;border-radius:25px;font-size:14px;">
-                                        <?php $opts=['new'=>'Newest','price_asc'=>'Price ↑','price_desc'=>'Price ↓','name_asc'=>'Name A-Z','name_desc'=>'Name Z-A','stock_desc'=>'Stock']; foreach($opts as $k=>$label){ $sel=$sort===$k?'selected':''; echo '<option value="'.h($k).'" '.$sel.'>'.h($label).'</option>'; } ?>
-                                    </select>
-                                    <button type="submit" style="display:none">Apply</button>
-                                </div>
+                                <button type="submit" style="display:none">Apply</button>
                             </form>
                         </div>
                         
-                        <div class="paw-grid">
+                        <div id="products-wrapper">
+                        <div class="paw-grid" id="products-grid">
                             <?php if($total===0): ?>
                                 <p class="text-center col-span-full text-sm text-gray-500">No products found.</p>
                             <?php else: foreach($items as $p): $stock=(int)($p['products_stock']??0); $img=$p['products_image_url']??''; if($img && !preg_match('/^https?:/i',$img)) $img=ltrim($img,'/'); $disabled=$stock<=0; ?>
@@ -845,12 +715,15 @@ $res=product_fetch_paginated($connections,$filters); $items=$res['items']; $tota
                                     </div>
                                 </div>
                             <?php endforeach; endif; ?>
-                        </div>
+                        </div><!-- /paw-grid -->
+                        <div id="pagination-wrapper">
                         <?php if($pages>1): ?>
                             <div class="mt-10 flex flex-wrap gap-2 justify-center text-sm">
-                                <?php $qs=[]; if($q!=='') $qs['q']=$q; if($cat!=='') $qs['cat']=$cat; if($sort!=='new') $qs['sort']=$sort; for($i=1;$i<=$pages;$i++){ $qs['page']=$i; $href='?'.http_build_query($qs); $active=$i===$page?'background:linear-gradient(135deg,#f97316,#fb923c);color:#fff;border-color:#f97316':'background:#fff;color:#374151;'; echo '<a style="padding:10px 16px;border:2px solid #fcd9b6;border-radius:14px;font-weight:500;'.$active.'" href="'.h($href).'">'.$i.'</a>'; } ?>
+                                <?php $qs=[]; if($q!=='') $qs['q']=$q; if($cat!=='') $qs['cat']=$cat; if($sort!=='new') $qs['sort']=$sort; for($i=1;$i<=$pages;$i++){ $qs['page']=$i; $href='?'.http_build_query($qs); $active=$i===$page?'background:linear-gradient(135deg,#f97316,#fb923c);color:#fff;border-color:#f97316':'background:#fff;color:#374151;'; echo '<a class="page-link" data-page="'.h($i).'" style="padding:10px 16px;border:2px solid #fcd9b6;border-radius:14px;font-weight:500;'.$active.'" href="'.h($href).'">'.$i.'</a>'; } ?>
                             </div>
                         <?php endif; ?>
+                        </div><!-- /pagination-wrapper -->
+                        </div><!-- /products-wrapper -->
 
     <!-- Cleaned JS (legacy static products removed) -->
     <script>
@@ -889,17 +762,14 @@ $res=product_fetch_paginated($connections,$filters); $items=$res['items']; $tota
         }
     }
     function renderQuickView(p){
-        const full=Math.floor(p.rating||0); const empty=5-full;
-        const variants=Array.isArray(p.variants)?p.variants:[];
+        // Rating, badge, and variant options removed (columns dropped from DB)
         const discount=(p.originalPrice&&p.originalPrice>p.price)?Math.round(((p.originalPrice-p.price)/p.originalPrice)*100):0;
         const content=`<div class="space-y-6">
             <div class=\"aspect-square w-full rounded-lg overflow-hidden bg-gray-100 flex items-center justify-center\">${p.image?`<img src=\"${p.image}\" alt=\"${escapeHtml(p.name)}\" class=\"w-full h-full object-cover\">`:'<div class=\"text-xs text-gray-400\">No Image</div>'}</div>
             <div>
                 <h3 class=\"text-2xl font-bold text-gray-800 mb-2\">${escapeHtml(p.name)}</h3>
-                ${p.rating?`<div class=\\"flex items-center gap-2 mb-4\\"><div class=\\"flex items-center text-yellow-400\\">${'★'.repeat(full)}${'☆'.repeat(empty)}</div><span class=\\"text-sm text-gray-600\\">(${p.rating.toFixed(1)} rating)</span></div>`:''}
                 <p class=\"text-gray-600 mb-4 whitespace-pre-line\">${escapeHtml(p.description||'No description.')}</p>
                 <div class=\"flex items-center gap-4 mb-6\">\n                    <span class=\"text-2xl font-bold text-orange-600\">₱${numberFormat(p.price)}</span>\n                    ${p.originalPrice&&p.originalPrice>p.price?`<span class=\\"text-lg text-gray-500 line-through\\">₱${numberFormat(p.originalPrice)}</span>`:''}\n                    ${discount>0?`<span class=\\"text-xs bg-red-100 text-red-600 px-2 py-1 rounded-full font-semibold\\">${discount}% OFF</span>`:''}\n                </div>
-                ${variants.length?`<div class=\\"mb-6\\"><h4 class=\\"font-medium text-gray-800 mb-3\\">Available Options:</h4><div class=\\"flex gap-2 flex-wrap\\">${variants.map((v,i)=>`<button type=\\"button\\" data-variant-index=\\"${i}\\" class=\\"px-3 py-2 border border-gray-300 rounded-lg text-sm hover:border-orange-500 hover:text-orange-500 transition-colors variant-btn\\">${escapeHtml(v.name||v.value||'Option')}</button>`).join('')}</div></div>`:''}
                 <form method=\"post\" action=\"shop/cart_add.php\" class=\"space-y-4 ajax-cart-add\" data-product-id=\"${p.id}\">\n                    <input type=\"hidden\" name=\"csrf\" value=\"<?= h($csrf) ?>\" />\n                    <input type=\"hidden\" name=\"product_id\" value=\"${p.id}\" />\n                    <div class=\"flex items-center gap-3\">\n                        <span class=\"text-xs font-medium text-gray-500\">Quantity</span>\n                        <div class=\"inline-flex items-center rounded-full border border-gray-300 overflow-hidden bg-white shadow-sm\">\n                            <button type=\"button\" class=\"qty-btn px-3 py-1 text-gray-600 hover:bg-gray-100 focus:outline-none focus:bg-gray-100 text-sm\" data-delta=\"-1\" aria-label=\"Decrease quantity\">-</button>\n                            <input name=\"qty\" value=\"1\" min=\"1\" max=\"${p.stock||99}\" type=\"number\" class=\"w-12 text-center text-sm border-0 focus:ring-0 focus:outline-none hide-number-spinner\" />\n                            <button type=\"button\" class=\"qty-btn px-3 py-1 text-gray-600 hover:bg-gray-100 focus:outline-none focus:bg-gray-100 text-sm\" data-delta=\"1\" aria-label=\"Increase quantity\">+</button>\n                        </div>\n                        ${p.stock?`<span class=\\"text-[10px] text-gray-400\\">Stock: ${p.stock}</span>`:''}\n                    </div>\n                    <button type=\"submit\" class=\"w-full bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white font-semibold py-3 px-6 rounded-lg transition-all duration-200 flex items-center justify-center gap-2\">\n                        <i data-lucide=\"shopping-cart\" class=\"w-5 h-5\"></i> Add to Cart\n                    </button>\n                </form>
             </div>
         </div>`;
@@ -908,13 +778,6 @@ $res=product_fetch_paginated($connections,$filters); $items=$res['items']; $tota
         document.getElementById('drawer-overlay').classList.add('open');
         document.body.style.overflow='hidden';
         if(window.lucide) lucide.createIcons();
-        // Variant button active state handling (simplified)
-        document.querySelectorAll('#quick-view-content .variant-btn').forEach(btn=>{
-            btn.addEventListener('click',()=>{
-                btn.parentElement.querySelectorAll('.variant-btn').forEach(b=>b.classList.remove('border-orange-500','text-orange-500'));
-                btn.classList.add('border-orange-500','text-orange-500');
-            });
-        });
         // Quantity pill handlers
         const qtyInput = document.querySelector('#quick-view-content input[name="qty"]');
         document.querySelectorAll('#quick-view-content .qty-btn').forEach(qb=>{
@@ -1051,6 +914,8 @@ $res=product_fetch_paginated($connections,$filters); $items=$res['items']; $tota
     }
     function updateCartCount(n){ const el=document.getElementById('cart-count'); if(el) el.textContent=n; }
     document.addEventListener('DOMContentLoaded',initAjaxCart);
+    // Rebind ajax cart after dynamic grid loads
+    document.addEventListener('ajax:products-updated',()=>{ initAjaxCart(); });
     // Delegate Quick View button clicks
     document.addEventListener('click',e=>{
         const btn = e.target.closest('.quick-view-btn');
@@ -1060,68 +925,48 @@ $res=product_fetch_paginated($connections,$filters); $items=$res['items']; $tota
         }
     });
 
-    // Client-side live filtering (enhances server-side rendered list; no reload needed)
-    (function initLiveFiltering(){
-        const searchInput = document.getElementById('search-input');
-        const categoryTabs = document.querySelectorAll('#categoryTabsRow .category-tab[data-cat]');
-        const originalActive = document.querySelector('#categoryTabsRow .category-tab.active');
-        let activeCategory = originalActive ? originalActive.getAttribute('data-cat') : 'all';
-
-        function applyFilter(){
-            const q = (searchInput ? searchInput.value.trim().toLowerCase() : '');
-            const cards = document.querySelectorAll('.product-card[data-name]');
-            let visibleCount = 0;
-            cards.forEach(card=>{
-                const name = card.getAttribute('data-name') || '';
-                const cat = card.getAttribute('data-category') || '';
-                const matchCat = (activeCategory==='all') || (cat===activeCategory);
-                const matchText = !q || name.indexOf(q) !== -1;
-                if(matchCat && matchText){
-                    card.style.display='';
-                    visibleCount++;
-                } else {
-                    card.style.display='none';
-                }
-            });
-            const emptyMsgId='no-client-filter-results';
-            let emptyEl=document.getElementById(emptyMsgId);
-            if(visibleCount===0){
-                if(!emptyEl){
-                    emptyEl=document.createElement('div');
-                    emptyEl.id=emptyMsgId;
-                    emptyEl.className='col-span-full text-center text-sm text-gray-500 mt-6';
-                    emptyEl.textContent='No products match your filters.';
-                    const grid=document.querySelector('.paw-grid');
-                    if(grid) grid.appendChild(emptyEl);
-                }
-            } else if(emptyEl){ emptyEl.remove(); }
-        }
-
-        if(searchInput){
-            searchInput.addEventListener('input',()=>{
-                applyFilter();
-            });
-        }
-
-        categoryTabs.forEach(tab=>{
-            tab.addEventListener('click', ()=>{
-                categoryTabs.forEach(t=>t.classList.remove('active'));
-                tab.classList.add('active');
-                activeCategory = tab.getAttribute('data-cat') || 'all';
-                applyFilter();
-                const params = new URLSearchParams(window.location.search);
-                if(activeCategory==='all') params.delete('cat'); else params.set('cat', activeCategory);
-                if(searchInput && searchInput.value.trim()) params.set('q', searchInput.value.trim()); else params.delete('q');
-                const newUrl = window.location.pathname + (params.toString()?('?'+params.toString()):'');
-                window.history.replaceState({}, '', newUrl);
-            });
+    // Debounced server-side search submit
+    (function initDebouncedSearch(){
+        const input=document.getElementById('search-input');
+        if(!input) return;
+        let timer; const form=input.closest('form');
+        input.addEventListener('input',()=>{
+            clearTimeout(timer);
+            timer=setTimeout(()=>{ if(form) form.submit(); }, 450); // 450ms debounce
         });
+        // Submit on Enter immediately
+        input.addEventListener('keydown',e=>{ if(e.key==='Enter'){ clearTimeout(timer); if(form) form.submit(); }});
+    })();
 
-        // Normalize data-name to lower-case once (server already attempted lower-case but ensure)
-        document.querySelectorAll('.product-card[data-name]').forEach(c=>{
-            c.setAttribute('data-name', (c.getAttribute('data-name')||'').toLowerCase());
-        });
-        applyFilter();
+    // Category tabs + pagination AJAX (no full refresh)
+    (function initAjaxCategoryAndPagination(){
+        const form=document.querySelector('.search-container form');
+        const catInput=document.getElementById('cat-input');
+        const productsWrapper=document.getElementById('products-wrapper');
+        function serialize(){ const fd=new FormData(form); return new URLSearchParams(fd).toString(); }
+        function setActive(cat){ document.querySelectorAll('.category-tab').forEach(b=>{ b.classList.toggle('active', (b.getAttribute('data-cat')||'')===cat || (cat==='' && (b.getAttribute('data-cat')||'')==='all')); }); }
+        async function fetchAndRender(params){
+            try {
+                productsWrapper.classList.add('opacity-50');
+                const url=window.location.pathname+'?'+params+'&partial=1';
+                const res=await fetch(url,{headers:{'X-Requested-With':'fetch'}});
+                const html=await res.text();
+                // Expect server returns only inner HTML fragments (grid + pagination)
+                const temp=document.createElement('div'); temp.innerHTML=html;
+                const newGrid=temp.querySelector('#products-grid');
+                const newPagination=temp.querySelector('#pagination-wrapper');
+                if(newGrid && document.getElementById('products-grid')) document.getElementById('products-grid').replaceWith(newGrid);
+                if(newPagination && document.getElementById('pagination-wrapper')) document.getElementById('pagination-wrapper').replaceWith(newPagination);
+                if(window.lucide) lucide.createIcons();
+                document.dispatchEvent(new CustomEvent('ajax:products-updated'));
+                productsWrapper.classList.remove('opacity-50');
+            } catch(e){ productsWrapper.classList.remove('opacity-50'); console.error(e); }
+        }
+        function updateUrl(params){ const newUrl=window.location.pathname+'?'+params; window.history.replaceState({},'',newUrl); }
+        function onCategoryClick(e){ const btn=e.target.closest('.category-tab'); if(!btn) return; const val=btn.getAttribute('data-cat')||''; const normalized=(val==='all')?'':val; if(catInput) catInput.value=normalized; setActive(val); const params=serialize(); updateUrl(params); fetchAndRender(params); }
+        function onPaginationClick(e){ const link=e.target.closest('.page-link'); if(!link) return; e.preventDefault(); const page=link.getAttribute('data-page'); const fd=new FormData(form); fd.set('page', page); const params=new URLSearchParams(fd).toString(); updateUrl(params); fetchAndRender(params); }
+        document.getElementById('category-tabs')?.addEventListener('click',onCategoryClick);
+        document.addEventListener('click',onPaginationClick);
     })();
 
     // Show notification (updated implementation)

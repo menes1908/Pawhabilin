@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Sep 23, 2025 at 06:47 PM
+-- Generation Time: Sep 23, 2025 at 07:50 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.0.30
 
@@ -168,6 +168,7 @@ CREATE TABLE `products` (
   `products_description` text DEFAULT NULL,
   `products_category` enum('food','accessory','necessity','toy') DEFAULT NULL,
   `products_price` decimal(10,2) NOT NULL,
+  `products_original_price` decimal(10,2) DEFAULT NULL,
   `products_stock` varchar(255) DEFAULT NULL,
   `products_image_url` varchar(255) DEFAULT NULL,
   `products_active` tinyint(1) DEFAULT 1,
@@ -178,18 +179,18 @@ CREATE TABLE `products` (
 -- Dumping data for table `products`
 --
 
-INSERT INTO `products` (`products_id`, `products_name`, `products_pet_type`, `products_description`, `products_category`, `products_price`, `products_stock`, `products_image_url`, `products_active`, `products_created_at`) VALUES
-(1, 'Goodest Tuna', 'Cat', 'Offer complete and balanced nutrition made with real tuna, natural ingredients, and added vitamins and minerals to support overall health', 'food', 70.00, '50', 'pictures/products/Tender-Tuna-1-1758305460-1056.png', 1, '2025-09-20 02:11:00'),
-(2, 'Pedigree ADULT Food', 'Dog', 'a budget-friendly line of complete and balanced dry and wet food designed to meet the needs of adult dogs, focusing on four key areas: healthy skin and coat (from omega-6 fatty acids and zinc), a strong immune system (via vitamins and minerals), good digestion (with dietary fiber), and dental care (through its kibble texture)', 'food', 250.00, '15', 'pictures/products/jsdoqberm33yvec6iqx6-1758306068-3183.png', 0, '2025-09-20 02:21:08'),
-(3, 'Kibbles n\' Bits', 'Dog', 'dry dog food known for its unique dual-textured food, which combines crunchy kibble with tender, meaty bits for a satisfying and flavorful meal', 'food', 300.00, '30', 'pictures/products/Kibblesn-Bits-Original-Beef-Chicken-Dry-Dog-Food-3-5LB-1024x1024-1758340461-5998.png', 1, '2025-09-20 11:54:21'),
-(4, 'Kibbles n\' Bits MINI BITS', 'Dog', 'small, dry dog food kibbles designed for small breeds, though suitable for all sizes, with flavors like bacon & steak or beef & chicken, featuring crunchy and tender, meat-filled pieces easy to chew and digest', 'food', 250.00, '25', 'pictures/products/Kibblesn-Bits-Bacon-Steak-Flavor-Small-Breeds-Dry-Dog-Food-3-5LB-1758340519-5469.png', 0, '2025-09-20 11:55:19'),
-(5, 'qwaed', 'Dog', 'aqwrfasdf', 'accessory', 23.00, '231', NULL, 1, '2025-09-20 12:04:58'),
-(6, '23qrwa', 'Bird', 'adwasd', 'necessity', 333.00, '23', NULL, 0, '2025-09-20 12:05:12'),
-(7, '23qrweqard', 'Small Pet', 'aes fdsfewas', 'necessity', 234.00, '1234', NULL, 0, '2025-09-20 12:05:26'),
-(8, '23qwra', 'Cat', 'waqdc', 'necessity', 234.00, '234', NULL, 1, '2025-09-20 12:05:36'),
-(9, 'q3awr3weqr', 'Cat', '23wetfesdf', 'necessity', 345.00, '234', NULL, 1, '2025-09-20 12:05:50'),
-(10, 't43wegdxz', 'Bird', 'sdregsdfg', 'necessity', 3425.00, '324', NULL, 1, '2025-09-20 12:06:20'),
-(11, '345rt', 'Bird', '6346', 'necessity', 345.00, '234', NULL, 1, '2025-09-20 12:06:36');
+INSERT INTO `products` (`products_id`, `products_name`, `products_pet_type`, `products_description`, `products_category`, `products_price`, `products_original_price`, `products_stock`, `products_image_url`, `products_active`, `products_created_at`) VALUES
+(1, 'Goodest Tuna', 'Cat', 'Offer complete and balanced nutrition made with real tuna, natural ingredients, and added vitamins and minerals to support overall health', 'food', 70.00, NULL, '50', 'pictures/products/Tender-Tuna-1-1758305460-1056.png', 1, '2025-09-20 02:11:00'),
+(2, 'Pedigree ADULT Food', 'Dog', 'a budget-friendly line of complete and balanced dry and wet food designed to meet the needs of adult dogs, focusing on four key areas: healthy skin and coat (from omega-6 fatty acids and zinc), a strong immune system (via vitamins and minerals), good digestion (with dietary fiber), and dental care (through its kibble texture)', 'food', 250.00, NULL, '15', 'pictures/products/jsdoqberm33yvec6iqx6-1758306068-3183.png', 0, '2025-09-20 02:21:08'),
+(3, 'Kibbles n\' Bits', 'Dog', 'dry dog food known for its unique dual-textured food, which combines crunchy kibble with tender, meaty bits for a satisfying and flavorful meal', 'food', 300.00, NULL, '30', 'pictures/products/Kibblesn-Bits-Original-Beef-Chicken-Dry-Dog-Food-3-5LB-1024x1024-1758340461-5998.png', 1, '2025-09-20 11:54:21'),
+(4, 'Kibbles n\' Bits MINI BITS', 'Dog', 'small, dry dog food kibbles designed for small breeds, though suitable for all sizes, with flavors like bacon & steak or beef & chicken, featuring crunchy and tender, meat-filled pieces easy to chew and digest', 'food', 250.00, NULL, '25', 'pictures/products/Kibblesn-Bits-Bacon-Steak-Flavor-Small-Breeds-Dry-Dog-Food-3-5LB-1758340519-5469.png', 0, '2025-09-20 11:55:19'),
+(5, 'qwaed', 'Dog', 'aqwrfasdf', 'accessory', 23.00, NULL, '231', NULL, 1, '2025-09-20 12:04:58'),
+(6, '23qrwa', 'Bird', 'adwasd', 'necessity', 333.00, NULL, '23', NULL, 0, '2025-09-20 12:05:12'),
+(7, '23qrweqard', 'Small Pet', 'aes fdsfewas', 'necessity', 234.00, NULL, '1234', NULL, 0, '2025-09-20 12:05:26'),
+(8, '23qwra', 'Cat', 'waqdc', 'necessity', 234.00, NULL, '234', NULL, 1, '2025-09-20 12:05:36'),
+(9, 'q3awr3weqr', 'Cat', '23wetfesdf', 'necessity', 345.00, NULL, '234', NULL, 1, '2025-09-20 12:05:50'),
+(10, 't43wegdxz', 'Bird', 'sdregsdfg', 'necessity', 3425.00, NULL, '324', NULL, 1, '2025-09-20 12:06:20'),
+(11, '345rt', 'Bird', '6346', 'necessity', 345.00, NULL, '234', NULL, 1, '2025-09-20 12:06:36');
 
 -- --------------------------------------------------------
 

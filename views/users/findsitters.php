@@ -230,7 +230,7 @@
 </head>
 <body class="bg-gray-50 min-h-screen">
     <!-- Header -->
-    <header class="sticky top-0 z-50 border-b bg-background/80 backdrop-blur-sm">
+    <header class="sticky top-0 z-50 bg-background/80 backdrop-blur-sm">
         <div class="container mx-auto px-4">
             <div class="flex h-16 items-center justify-between">
                 <div class="flex items-center space-x-2">
@@ -283,12 +283,45 @@
                 </nav>
 
                 <div class="flex items-center gap-3">
-                    <a href="login" class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2">
+<?php
+require_once __DIR__ . '/../../utils/session.php';
+$currentUser = get_current_user_session();
+$currentUserName = user_display_name($currentUser);
+$currentUserInitial = user_initial($currentUser);
+$currentUserImg = user_image_url($currentUser);
+?>
+                    <?php if ($currentUser): ?>
+                        <div class="text-right hidden sm:block">
+                            <div class="text-xs text-gray-500">Profile</div>
+                            <div class="text-sm font-medium text-gray-700"><?php echo htmlspecialchars($currentUserName); ?></div>
+                        </div>
+                        <div class="relative" id="userMenu">
+                            <button id="userMenuBtn" type="button" aria-haspopup="true" aria-expanded="false" class="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-100 transition-colors duration-200">
+                                <div class="w-8 h-8 rounded-full overflow-hidden bg-gradient-to-br from-orange-400 to-amber-500 text-white font-semibold text-sm flex items-center justify-center">
+                                    <?php if ($currentUserImg): ?>
+                                        <img src="<?php echo htmlspecialchars($currentUserImg); ?>" alt="Avatar" class="w-full h-full object-cover">
+                                    <?php else: ?>
+                                        <?php echo htmlspecialchars($currentUserInitial); ?>
+                                    <?php endif; ?>
+                                </div>
+                                <i data-lucide="chevron-down" class="w-4 h-4 text-gray-500"></i>
+                            </button>
+                            <div id="userMenuMenu" class="absolute right-0 mt-2 w-48 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 transition-all duration-200 opacity-0 translate-y-2 z-50" aria-hidden="true">
+                                <div class="py-1">
+                                    <a href="profile.php" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Profile</a>
+                                    <a href="profile.php#rewards" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">My Rewards</a>
+                                    <a href="logout.php" class="block px-4 py-2 text-sm text-red-600 hover:bg-red-50">Logout</a>
+                                </div>
+                            </div>
+                        </div>
+                    <?php else: ?>
+                    <a href="../../login.php" class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2">
                         Log In
                     </a>
-                    <a href="registration" class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 h-10 px-4 py-2 bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white">
+                    <a href="../../registration.php" class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 h-10 px-4 py-2 bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white">
                         Sign Up
                     </a>
+                    <?php endif; ?>
                 </div>
             </div>
         </div>
@@ -830,6 +863,24 @@
 
             initDropdown({ wrapperId: 'appointmentsWrapper', buttonId: 'appointmentsButton', menuId: 'appointmentsMenu' });
             initDropdown({ wrapperId: 'petsitterWrapper', buttonId: 'petsitterButton', menuId: 'petsitterMenu' });
+        })();
+
+        // Simple profile dropdown toggle fallback (if not using initDropdown)
+        (function(){
+            const wrapper = document.getElementById('userMenu');
+            const btn = document.getElementById('userMenuBtn');
+            const menu = document.getElementById('userMenuMenu');
+            if (!wrapper || !btn || !menu) return;
+            let open = false;
+            function setOpen(state){
+                open = state;
+                if (open) menu.classList.remove('hidden'); else menu.classList.add('hidden');
+                btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+            }
+            setOpen(false);
+            btn.addEventListener('click', function(e){ e.stopPropagation(); setOpen(!open); });
+            document.addEventListener('click', function(e){ if (!wrapper.contains(e.target)) setOpen(false); });
+            document.addEventListener('keydown', function(e){ if (e.key === 'Escape') setOpen(false); });
         })();
     </script>
 </body>

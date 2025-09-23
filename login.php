@@ -1,5 +1,6 @@
 <?php
 session_start();
+require_once __DIR__ . '/utils/session.php';
 require_once __DIR__ . '/database.php';
 
 $email = '';
@@ -14,7 +15,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } elseif (!$connections) {
         $error_message = 'Database connection failed.';
     } else {
-        $stmt = mysqli_prepare($connections, 'SELECT users_id, users_firstname, users_lastname, users_username, users_email, users_password_hash, users_role FROM users WHERE users_email = ? LIMIT 1');
+    $stmt = mysqli_prepare($connections, 'SELECT users_id, users_firstname, users_lastname, users_username, users_email, users_image_url, users_password_hash, users_role FROM users WHERE users_email = ? LIMIT 1');
         if ($stmt) {
             mysqli_stmt_bind_param($stmt, 's', $email);
             mysqli_stmt_execute($stmt);
@@ -23,17 +24,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 // Compare plain text password as per current storage
                 if ($password === $row['users_password_hash']) {
                     $_SESSION['user_logged_in'] = true;
-                    $_SESSION['user_id'] = (int)$row['users_id'];
-                    $_SESSION['user_email'] = $row['users_email'];
-                    $_SESSION['user_name'] = $row['users_firstname'];
-                    $_SESSION['user_role'] = $row['users_role'];
+                    $_SESSION['user'] = [
+                        'users_id' => (int)$row['users_id'],
+                        'users_firstname' => (string)$row['users_firstname'],
+                        'users_lastname' => (string)$row['users_lastname'],
+                        'users_username' => (string)$row['users_username'],
+                        'users_email' => (string)$row['users_email'],
+                        'users_image_url' => (string)($row['users_image_url'] ?? ''),
+                        'users_role' => (string)$row['users_role'],
+                    ];
 
                     // Role-based redirect: 1 => admin dashboard, else user dashboard
                     $role = (string)$row['users_role'];
                     if ($role === '1' || (int)$role === 1) {
-                        header('Location: views/admin/admin');
+                        header('Location: views/admin/admin.php');
                     } else {
-                        header('Location: views/users/index');
+                        $redirect = isset($_GET['redirect']) ? (string)$_GET['redirect'] : '';
+                        if ($redirect !== '') {
+                            header('Location: ' . $redirect);
+                        } else {
+                            header('Location: views/users/index.php');
+                        }
                     }
                     exit();
                 } else {

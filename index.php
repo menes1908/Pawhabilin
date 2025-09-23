@@ -111,7 +111,7 @@ $stats = [
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PetSits - Find the Perfect Pet Sitter Near You</title>
+    <title>Pawhabilin - Because Every Paw Deserves a Promise.</title>
     <link rel="stylesheet" href="styles/globals.css">
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/lucide/0.263.1/lucide.min.css">
@@ -161,7 +161,7 @@ $stats = [
                         <div id="appointmentsMenu" class="absolute right-0 mt-2 w-48 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 nav-dropdown transition-all duration-200" role="menu" aria-hidden="true">
                             <div class="py-1">
                                 <a href="models/appointment.php" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">Grooming Appointment</a>
-                                <a href="views/users/book_appointment.php" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">Vet Appointment</a>
+                                <a href="appointments.php" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">Vet Appointment</a>
                             </div>
                         </div>
                     </div>
@@ -484,7 +484,7 @@ $stats = [
                     Ready to Find Your Perfect Pet Sitter?
                 </h2>
                 <p class="text-lg opacity-90">
-                    Join thousands of pet parents who trust <span class="brand-font">pawhabilin</span> for their pet care needs. 
+                    Join thousands of pet parents who trust <span class="brand-font">Pawhabilin</span> for their pet care needs. 
                     Start your search today and find the perfect match for your furry family.
                 </p>
                 

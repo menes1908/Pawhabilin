@@ -31,16 +31,22 @@
     <!-- Google Fonts - La Belle Aurore -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=La+Belle+Aurore&display=swap" rel="stylesheet">
+    <link href="../globals.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/lucide/0.263.1/lucide.min.css">
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+<?php
+require_once __DIR__ . '/../../utils/session.php';
+$currentUser = get_current_user_session();
+$currentUserName = user_display_name($currentUser);
+$currentUserInitial = user_initial($currentUser);
+$currentUserImg = user_image_url($currentUser);
+?>
 </head>
 <body class="min-h-screen bg-background">
     <!-- Header -->
-    <body class="min-h-screen bg-background">
-    <!-- Header -->
-   <header class="sticky top-0 z-50 border-b bg-background/80 backdrop-blur-sm">
+    <header class="sticky top-0 z-50 bg-background/80 backdrop-blur-sm">
         <div class="container mx-auto px-4">
             <div class="flex h-16 items-center justify-between">
                 <div class="flex items-center space-x-2">
@@ -56,12 +62,21 @@
                     <a href="index.php" class="text-muted-foreground hover:text-foreground transition-colors">About</a>
                     <!-- Pet Sitter Dropdown -->
                     <div class="relative" id="petsitterWrapper">
-                        <a id="petsitterButton" href="../../find-sitters.php" class="text-muted-foreground hover:text-foreground transition-colors inline-flex items-center gap-2">
-                            Find a Sitter
-                         </a>
+                        
+                        <button id="petsitterButton" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="petsitterMenu" class="text-muted-foreground hover:text-foreground transition-colors inline-flex items-center gap-2">
+                            Pet Sitter
+                            <i data-lucide="chevron-down" class="w-4 h-4 transition-transform duration-200"></i>
+                        </button>
+
+                        <div id="petsitterMenu" class="absolute left-0 mt-2 w-56 origin-top-left rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 nav-dropdown transition-all duration-200" role="menu" aria-hidden="true">
+                            <div class="py-1">
+                                <a href="animal_sitting.php" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">Find a Pet Sitter</a>
+                                <a href="become_sitter.php" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">Become a Sitter</a>
+                            </div>
+                        </div>
                     </div>
 
-                    <a href="/Pawhabilin/views/users/buy_products.php" class="text-muted-foreground hover:text-foreground transition-colors">Shop</a>
+                    <a href="buy_products.php" class="text-muted-foreground hover:text-foreground transition-colors">Shop</a>
                     
                     
                     <div class="relative" id="appointmentsWrapper">
@@ -70,40 +85,57 @@
                             <i data-lucide="chevron-down" class="w-4 h-4 transition-transform duration-200"></i>
                         </button>
 
-                        <div id="appointmentsMenu" class="absolute right-0 mt-2 w-48 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 nav-dropdown transition-all duration-200 hidden" role="menu" aria-hidden="true">
+                        <div id="appointmentsMenu" class="absolute right-0 mt-2 w-48 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 nav-dropdown transition-all duration-200" role="menu" aria-hidden="true">
                             <div class="py-1">
-                                <a href="models/appointment.php" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">Grooming Appointment</a>
-                                <a href="views/users/book_appointment.php" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">Vet Appointment</a>
+                                <a href="book_appointment.php" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">Grooming Appointment</a>
+                                <a href="book_appointment.php" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">Vet Appointment</a>
                             </div>
                         </div>
                     </div>
 
-                    <a href="views/users/subscriptions.php" class="text-muted-foreground hover:text-foreground transition-colors">Subscription</a>
+                    <a href="subscriptions.php" class="text-muted-foreground hover:text-foreground transition-colors">Subscription</a>
 
                     
                     <a href="#support" class="text-muted-foreground hover:text-foreground transition-colors">Support</a>
                 </nav>
-                    <button onclick="window.location.href='../user-profile.php'" class="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-100 transition-colors duration-200">
-                        <div class="w-8 h-8 bg-gradient-to-br from-orange-400 to-amber-500 rounded-full flex items-center justify-center text-white font-semibold text-sm">
-                            J
+
+                <div class="flex items-center gap-3">
+                    <?php if ($currentUser): ?>
+                        <div class="text-right hidden sm:block">
+                            <div class="text-xs text-gray-500">Profile</div>
+                            <div class="text-sm font-medium text-gray-700"><?php echo htmlspecialchars($currentUserName); ?></div>
                         </div>
-                        <span class="text-sm font-medium text-gray-700 hidden sm:block">John Doe</span>
-                    </button>
+                        <div class="relative" id="userMenu">
+                            <button id="userMenuBtn" type="button" aria-haspopup="true" aria-expanded="false" class="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-100 transition-colors duration-200">
+                                <div class="w-8 h-8 rounded-full overflow-hidden bg-gradient-to-br from-orange-400 to-amber-500 text-white font-semibold text-sm flex items-center justify-center">
+                                    <?php if ($currentUserImg): ?>
+                                        <img src="<?php echo htmlspecialchars($currentUserImg); ?>" alt="Avatar" class="w-full h-full object-cover">
+                                    <?php else: ?>
+                                        <?php echo htmlspecialchars($currentUserInitial); ?>
+                                    <?php endif; ?>
+                                </div>
+                                <i data-lucide="chevron-down" class="w-4 h-4 text-gray-500"></i>
+                            </button>
+                            <div id="userMenuMenu" class="absolute right-0 mt-2 w-48 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 nav-dropdown transition-all duration-200 opacity-0 translate-y-2 z-50" aria-hidden="true">
+                                <div class="py-1">
+                                    <a href="profile.php" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Profile</a>
+                                    <a href="profile.php#rewards" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">My Rewards</a>
+                                    <a href="logout.php" class="block px-4 py-2 text-sm text-red-600 hover:bg-red-50">Logout</a>
+                                </div>
+                            </div>
+                        </div>
+                    <?php else: ?>
+                        <a href="../../login.php" class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2">
+                            Log In
+                        </a>
+                        <a href="../../registration.php" class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 h-10 px-4 py-2 bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white">
+                            Sign Up
+                        </a>
+                    <?php endif; ?>
                 </div>
             </div>
         </div>
     </header>
-
-
-    <!-- Shop Hero Section -->
-    <section class="py-16 bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-50">
-        <div class="container mx-auto px-4">
-            <div class="max-w-4xl mx-auto text-center space-y-8">
-                <div class="space-y-6">
-                    <div class="inline-flex items-center rounded-md border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 bg-white/80 text-orange-600 border-orange-200">
-                        <i data-lucide="package" class="w-3 h-3 mr-1"></i>
-                        Pet Shop
-                    </div>
                     
                     <h1 class="text-4xl md:text-5xl lg:text-6xl font-bold bg-gradient-to-r from-orange-600 via-amber-600 to-yellow-600 bg-clip-text text-transparent">
                         Everything Your Pet Needs
@@ -283,7 +315,7 @@
                 <div class="space-y-4">
                     <h4 class="font-semibold">Services</h4>
                     <ul class="space-y-2 text-gray-400">
-                        <li><a href="find-sitter.php" class="hover:text-white transition-colors">Find a Pet Sitter</a></li>
+                        <li><a href="animal_sitting.php" class="hover:text-white transition-colors">Find a Pet Sitter</a></li>
                         <li><a href="#" class="hover:text-white transition-colors">Become a Pet Sitter</a></li>
                         <li><a href="#" class="hover:text-white transition-colors">Pet Training</a></li>
                         <li><a href="#" class="hover:text-white transition-colors">Veterinary Care</a></li>
@@ -798,6 +830,7 @@
 
             initDropdown({ wrapperId: 'appointmentsWrapper', buttonId: 'appointmentsButton', menuId: 'appointmentsMenu' });
             initDropdown({ wrapperId: 'petsitterWrapper', buttonId: 'petsitterButton', menuId: 'petsitterMenu' });
+            initDropdown({ wrapperId: 'userMenu', buttonId: 'userMenuBtn', menuId: 'userMenuMenu' });
         })();
     </script>
 </body>

@@ -3,9 +3,9 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Sep 23, 2025 at 04:34 PM
+-- Generation Time: Sep 23, 2025 at 06:16 PM
 -- Server version: 10.4.32-MariaDB
--- PHP Version: 8.2.12
+-- PHP Version: 8.0.30
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
@@ -56,7 +56,6 @@ CREATE TABLE `appointments` (
   `sitters_id` int(11) DEFAULT NULL,
   `aa_id` int(11) DEFAULT NULL,
   `appointments_status` enum('pending','confirmed','completed','cancelled') DEFAULT NULL,
-  `appointments_notes` text DEFAULT NULL,
   `appointments_created_at` datetime DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
@@ -64,12 +63,13 @@ CREATE TABLE `appointments` (
 -- Dumping data for table `appointments`
 --
 
-INSERT INTO `appointments` (`appointments_id`, `users_id`, `appointments_full_name`, `appointments_email`, `appointments_phone`, `appointments_pet_name`, `appointments_pet_type`, `appointments_pet_breed`, `appointments_pet_age_years`, `appointments_type`, `appointments_date`, `sitters_id`, `aa_id`, `appointments_status`, `appointments_notes`, `appointments_created_at`) VALUES
-(1, 2, 'Pietro Escano', 'pe@gmail.com', '09738983249', 'Laurence', 'dog', 'German Sheperd', '2', 'grooming', '2025-09-25 09:00:00', NULL, NULL, 'pending', NULL, '2025-09-23 21:50:39'),
-(2, 2, 'Ace Jerbis', 'ajo23@gmail.com', '09562378940', 'Peter', 'bird', 'Parrot', '4', 'pet_sitting', '2025-09-30 14:00:00', NULL, 1, 'pending', NULL, '2025-09-23 21:55:12'),
-(3, 2, 'Ace Jerbis', 'ajo23@gmail.com', '09562378940', 'Peter', 'bird', 'Parrot', '4', 'pet_sitting', '2025-09-30 14:00:00', NULL, 2, 'pending', '{\"fullName\":\"Ace Jerbis\",\"email\":\"ajo23@gmail.com\",\"phone\":\"09562378940\",\"pet\":{\"name\":\"Peter\",\"type\":\"bird\",\"breed\":\"Parrot\",\"age\":\"4\"},\"specialRequests\":\"\",\"submittedAt\":\"2025-09-23T15:56:01+02:00\",\"petSitting\":{\"mode\":\"home\",\"address\":\"23, Poblacion\",\"city\":\"Padre Garcia\",\"postal\":\"4224\",\"notes\":\"\"}}', '2025-09-23 21:56:01'),
-(4, 2, 'Jastin Andal', 'ja@gmail.com', '09632478324', 'Iris', 'cat', 'Persian', '3', 'vet', '2025-09-30 15:00:00', NULL, NULL, 'pending', '{\"fullName\":\"Jastin Andal\",\"email\":\"ja@gmail.com\",\"phone\":\"09632478324\",\"pet\":{\"name\":\"Iris\",\"type\":\"cat\",\"breed\":\"Persian\",\"age\":\"3\"},\"specialRequests\":\"\",\"submittedAt\":\"2025-09-23T16:30:00+02:00\"}', '2025-09-23 22:30:00'),
-(5, 2, 'Grd Mln', 'gm@gmail.com', '09834723942', 'Jape', 'dog', 'Golden Retriever', '6', 'pet_sitting', '2025-10-03 09:00:00', NULL, 3, 'pending', '{\"fullName\":\"Grd Mln\",\"email\":\"gm@gmail.com\",\"phone\":\"09834723942\",\"pet\":{\"name\":\"Jape\",\"type\":\"dog\",\"breed\":\"Golden Retriever\",\"age\":\"6\"},\"specialRequests\":\"\",\"submittedAt\":\"2025-09-23T16:32:59+02:00\",\"petSitting\":{\"mode\":\"home\",\"address\":\"12, Pigain\",\"city\":\"San Jose\",\"postal\":\"4227\",\"notes\":\"papasok sa tulay\"}}', '2025-09-23 22:32:59');
+INSERT INTO `appointments` (`appointments_id`, `users_id`, `appointments_full_name`, `appointments_email`, `appointments_phone`, `appointments_pet_name`, `appointments_pet_type`, `appointments_pet_breed`, `appointments_pet_age_years`, `appointments_type`, `appointments_date`, `sitters_id`, `aa_id`, `appointments_status`, `appointments_created_at`) VALUES
+(1, 2, 'Pietro Escano', 'pe@gmail.com', '09738983249', 'Laurence', 'dog', 'German Sheperd', '2', 'grooming', '2025-09-25 09:00:00', NULL, NULL, 'pending', '2025-09-23 21:50:39'),
+(2, 2, 'Ace Jerbis', 'ajo23@gmail.com', '09562378940', 'Peter', 'bird', 'Parrot', '4', 'pet_sitting', '2025-09-30 14:00:00', NULL, 1, 'pending', '2025-09-23 21:55:12'),
+(3, 2, 'Ace Jerbis', 'ajo23@gmail.com', '09562378940', 'Peter', 'bird', 'Parrot', '4', 'pet_sitting', '2025-09-30 14:00:00', NULL, 2, 'pending', '2025-09-23 21:56:01'),
+(4, 2, 'Jastin Andal', 'ja@gmail.com', '09632478324', 'Iris', 'cat', 'Persian', '3', 'vet', '2025-09-30 15:00:00', NULL, NULL, 'confirmed', '2025-09-23 22:30:00'),
+(5, 2, 'Grd Mln', 'gm@gmail.com', '09834723942', 'Jape', 'dog', 'Golden Retriever', '6', 'pet_sitting', '2025-10-03 09:00:00', NULL, 3, 'pending', '2025-09-23 22:32:59'),
+(6, 2, 'Brian', 'b@gmail.com', '09236784923', 'adwd', 'dog', '', '2', 'pet_sitting', '2025-10-01 09:00:00', NULL, 4, 'pending', '2025-09-23 23:14:09');
 
 -- --------------------------------------------------------
 
@@ -83,6 +83,7 @@ CREATE TABLE `appointment_address` (
   `aa_type` enum('home-sitting','drop_off') NOT NULL,
   `aa_address` varchar(255) DEFAULT NULL,
   `aa_city` varchar(100) DEFAULT NULL,
+  `aa_province` varchar(255) NOT NULL,
   `aa_postal_code` varchar(20) DEFAULT NULL,
   `aa_notes` text DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
@@ -91,10 +92,11 @@ CREATE TABLE `appointment_address` (
 -- Dumping data for table `appointment_address`
 --
 
-INSERT INTO `appointment_address` (`aa_id`, `appointments_id`, `aa_type`, `aa_address`, `aa_city`, `aa_postal_code`, `aa_notes`) VALUES
-(1, 2, 'home-sitting', '23, Poblacion', 'Padre Garcia', '4224', ''),
-(2, 3, 'home-sitting', '23, Poblacion', 'Padre Garcia', '4224', ''),
-(3, 5, 'home-sitting', '12, Pigain', 'San Jose', '4227', 'papasok sa tulay');
+INSERT INTO `appointment_address` (`aa_id`, `appointments_id`, `aa_type`, `aa_address`, `aa_city`, `aa_province`, `aa_postal_code`, `aa_notes`) VALUES
+(1, 2, 'home-sitting', '23, Poblacion', 'Padre Garcia', 'Batangas', '4224', ''),
+(2, 3, 'home-sitting', '23, Poblacion', 'Padre Garcia', 'Batangas', '4224', ''),
+(3, 5, 'home-sitting', '12, Pigain', 'San Jose', 'Batangas', '4227', 'papasok sa tulay'),
+(4, 6, 'drop_off', '', '', '', '', '');
 
 -- --------------------------------------------------------
 
@@ -433,13 +435,13 @@ ALTER TABLE `admin_activity_logs`
 -- AUTO_INCREMENT for table `appointments`
 --
 ALTER TABLE `appointments`
-  MODIFY `appointments_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+  MODIFY `appointments_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
 
 --
 -- AUTO_INCREMENT for table `appointment_address`
 --
 ALTER TABLE `appointment_address`
-  MODIFY `aa_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+  MODIFY `aa_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
 -- AUTO_INCREMENT for table `deliveries`

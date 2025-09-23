@@ -11,6 +11,22 @@ if (!isset($_SESSION['user']) || !is_array($_SESSION['user'])) {
     exit;
 }
 
+// Current user and pets list (for registered pet selection)
+$currentUser = get_current_user_session();
+$users_id = isset($currentUser['users_id']) ? (int)$currentUser['users_id'] : 0;
+$userPets = [];
+if ($users_id > 0 && isset($connections) && $connections) {
+    if ($stmt = mysqli_prepare($connections, 'SELECT pets_id, pets_name, pets_species, pets_breed FROM pets WHERE users_id = ? ORDER BY pets_name')) {
+        mysqli_stmt_bind_param($stmt, 'i', $users_id);
+        mysqli_stmt_execute($stmt);
+        $res = mysqli_stmt_get_result($stmt);
+        while ($row = mysqli_fetch_assoc($res)) {
+            $userPets[] = $row;
+        }
+        mysqli_stmt_close($stmt);
+    }
+}
+
 // Simple flash messaging (success only for PRG)
 $success = null;
 if (isset($_SESSION['flash_success'])) {
@@ -45,10 +61,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $appointmentTime = trim($_POST['appointmentTime'] ?? ''); // HH:MM
     $specialRequests = trim($_POST['specialRequests'] ?? '');
 
+    // Registered pet option
+    $useRegisteredPet = (($_POST['useRegisteredPet'] ?? '') === '1');
+    $selectedPetId = (int)($_POST['selectedPetId'] ?? 0);
+
     // Pet sitting specific
     $sittingMode = trim($_POST['sittingMode'] ?? ''); // 'home' | 'dropoff' (only when pet-sitting)
     $sitAddress = trim($_POST['sit_address'] ?? '');
     $sitCity = trim($_POST['sit_city'] ?? '');
+    $sitProvince = trim($_POST['sit_province'] ?? '');
     $sitPostal = trim($_POST['sit_postal'] ?? '');
     $sitNotes = trim($_POST['sit_notes'] ?? '');
 
@@ -58,7 +79,43 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($fullName === '') $errors[] = 'Full Name is required.';
     if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) $errors[] = 'Valid Email is required.';
     if ($phone === '') $errors[] = 'Phone Number is required.';
+    // If using a registered pet, fetch and override pet fields server-side
+    if ($useRegisteredPet) {
+        if ($selectedPetId <= 0) {
+            $errors[] = 'Please select a registered pet.';
+        } else {
+            if ($users_id > 0 && isset($connections) && $connections) {
+                if ($stmt = mysqli_prepare($connections, 'SELECT pets_name, pets_species, pets_breed FROM pets WHERE pets_id = ? AND users_id = ? LIMIT 1')) {
+                    mysqli_stmt_bind_param($stmt, 'ii', $selectedPetId, $users_id);
+                    mysqli_stmt_execute($stmt);
+                    $r = mysqli_stmt_get_result($stmt);
+                    if ($row = mysqli_fetch_assoc($r)) {
+                        $petName = (string)$row['pets_name'];
+                        $species = strtolower((string)$row['pets_species']);
+                        // Normalize species to appointments enum: dog|cat|bird|fish|other
+                        $map = ['dog' => 'dog', 'cat' => 'cat', 'bird' => 'bird', 'fish' => 'fish'];
+                        $petType = $map[$species] ?? 'other';
+                        $breed = (string)$row['pets_breed'];
+                    } else {
+                        $errors[] = 'Selected pet not found.';
+                    }
+                    mysqli_stmt_close($stmt);
+                } else {
+                    $errors[] = 'Could not verify selected pet.';
+                }
+            } else {
+                $errors[] = 'Not authorized to use a registered pet.';
+            }
+        }
+    }
+
     if ($petName === '') $errors[] = 'Pet Name is required.';
+    // Normalize user-entered pet type to allowed enum
+    $allowedPetTypes = ['dog','cat','bird','fish','other'];
+    $petType = strtolower($petType);
+    if (!in_array($petType, $allowedPetTypes, true)) {
+        $petType = 'other';
+    }
     if ($petType === '') $errors[] = 'Pet Type is required.';
     if ($appointmentDate === '') $errors[] = 'Appointment Date is required.';
     if ($appointmentTime === '') $errors[] = 'Appointment Time is required.';
@@ -69,6 +126,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($sittingMode === 'home') {
             if ($sitAddress === '') $errors[] = 'Address is required for Home-sitting.';
             if ($sitCity === '') $errors[] = 'City is required for Home-sitting.';
+            if ($sitProvince === '') $errors[] = 'Province is required for Home-sitting.';
             if ($sitPostal === '') $errors[] = 'Postal Code is required for Home-sitting.';
         }
     }
@@ -101,9 +159,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // early stop if invalid service
         } else {
 
-        // User id from session
-        $currentUser = get_current_user_session();
-        $users_id = isset($currentUser['users_id']) ? (int)$currentUser['users_id'] : 0;
+        // User id from session (already set above)
         if ($users_id <= 0) {
             $error = 'You must be logged in to book an appointment.';
         } else {
@@ -111,34 +167,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             mysqli_begin_transaction($connections);
             try {
 
-                // Prepare notes JSON snapshot of submitted details
-                $notesPayload = [
-                    'fullName' => $fullName,
-                    'email' => $email,
-                    'phone' => $phone,
-                    'pet' => [
-                        'name' => $petName,
-                        'type' => $petType,
-                        'breed' => $breed,
-                        'age' => $age,
-                    ],
-                    'specialRequests' => $specialRequests,
-                    'submittedAt' => date('c'),
-                ];
-                if ($service === 'pet_sitting') {
-                    $notesPayload['petSitting'] = [
-                        'mode' => $sittingMode,
-                        'address' => $sitAddress,
-                        'city' => $sitCity,
-                        'postal' => $sitPostal,
-                        'notes' => $sitNotes,
-                    ];
-                }
-                $notesJson = json_encode($notesPayload, JSON_UNESCAPED_SLASHES);
-
                 // Insert appointment (aa_id null for now) per new schema columns
-                $stmt = mysqli_prepare($connections, "INSERT INTO appointments (users_id, appointments_full_name, appointments_email, appointments_phone, appointments_pet_name, appointments_pet_type, appointments_pet_breed, appointments_pet_age_years, appointments_type, appointments_date, sitters_id, aa_id, appointments_status, appointments_notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, NULL, 'pending', ?)");
-                mysqli_stmt_bind_param($stmt, 'issssssssss', $users_id, $fullName, $email, $phone, $petName, $petType, $breed, $age, $apptType, $appointments_date, $notesJson);
+                $stmt = mysqli_prepare($connections, "INSERT INTO appointments (users_id, appointments_full_name, appointments_email, appointments_phone, appointments_pet_name, appointments_pet_type, appointments_pet_breed, appointments_pet_age_years, appointments_type, appointments_date, sitters_id, aa_id, appointments_status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, NULL, 'pending')");
+                mysqli_stmt_bind_param($stmt, 'isssssssss', $users_id, $fullName, $email, $phone, $petName, $petType, $breed, $age, $apptType, $appointments_date);
                 if (!mysqli_stmt_execute($stmt)) {
                     throw new Exception('Failed to create appointment: ' . mysqli_error($connections));
                 }
@@ -148,8 +179,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 // If pet-sitting: create appointment_address and link back
                 if ($service === 'pet_sitting') {
                     $aa_type = ($sittingMode === 'home') ? 'home-sitting' : 'drop_off';
-                    $stmt = mysqli_prepare($connections, "INSERT INTO appointment_address (appointments_id, aa_type, aa_address, aa_city, aa_postal_code, aa_notes) VALUES (?, ?, ?, ?, ?, ?)");
-                    mysqli_stmt_bind_param($stmt, 'isssss', $appointments_id, $aa_type, $sitAddress, $sitCity, $sitPostal, $sitNotes);
+                    $stmt = mysqli_prepare($connections, "INSERT INTO appointment_address (appointments_id, aa_type, aa_address, aa_city, aa_province, aa_postal_code, aa_notes) VALUES (?, ?, ?, ?, ?, ?, ?)");
+                    mysqli_stmt_bind_param($stmt, 'issssss', $appointments_id, $aa_type, $sitAddress, $sitCity, $sitProvince, $sitPostal, $sitNotes);
                     if (!mysqli_stmt_execute($stmt)) {
                         throw new Exception('Failed to save appointment address: ' . mysqli_error($connections));
                     }
@@ -491,7 +522,7 @@ $currentUserImg = user_image_url($currentUser);
                             <i data-lucide="chevron-down" class="w-4 h-4 transition-transform duration-200"></i>
                         </button>
 
-                        <div id="petsitterMenu" class="absolute left-0 mt-2 w-56 origin-top-left rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 nav-dropdown transition-all duration-200" role="menu" aria-hidden="true">
+                        <div id="petsitterMenu" class="absolute left-0 mt-2 w-56 origin-top-left rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 nav-dropdown transition-all duration-200 opacity-0 translate-y-2" role="menu" aria-hidden="true">
                             <div class="py-1">
                                 <a href="animal_sitting.php" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">Find a Pet Sitter</a>
                                 <a href="become_sitter.php" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">Become a Sitter</a>
@@ -508,7 +539,7 @@ $currentUserImg = user_image_url($currentUser);
                             <i data-lucide="chevron-down" class="w-4 h-4 transition-transform duration-200"></i>
                         </button>
 
-                        <div id="appointmentsMenu" class="absolute right-0 mt-2 w-48 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 nav-dropdown transition-all duration-200" role="menu" aria-hidden="true">
+                        <div id="appointmentsMenu" class="absolute right-0 mt-2 w-48 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 nav-dropdown transition-all duration-200 opacity-0 translate-y-2" role="menu" aria-hidden="true">
                             <div class="py-1">
                                 <a href="book_appointment.php" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">Grooming Appointment</a>
                                 <a href="book_appointment.php" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">Vet Appointment</a>
@@ -697,10 +728,7 @@ $currentUserImg = user_image_url($currentUser);
                             </div>
                         </div>
                         
-                        <div class="text-center service-price">
-                            <div class="text-3xl font-bold text-red-600 mb-1">₱800+</div>
-                            <div class="text-sm text-gray-500">Starting from</div>
-                        </div>
+                        
                     </div>
                 </div>
 
@@ -752,10 +780,7 @@ $currentUserImg = user_image_url($currentUser);
                             </div>
                         </div>
                         
-                        <div class="text-center service-price">
-                            <div class="text-3xl font-bold text-blue-600 mb-1">₱600+</div>
-                            <div class="text-sm text-gray-500">Starting from</div>
-                        </div>
+                        
                     </div>
                 </div>
 
@@ -807,10 +832,7 @@ $currentUserImg = user_image_url($currentUser);
                             </div>
                         </div>
                         
-                        <div class="text-center service-price">
-                            <div class="text-3xl font-bold text-green-600 mb-1">₱200+</div>
-                            <div class="text-sm text-gray-500">Per hour</div>
-                        </div>
+                    
                     </div>
                 </div>
             </div>
@@ -1041,7 +1063,7 @@ $currentUserImg = user_image_url($currentUser);
                                         <i data-lucide="stethoscope" class="w-12 h-12 text-red-400 mx-auto mb-4"></i>
                                         <h4 class="font-semibold text-white mb-2">Veterinary Care</h4>
                                         <p class="text-white/70 text-sm">Health checkups & medical care</p>
-                                        <div class="text-red-400 font-bold mt-2">₱800+</div>
+                                        
                                     </div>
                                 </label>
                                 
@@ -1051,7 +1073,7 @@ $currentUserImg = user_image_url($currentUser);
                                         <i data-lucide="scissors" class="w-12 h-12 text-blue-400 mx-auto mb-4"></i>
                                         <h4 class="font-semibold text-white mb-2">Professional Grooming</h4>
                                         <p class="text-white/70 text-sm">Bathing, styling & nail care</p>
-                                        <div class="text-blue-400 font-bold mt-2">₱600+</div>
+                                        
                                     </div>
                                 </label>
                                 
@@ -1061,7 +1083,7 @@ $currentUserImg = user_image_url($currentUser);
                                         <i data-lucide="users" class="w-12 h-12 text-green-400 mx-auto mb-4"></i>
                                         <h4 class="font-semibold text-white mb-2">Pet Sitting & Care</h4>
                                         <p class="text-white/70 text-sm">In-home care & boarding</p>
-                                        <div class="text-green-400 font-bold mt-2">₱200/hr</div>
+                                        
                                     </div>
                                 </label>
                             </div>
@@ -1095,29 +1117,51 @@ $currentUserImg = user_image_url($currentUser);
                                 <i data-lucide="paw-print" class="w-6 h-6 text-orange-400"></i>
                                 Pet Information
                             </h3>
+                            <!-- Use Registered Pet Option -->
+                            <div class="mb-4 flex items-center justify-between gap-4">
+                                <div class="flex items-center gap-3">
+                                    <label for="useRegisteredPet" class="text-white font-medium">Use Registered Pet</label>
+                                    <input type="hidden" name="useRegisteredPet" id="useRegisteredPetHidden" value="<?php echo isset($_POST['useRegisteredPet']) ? htmlspecialchars($_POST['useRegisteredPet']) : '0'; ?>">
+                                    <button type="button" id="useRegisteredPetToggle" class="relative inline-flex h-6 w-11 items-center rounded-full transition <?php echo (($_POST['useRegisteredPet'] ?? '0') === '1') ? 'bg-green-500' : 'bg-white/20'; ?>">
+                                        <span class="sr-only">Toggle use registered pet</span>
+                                        <span class="inline-block h-5 w-5 transform rounded-full bg-white transition translate-x-<?php echo (($_POST['useRegisteredPet'] ?? '0') === '1') ? '6' : '1'; ?>"></span>
+                                    </button>
+                                </div>
+                                <div class="flex-1">
+                                    <label class="block text-white font-medium mb-2">Select Pet</label>
+                                    <select name="selectedPetId" id="selectedPetId" class="w-full px-4 py-3 rounded-lg bg-white/10 border border-white/20 text-white focus:bg-white/20 focus:border-orange-400 focus:outline-none transition-all duration-300 <?php echo (($_POST['useRegisteredPet'] ?? '0') === '1') ? '' : 'opacity-50 pointer-events-none'; ?>">
+                                        <option value="">Choose your pet</option>
+                                        <?php foreach (($userPets ?? []) as $p): ?>
+                                            <option class="text-gray-800" value="<?php echo (int)$p['pets_id']; ?>" <?php echo ((int)($_POST['selectedPetId'] ?? 0) === (int)$p['pets_id']) ? 'selected' : ''; ?>>
+                                                <?php echo htmlspecialchars($p['pets_name'] . ' — ' . ($p['pets_species'] ?? '')); ?>
+                                            </option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                </div>
+                            </div>
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div>
                                     <label class="block text-white font-medium mb-2">Pet Name *</label>
-                                    <input type="text" name="petName" required class="w-full px-4 py-3 rounded-lg bg-white/10 border border-white/20 text-white placeholder-white/50 focus:bg-white/20 focus:border-orange-400 focus:outline-none transition-all duration-300" placeholder="Enter your pet's name" value="<?php echo htmlspecialchars($_POST['petName'] ?? ''); ?>">
+                                    <input type="text" name="petName" id="petName" required class="w-full px-4 py-3 rounded-lg bg-white/10 border border-white/20 text-white placeholder-white/50 focus:bg-white/20 focus:border-orange-400 focus:outline-none transition-all duration-300" placeholder="Enter your pet's name" value="<?php echo htmlspecialchars($_POST['petName'] ?? ''); ?>">
                                 </div>
                                 <div>
                                     <label class="block text-white font-medium mb-2">Pet Type *</label>
-                                    <select name="petType" required class="w-full px-4 py-3 rounded-lg bg-white/10 border border-white/20 text-white focus:bg-white/20 focus:border-orange-400 focus:outline-none transition-all duration-300">
+                                    <select name="petType" id="petType" required class="w-full px-4 py-3 rounded-lg bg-white/10 border border-white/20 text-white focus:bg-white/20 focus:border-orange-400 focus:outline-none transition-all duration-300">
                                         <option value="" class="text-gray-800">Select pet type</option>
                                         <option value="dog" class="text-gray-800" <?php echo (($_POST['petType'] ?? '') === 'dog') ? 'selected' : ''; ?>>Dog</option>
                                         <option value="cat" class="text-gray-800" <?php echo (($_POST['petType'] ?? '') === 'cat') ? 'selected' : ''; ?>>Cat</option>
                                         <option value="bird" class="text-gray-800" <?php echo (($_POST['petType'] ?? '') === 'bird') ? 'selected' : ''; ?>>Bird</option>
-                                        <option value="rabbit" class="text-gray-800" <?php echo (($_POST['petType'] ?? '') === 'rabbit') ? 'selected' : ''; ?>>Rabbit</option>
+                                        <option value="fish" class="text-gray-800" <?php echo (($_POST['petType'] ?? '') === 'fish') ? 'selected' : ''; ?>>Fish</option>
                                         <option value="other" class="text-gray-800" <?php echo (($_POST['petType'] ?? '') === 'other') ? 'selected' : ''; ?>>Other</option>
                                     </select>
                                 </div>
                                 <div>
                                     <label class="block text-white font-medium mb-2">Breed</label>
-                                    <input type="text" name="breed" class="w-full px-4 py-3 rounded-lg bg-white/10 border border-white/20 text-white placeholder-white/50 focus:bg-white/20 focus:border-orange-400 focus:outline-none transition-all duration-300" placeholder="Enter breed" value="<?php echo htmlspecialchars($_POST['breed'] ?? ''); ?>">
+                                    <input type="text" name="breed" id="breed" class="w-full px-4 py-3 rounded-lg bg-white/10 border border-white/20 text-white placeholder-white/50 focus:bg-white/20 focus:border-orange-400 focus:outline-none transition-all duration-300" placeholder="Enter breed" value="<?php echo htmlspecialchars($_POST['breed'] ?? ''); ?>">
                                 </div>
                                 <div>
                                     <label class="block text-white font-medium mb-2">Age</label>
-                                    <input type="text" name="age" class="w-full px-4 py-3 rounded-lg bg-white/10 border border-white/20 text-white placeholder-white/50 focus:bg-white/20 focus:border-orange-400 focus:outline-none transition-all duration-300" placeholder="Enter age" value="<?php echo htmlspecialchars($_POST['age'] ?? ''); ?>">
+                                    <input type="text" name="age" id="age" class="w-full px-4 py-3 rounded-lg bg-white/10 border border-white/20 text-white placeholder-white/50 focus:bg-white/20 focus:border-orange-400 focus:outline-none transition-all duration-300" placeholder="Enter age" value="<?php echo htmlspecialchars($_POST['age'] ?? ''); ?>">
                                 </div>
                             </div>
                         </div>
@@ -1164,6 +1208,10 @@ $currentUserImg = user_image_url($currentUser);
                                         <input type="text" name="sit_postal" id="sit_postal" class="w-full px-4 py-3 rounded-lg bg-white/10 border border-white/20 text-white placeholder-white/50 focus:bg-white/20 focus:border-orange-400 focus:outline-none transition-all duration-300" placeholder="e.g., 1600" value="<?php echo htmlspecialchars($_POST['sit_postal'] ?? ''); ?>">
                                     </div>
                                     <div>
+                                        <label class="block text-white font-medium mb-2">Province *</label>
+                                        <input type="text" name="sit_province" id="sit_province" class="w-full px-4 py-3 rounded-lg bg-white/10 border border-white/20 text-white placeholder-white/50 focus:bg-white/20 focus:border-orange-400 focus:outline-none transition-all duration-300" placeholder="e.g., Batangas" value="<?php echo htmlspecialchars($_POST['sit_province'] ?? ''); ?>">
+                                    </div>
+                                    <div class="md:col-span-2">
                                         <label class="block text-white font-medium mb-2">Notes</label>
                                         <input type="text" name="sit_notes" id="sit_notes" class="w-full px-4 py-3 rounded-lg bg-white/10 border border-white/20 text-white placeholder-white/50 focus:bg-white/20 focus:border-orange-400 focus:outline-none transition-all duration-300" placeholder="Any instructions or notes" value="<?php echo htmlspecialchars($_POST['sit_notes'] ?? ''); ?>">
                                     </div>
@@ -1313,6 +1361,83 @@ $currentUserImg = user_image_url($currentUser);
             document.querySelectorAll('.service-card, .glass-effect').forEach(el => {
                 observer.observe(el);
             });
+
+            // Registered pet toggle and autofill
+            const petsData = <?php echo json_encode(array_map(function($p){
+                return [
+                    'id' => (int)$p['pets_id'],
+                    'name' => (string)$p['pets_name'],
+                    'species' => (string)$p['pets_species'],
+                    'breed' => (string)($p['pets_breed'] ?? ''),
+                ];
+            }, $userPets)); ?>;
+            const toggleBtn = document.getElementById('useRegisteredPetToggle');
+            const toggleHidden = document.getElementById('useRegisteredPetHidden');
+            const selectPet = document.getElementById('selectedPetId');
+            const petNameEl = document.getElementById('petName');
+            const petTypeEl = document.getElementById('petType');
+            const breedEl = document.getElementById('breed');
+            const ageEl = document.getElementById('age');
+
+            function setRegisteredMode(on){
+                toggleHidden.value = on ? '1' : '0';
+                if (on) {
+                    toggleBtn.classList.remove('bg-white/20');
+                    toggleBtn.classList.add('bg-green-500');
+                    selectPet.classList.remove('opacity-50','pointer-events-none');
+                    const knob = toggleBtn.querySelector('span.inline-block');
+                    if (knob) { knob.classList.remove('translate-x-1'); knob.classList.add('translate-x-6'); }
+                    if (petTypeEl) petTypeEl.setAttribute('disabled','disabled');
+                } else {
+                    toggleBtn.classList.add('bg-white/20');
+                    toggleBtn.classList.remove('bg-green-500');
+                    selectPet.classList.add('opacity-50','pointer-events-none');
+                    selectPet.value = '';
+                    petNameEl.removeAttribute('readonly');
+                    breedEl.removeAttribute('readonly');
+                    ageEl.removeAttribute('readonly');
+                    const knob = toggleBtn.querySelector('span.inline-block');
+                    if (knob) { knob.classList.add('translate-x-1'); knob.classList.remove('translate-x-6'); }
+                    if (petTypeEl) petTypeEl.removeAttribute('disabled');
+                }
+            }
+
+            function normalizeSpeciesToEnum(species){
+                const s = String(species || '').toLowerCase();
+                if (['dog','cat','bird','fish'].includes(s)) return s;
+                return 'other';
+            }
+
+            function fillFromPet(pet){
+                if (!pet) return;
+                petNameEl.value = pet.name || '';
+                breedEl.value = pet.breed || '';
+                // age is not stored in pets table; leave as-is for user to set
+                const norm = normalizeSpeciesToEnum(pet.species);
+                petTypeEl.value = norm;
+                petNameEl.setAttribute('readonly','readonly');
+                breedEl.setAttribute('readonly','readonly');
+                // allow changing age freely
+            }
+
+            if (toggleBtn && toggleHidden && selectPet) {
+                toggleBtn.addEventListener('click', function(){
+                    const isOn = toggleHidden.value === '1';
+                    setRegisteredMode(!isOn);
+                });
+                selectPet.addEventListener('change', function(){
+                    const id = parseInt(this.value || '0', 10);
+                    const pet = petsData.find(p => p.id === id);
+                    if (pet) fillFromPet(pet);
+                });
+                // Initialize from server-posted state
+                setRegisteredMode((toggleHidden.value || '0') === '1');
+                if (selectPet.value) {
+                    const id = parseInt(selectPet.value || '0', 10);
+                    const pet = petsData.find(p => p.id === id);
+                    if (pet) fillFromPet(pet);
+                }
+            }
         });
 
         // Smooth scroll to booking section
@@ -1353,7 +1478,7 @@ $currentUserImg = user_image_url($currentUser);
                     petSittingOptions.classList.add('hidden');
                     homeAddressFields.classList.add('hidden');
                     modeHidden.value = '';
-                    ['sit_address','sit_city','sit_postal'].forEach(id=>{ const el = document.getElementById(id); if (el) el.removeAttribute('required'); });
+                    ['sit_address','sit_city','sit_province','sit_postal'].forEach(id=>{ const el = document.getElementById(id); if (el) el.removeAttribute('required'); });
                     document.querySelectorAll('input[name="sittingModeRadio"]').forEach(r=>{ r.checked = false; });
                     document.querySelectorAll('input[name="sittingModeRadio"]').forEach(r => {
                         const card = r.closest('label').querySelector('div');
@@ -1398,10 +1523,10 @@ $currentUserImg = user_image_url($currentUser);
                     }
                     if (this.value === 'home') {
                         homeAddressFields.classList.remove('hidden');
-                        ['sit_address','sit_city','sit_postal'].forEach(id=>{ const el = document.getElementById(id); if (el) el.setAttribute('required','required'); });
+                        ['sit_address','sit_city','sit_province','sit_postal'].forEach(id=>{ const el = document.getElementById(id); if (el) el.setAttribute('required','required'); });
                     } else {
                         homeAddressFields.classList.add('hidden');
-                        ['sit_address','sit_city','sit_postal'].forEach(id=>{ const el = document.getElementById(id); if (el) el.removeAttribute('required'); });
+                        ['sit_address','sit_city','sit_province','sit_postal'].forEach(id=>{ const el = document.getElementById(id); if (el) el.removeAttribute('required'); });
                     }
                 });
             });
@@ -1418,7 +1543,7 @@ $currentUserImg = user_image_url($currentUser);
                         card.classList.add('bg-white/30', modeHidden.value === 'home' ? 'border-orange-400' : 'border-green-400', 'scale-105');
                         if (modeHidden.value === 'home') {
                             homeAddressFields.classList.remove('hidden');
-                            ['sit_address','sit_city','sit_postal'].forEach(id=>{ const el = document.getElementById(id); if (el) el.setAttribute('required','required'); });
+                            ['sit_address','sit_city','sit_province','sit_postal'].forEach(id=>{ const el = document.getElementById(id); if (el) el.setAttribute('required','required'); });
                         }
                     }
                 }

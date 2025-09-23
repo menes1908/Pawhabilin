@@ -220,6 +220,47 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (($_POST['action'] ?? '') === 'canc
     }
 }
 
+// Handle appointment delete (only if already cancelled)
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && (($_POST['action'] ?? '') === 'delete_appointment') && $usersId > 0) {
+    $apptId = (int)($_POST['appointment_id'] ?? 0);
+    if ($apptId > 0) {
+        if (isset($connections) && $connections) {
+            mysqli_begin_transaction($connections);
+            try {
+                if ($stmt = mysqli_prepare($connections, 'DELETE FROM appointment_address WHERE appointments_id = ?')) {
+                    mysqli_stmt_bind_param($stmt, 'i', $apptId);
+                    mysqli_stmt_execute($stmt);
+                    mysqli_stmt_close($stmt);
+                }
+                if ($stmt = mysqli_prepare($connections, "DELETE FROM appointments WHERE appointments_id = ? AND users_id = ? AND appointments_status = 'cancelled'")) {
+                    mysqli_stmt_bind_param($stmt, 'ii', $apptId, $usersId);
+                    mysqli_stmt_execute($stmt);
+                    $affected = mysqli_stmt_affected_rows($stmt);
+                    mysqli_stmt_close($stmt);
+                    if ($affected <= 0) {
+                        throw new Exception('No matching cancelled appointment to delete.');
+                    }
+                } else {
+                    throw new Exception('Could not prepare appointment delete statement.');
+                }
+                mysqli_commit($connections);
+                $flashMessage = 'Appointment deleted successfully!';
+                $flashType = 'success';
+            } catch (Throwable $ex) {
+                mysqli_rollback($connections);
+                $flashMessage = 'Failed to delete appointment. Please try again.';
+                $flashType = 'error';
+            }
+        } else {
+            $flashMessage = 'Database connection is not available.';
+            $flashType = 'error';
+        }
+    } else {
+        $flashMessage = 'Invalid appointment selected for deletion.';
+        $flashType = 'error';
+    }
+}
+
 $firstName = (string)($sessionUser['users_firstname'] ?? '');
 $lastName = (string)($sessionUser['users_lastname'] ?? '');
 $username = (string)($sessionUser['users_username'] ?? '');
@@ -277,6 +318,26 @@ if (isset($connections) && $connections && $usersId > 0) {
             if (in_array($status, ['pending','confirmed'], true)) {
                 $bookedAppointments[] = $row;
             }
+        }
+        mysqli_stmt_close($stmt);
+    }
+}
+$userAppointmentsDetailed = [];
+if (isset($connections) && $connections && $usersId > 0) {
+    $sql = "SELECT a.appointments_id, a.appointments_type, a.appointments_date, a.appointments_status,
+                    a.appointments_full_name, a.appointments_email, a.appointments_phone,
+                    a.appointments_pet_name, a.appointments_pet_type, a.appointments_pet_breed, a.appointments_pet_age_years,
+                    aa.aa_type, aa.aa_address, aa.aa_city, aa.aa_province, aa.aa_postal_code, aa.aa_notes
+            FROM appointments a
+            LEFT JOIN appointment_address aa ON aa.aa_id = a.aa_id
+            WHERE a.users_id = ?
+            ORDER BY a.appointments_date DESC, a.appointments_id DESC";
+    if ($stmt = mysqli_prepare($connections, $sql)) {
+        mysqli_stmt_bind_param($stmt, 'i', $usersId);
+        mysqli_stmt_execute($stmt);
+        $res = mysqli_stmt_get_result($stmt);
+        while ($row = mysqli_fetch_assoc($res)) {
+            $userAppointmentsDetailed[] = $row;
         }
         mysqli_stmt_close($stmt);
     }
@@ -658,7 +719,7 @@ $bookedCount = count($bookedAppointments);
                             <i data-lucide="chevron-down" class="w-4 h-4 transition-transform duration-200"></i>
                         </button>
 
-                        <div id="petsitterMenu" class="absolute left-0 mt-2 w-56 origin-top-left rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 nav-dropdown transition-all duration-200" role="menu" aria-hidden="true">
+                        <div id="petsitterMenu" class="absolute left-0 mt-2 w-56 origin-top-left rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 nav-dropdown transition-all duration-200 opacity-0 translate-y-2" role="menu" aria-hidden="true">
                             <div class="py-1">
                                 <a href="animal_sitting.php" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">Find a Pet Sitter</a>
                                 <a href="become_sitter.php" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">Become a Sitter</a>
@@ -675,7 +736,7 @@ $bookedCount = count($bookedAppointments);
                             <i data-lucide="chevron-down" class="w-4 h-4 transition-transform duration-200"></i>
                         </button>
 
-                        <div id="appointmentsMenu" class="absolute right-0 mt-2 w-48 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 nav-dropdown transition-all duration-200" role="menu" aria-hidden="true">
+                        <div id="appointmentsMenu" class="absolute right-0 mt-2 w-48 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 nav-dropdown transition-all duration-200 opacity-0 translate-y-2" role="menu" aria-hidden="true">
                             <div class="py-1">
                                 <a href="book_appointment.php" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">Grooming Appointment</a>
                                 <a href="book_appointment.php" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">Vet Appointment</a>
@@ -762,7 +823,7 @@ $bookedCount = count($bookedAppointments);
                     <div class="flex items-center justify-between">
                         <div>
                             <p class="text-sm text-gray-600 font-medium">Appointments</p>
-                            <p class="text-3xl font-bold text-blue-600"><?php echo (int)$bookedCount; ?></p>
+                            <p id="appointmentsCountNum" class="text-3xl font-bold text-blue-600"><?php echo (int)$bookedCount; ?></p>
                         </div>
                         <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
                             <i data-lucide="calendar" class="w-6 h-6 text-blue-600"></i>
@@ -1007,11 +1068,17 @@ $bookedCount = count($bookedAppointments);
         <input type="hidden" name="appointment_id" id="cancelApptId" value="" />
     </form>
 
+    <!-- Hidden Delete Appointment Form -->
+    <form id="deleteApptForm" method="post" class="hidden">
+        <input type="hidden" name="action" value="delete_appointment" />
+        <input type="hidden" name="appointment_id" id="deleteApptId" value="" />
+    </form>
+
     <!-- Stats Modal -->
     <div id="statsModal" class="fixed inset-0 z-50 hidden">
         <div class="modal-overlay absolute inset-0" onclick="closeStats()"></div>
         <div class="flex items-center justify-center min-h-screen p-4">
-            <div class="modal-content relative w-full max-w-2xl rounded-3xl p-8">
+            <div class="modal-content relative w-full max-w-4xl rounded-3xl p-8">
                 <button onclick="closeStats()" class="absolute top-4 right-4 text-gray-500 hover:text-gray-700 transition-colors duration-300">
                     <i data-lucide="x" class="w-6 h-6"></i>
                 </button>
@@ -1102,6 +1169,14 @@ $bookedCount = count($bookedAppointments);
                     card.classList.add('slide-in-up');
                 }, index * 100);
             });
+
+            // Seed global appointments data and update real-time count
+            window.userApptsData = <?php echo json_encode($userAppointmentsDetailed ?? []); ?>;
+            const numEl = document.getElementById('appointmentsCountNum');
+            if (numEl && Array.isArray(window.userApptsData)) {
+                const count = window.userApptsData.filter(a => ['pending','confirmed'].includes(String(a.appointments_status||''))).length;
+                numEl.textContent = String(count);
+            }
         });
 
         // Global variables
@@ -1307,29 +1382,177 @@ $bookedCount = count($bookedAppointments);
                     });
                 }
             } else if (which === 'appointments') {
-                title.textContent = 'Booked Appointments';
-                subtitle.textContent = '<?php echo (int)$bookedCount; ?> active';
+                title.textContent = 'Appointments';
+                subtitle.textContent = 'Your full appointment history with filters';
                 iconEl.setAttribute('data-lucide', 'calendar');
-                const appts = <?php echo json_encode($bookedAppointments ?? []); ?>;
-                if (!appts || appts.length === 0) {
-                    content.innerHTML = '<div class="text-center text-gray-600">No active appointments.</div>';
-                } else {
-                    appts.forEach(a => {
-                        const d = new Date(a.appointments_date.replace(' ', 'T'));
-                        const nice = d.toLocaleString();
-                        const row = document.createElement('div');
-                        row.className = 'rounded-xl border p-4 flex items-center justify-between';
-                        row.innerHTML = `
-                            <div>
-                                <div class="font-semibold text-gray-800">${escapeHtml((a.appointments_type || '').replace('_',' '))}</div>
-                                <div class="text-sm text-gray-600">${escapeHtml(a.pets_name || '')} • ${escapeHtml(nice)}</div>
-                            </div>
-                            <div class="flex gap-2">
-                                <button class="btn-primary py-2 px-3 rounded text-sm" type="button" onclick="cancelAppointment(${Number(a.appointments_id)})">Cancel</button>
-                            </div>`;
-                        content.appendChild(row);
+                const appts = (window.userApptsData && Array.isArray(window.userApptsData)) ? window.userApptsData : <?php echo json_encode($userAppointmentsDetailed ?? []); ?>;
+                window.userApptsData = appts;
+                const wrapper = document.createElement('div');
+                wrapper.className = 'space-y-4';
+
+                const controls = document.createElement('div');
+                controls.className = 'flex flex-col gap-3';
+                controls.innerHTML = `
+                    <div class="flex items-center justify-between gap-3">
+                        <h4 class="text-lg font-semibold">All Appointments</h4>
+                        <div class="relative">
+                            <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4"></i>
+                            <input id="userApptSearch" type="text" placeholder="Search..." class="pl-9 pr-3 py-2 border border-gray-300 rounded-md w-80" />
+                        </div>
+                    </div>
+                    <div id="userApptTabs" class="flex items-center gap-2">
+                        <button data-appt-filter="all" class="u-appt-tab px-3 py-1.5 rounded-full border text-sm bg-gray-900 text-white border-gray-900">All</button>
+                        <button data-appt-filter="pet_sitting" class="u-appt-tab px-3 py-1.5 rounded-full border text-sm border-orange-300 text-orange-700 bg-orange-50">Pet Sitting</button>
+                        <button data-appt-filter="grooming" class="u-appt-tab px-3 py-1.5 rounded-full border text-sm border-blue-300 text-blue-700 bg-blue-50">Grooming</button>
+                        <button data-appt-filter="vet" class="u-appt-tab px-3 py-1.5 rounded-full border text-sm border-green-300 text-green-700 bg-green-50">Veterinary</button>
+                    </div>`;
+
+                wrapper.appendChild(controls);
+
+                const tableWrap = document.createElement('div');
+                tableWrap.className = 'overflow-x-auto';
+                tableWrap.innerHTML = `
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Pet</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Service</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sitting Type</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Address</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date & Time</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Notes</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="userApptsBody" class="bg-white divide-y divide-gray-200"></tbody>
+                    </table>`;
+                wrapper.appendChild(tableWrap);
+
+                content.appendChild(wrapper);
+
+                function statusChip(st){
+                    const s = String(st||'');
+                    if (s==='pending') return '<span class="px-2 py-1 text-xs rounded-full bg-yellow-100 text-yellow-800">Pending</span>';
+                    if (s==='confirmed') return '<span class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">Confirmed</span>';
+                    if (s==='cancelled') return '<span class="px-2 py-1 text-xs rounded-full bg-red-100 text-red-800">Cancelled</span>';
+                    if (s==='completed') return '<span class="px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-800">Completed</span>';
+                    return `<span class="px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-800">${escapeHtml(s)}</span>`;
+                }
+
+                function typeLabel(t){
+                    const tt = String(t||'');
+                    if (tt==='pet_sitting') return 'Pet Sitting';
+                    if (tt==='grooming') return 'Grooming';
+                    if (tt==='vet') return 'Veterinary';
+                    return escapeHtml(tt.replace('_',' '));
+                }
+
+                function sittingTypeLabel(aa){
+                    const mode = (aa && aa.aa_type) ? String(aa.aa_type) : '';
+                    if (!mode) return '-';
+                    return mode === 'home-sitting' ? 'Home-sitting' : (mode === 'drop_off' ? 'Drop Off' : mode);
+                }
+
+                function fullAddress(aa){
+                    const mode = (aa && aa.aa_type) ? String(aa.aa_type) : '';
+                    if (mode !== 'home-sitting') return '-';
+                    const parts = [aa.aa_address, aa.aa_city, aa.aa_province, aa.aa_postal_code]
+                        .map(v => (v||'').trim())
+                        .filter(Boolean);
+                    return parts.length ? parts.join(', ') : '-';
+                }
+
+                function renderRows(list){
+                    const tbody = document.getElementById('userApptsBody');
+                    tbody.innerHTML = '';
+                    if (!list || list.length===0){
+                        const tr = document.createElement('tr');
+                        const td = document.createElement('td');
+                        td.colSpan = 8;
+                        td.className = 'px-4 py-6 text-center text-gray-600';
+                        td.textContent = 'No appointments found.';
+                        tr.appendChild(td);
+                        tbody.appendChild(tr);
+                        return;
+                    }
+                    list.forEach(a=>{
+                        const d = a.appointments_date ? new Date(String(a.appointments_date).replace(' ','T')) : null;
+                        const nice = d ? d.toLocaleString() : '';
+                        const aa = {
+                            aa_type: a.aa_type || '',
+                            aa_address: a.aa_address || '',
+                            aa_city: a.aa_city || '',
+                            aa_province: a.aa_province || '',
+                            aa_postal_code: a.aa_postal_code || '',
+                            aa_notes: a.aa_notes || ''
+                        };
+                        const notes = aa.aa_notes || '';
+                        const canCancel = ['pending','confirmed'].includes(String(a.appointments_status||''));
+                        const canDelete = String(a.appointments_status||'') === 'cancelled';
+                        const tr = document.createElement('tr');
+                        tr.setAttribute('data-type', String(a.appointments_type||''));
+                        tr.setAttribute('data-search', `${(a.appointments_pet_name||'')} ${(a.appointments_pet_type||'')} ${(a.appointments_pet_breed||'')} ${(a.appointments_type||'')} ${nice} ${notes} ${(a.appointments_status||'')}`.toLowerCase());
+                        tr.innerHTML = `
+                            <td class="px-4 py-3">
+                                <div class="font-medium text-gray-800">${escapeHtml(a.appointments_pet_name || '')}</div>
+                                <div class="text-sm text-gray-600">${escapeHtml(a.appointments_pet_type || '')}${a.appointments_pet_breed? ' • '+escapeHtml(a.appointments_pet_breed):''}${a.appointments_pet_age_years? ' • '+escapeHtml(String(a.appointments_pet_age_years)+'y'):''}</div>
+                            </td>
+                            <td class="px-4 py-3">${typeLabel(a.appointments_type)}</td>
+                            <td class="px-4 py-3">${a.appointments_type==='pet_sitting' ? escapeHtml(sittingTypeLabel(aa)) : '-'}</td>
+                            <td class="px-4 py-3">${a.appointments_type==='pet_sitting' ? escapeHtml(fullAddress(aa)) : '-'}</td>
+                            <td class="px-4 py-3">${escapeHtml(nice)}</td>
+                            <td class="px-4 py-3 text-sm text-gray-700">${escapeHtml(notes)}</td>
+                            <td class="px-4 py-3">${statusChip(a.appointments_status)}</td>
+                            <td class="px-4 py-3 text-right space-x-2">
+                                ${canCancel ? `<button class="px-3 py-1.5 rounded-md border text-sm hover:bg-gray-50" onclick="confirmCancelAppt(${Number(a.appointments_id)})">Cancel</button>` : ''}
+                                ${canDelete ? `<button class=\"px-3 py-1.5 rounded-md border text-sm hover:bg-gray-50\" onclick=\"confirmDeleteAppt(${Number(a.appointments_id)})\">Delete</button>` : ''}
+                            </td>`;
+                        tbody.appendChild(tr);
                     });
                 }
+
+                // Initial render
+                renderRows(appts);
+                if (window.lucide && lucide.createIcons) lucide.createIcons();
+
+                // Filters
+                let currentFilter = 'all';
+                const tabs = controls.querySelectorAll('.u-appt-tab');
+                const searchInput = controls.querySelector('#userApptSearch');
+
+                function applyFilters(){
+                    const term = (searchInput.value||'').toLowerCase();
+                    const filtered = appts.filter(a => (currentFilter==='all' || String(a.appointments_type||'')===currentFilter));
+                    const filtered2 = term ? filtered.filter(a => {
+                        const d = a.appointments_date ? new Date(String(a.appointments_date).replace(' ','T')) : null;
+                        const nice = d ? d.toLocaleString() : '';
+                        const aa = {
+                            aa_type: a.aa_type || '',
+                            aa_address: a.aa_address || '',
+                            aa_city: a.aa_city || '',
+                            aa_province: a.aa_province || '',
+                            aa_postal_code: a.aa_postal_code || '',
+                            aa_notes: a.aa_notes || ''
+                        };
+                        const notes = aa.aa_notes || '';
+                        const hay = `${(a.appointments_pet_name||'')} ${(a.appointments_pet_type||'')} ${(a.appointments_pet_breed||'')} ${(a.appointments_type||'')} ${nice} ${notes} ${(a.appointments_status||'')}`.toLowerCase();
+                        return hay.includes(term);
+                    }) : filtered;
+                    renderRows(filtered2);
+                    if (window.lucide && lucide.createIcons) lucide.createIcons();
+                }
+
+                tabs.forEach(btn=>{
+                    btn.addEventListener('click', () => {
+                        tabs.forEach(b=> b.classList.remove('bg-gray-900','text-white','border-gray-900'));
+                        tabs.forEach(b=> b.classList.add('bg-white'));
+                        btn.classList.add('bg-gray-900','text-white','border-gray-900');
+                        currentFilter = btn.getAttribute('data-appt-filter') || 'all';
+                        applyFilters();
+                    });
+                });
+                searchInput.addEventListener('input', applyFilters);
             }
 
             modal.classList.remove('hidden');
@@ -1342,12 +1565,113 @@ $bookedCount = count($bookedAppointments);
             document.body.style.overflow = 'auto';
         }
 
-        function cancelAppointment(id) {
+        function confirmCancelAppt(id){
             if (!id) return;
-            if (confirm('Cancel this appointment?')) {
-                document.getElementById('cancelApptId').value = id;
-                document.getElementById('cancelApptForm').submit();
-            }
+            const container = document.createElement('div');
+            container.className = 'fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg bg-white border border-gray-200 w-80';
+            container.innerHTML = `
+                <div class="flex items-start gap-3">
+                    <i data-lucide="alert-triangle" class="w-5 h-5 text-red-600 mt-0.5"></i>
+                    <div class="flex-1">
+                        <p class="font-semibold text-gray-800">Cancel appointment?</p>
+                        <p class="text-sm text-gray-600 mt-1">This action cannot be undone.</p>
+                        <div class="mt-3 flex justify-end gap-2">
+                            <button class="px-3 py-1.5 rounded-md border" id="ccNo">No</button>
+                            <button class="px-3 py-1.5 rounded-md bg-red-600 text-white" id="ccYes">Yes, cancel</button>
+                        </div>
+                    </div>
+                </div>`;
+            document.body.appendChild(container);
+            if (window.lucide && lucide.createIcons) lucide.createIcons();
+            container.querySelector('#ccNo').addEventListener('click', ()=>{
+                document.body.removeChild(container);
+            });
+            container.querySelector('#ccYes').addEventListener('click', ()=>{
+                // Submit via AJAX to keep UI live
+                const form = document.getElementById('cancelApptForm');
+                if (!form) return;
+                const fd = new FormData(form);
+                fd.set('appointment_id', String(id));
+                fetch(window.location.href, { method: 'POST', body: fd })
+                    .then(r => r.text())
+                    .then(() => {
+                        // Update local dataset
+                        if (Array.isArray(window.userApptsData)) {
+                            window.userApptsData = window.userApptsData.map(a => {
+                                if (Number(a.appointments_id) === Number(id)) {
+                                    return { ...a, appointments_status: 'cancelled' };
+                                }
+                                return a;
+                            });
+                            // Re-render if modal is on appointments
+                            const open = document.getElementById('statsModal');
+                            if (open && !open.classList.contains('hidden')) {
+                                openStats('appointments');
+                            }
+                        }
+                        // Update the real-time appointments count (pending+confirmed)
+                        const count = Array.isArray(window.userApptsData)
+                            ? window.userApptsData.filter(a => ['pending','confirmed'].includes(String(a.appointments_status||''))).length
+                            : null;
+                        const numEl = document.getElementById('appointmentsCountNum');
+                        if (numEl && count !== null) numEl.textContent = String(count);
+                        document.body.removeChild(container);
+                        showNotification('Appointment cancelled', 'success');
+                    })
+                    .catch(() => {
+                        document.body.removeChild(container);
+                        showNotification('Failed to cancel appointment', 'error');
+                    });
+            });
+        }
+
+        function confirmDeleteAppt(id){
+            if (!id) return;
+            const container = document.createElement('div');
+            container.className = 'fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg bg-white border border-gray-200 w-80';
+            container.innerHTML = `
+                <div class="flex items-start gap-3">
+                    <i data-lucide="trash-2" class="w-5 h-5 text-red-600 mt-0.5"></i>
+                    <div class="flex-1">
+                        <p class="font-semibold text-gray-800">Delete appointment?</p>
+                        <p class="text-sm text-gray-600 mt-1">Only cancelled appointments can be deleted. This cannot be undone.</p>
+                        <div class="mt-3 flex justify-end gap-2">
+                            <button class="px-3 py-1.5 rounded-md border" id="cdNo">No</button>
+                            <button class="px-3 py-1.5 rounded-md bg-red-600 text-white" id="cdYes">Yes, delete</button>
+                        </div>
+                    </div>
+                </div>`;
+            document.body.appendChild(container);
+            if (window.lucide && lucide.createIcons) lucide.createIcons();
+            container.querySelector('#cdNo').addEventListener('click', ()=>{
+                document.body.removeChild(container);
+            });
+            container.querySelector('#cdYes').addEventListener('click', ()=>{
+                const form = document.getElementById('deleteApptForm');
+                if (!form) return;
+                const fd = new FormData(form);
+                fd.set('appointment_id', String(id));
+                fetch(window.location.href, { method: 'POST', body: fd })
+                    .then(r => r.text())
+                    .then(() => {
+                        if (Array.isArray(window.userApptsData)) {
+                            window.userApptsData = window.userApptsData.filter(a => Number(a.appointments_id) !== Number(id));
+                            const numEl = document.getElementById('appointmentsCountNum');
+                            if (numEl) {
+                                const count = window.userApptsData.filter(a => ['pending','confirmed'].includes(String(a.appointments_status||''))).length;
+                                numEl.textContent = String(count);
+                            }
+                        }
+                        const modal = document.getElementById('statsModal');
+                        if (modal && !modal.classList.contains('hidden')) openStats('appointments');
+                        document.body.removeChild(container);
+                        showNotification('Appointment deleted', 'success');
+                    })
+                    .catch(() => {
+                        document.body.removeChild(container);
+                        showNotification('Failed to delete appointment', 'error');
+                    });
+            });
         }
 
         // Helpers for list actions

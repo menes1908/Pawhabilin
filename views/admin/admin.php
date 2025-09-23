@@ -1070,96 +1070,166 @@ function resolveImageUrl($path) {
 
                 <!-- Appointments Section -->
                 <div id="appointments-section" class="space-y-6 hidden">
+                    <?php
+                    // Fetch all appointments with address details if available
+                    $appointments = [];
+                    $counts = ['pet_sitting' => 0, 'grooming' => 0, 'vet' => 0];
+                    if (isset($connections) && $connections) {
+            $sql = "SELECT a.appointments_id, a.users_id, a.appointments_full_name, a.appointments_email, a.appointments_phone,
+                    a.appointments_pet_name, a.appointments_pet_type, a.appointments_pet_breed, a.appointments_pet_age_years,
+                    a.appointments_type, a.appointments_date, a.appointments_status,
+                    aa.aa_type, aa.aa_address, aa.aa_city, aa.aa_province, aa.aa_postal_code, aa.aa_notes
+                                FROM appointments a
+                                LEFT JOIN appointment_address aa ON aa.aa_id = a.aa_id
+                                ORDER BY a.appointments_date DESC, a.appointments_id DESC";
+                        if ($res = mysqli_query($connections, $sql)) {
+                            while ($row = mysqli_fetch_assoc($res)) {
+                                $appointments[] = $row;
+                                $t = $row['appointments_type'];
+                                if (isset($counts[$t])) $counts[$t]++;
+                            }
+                            mysqli_free_result($res);
+                        }
+                    }
+
+                    function e($v){ return htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8'); }
+                    function type_badge_class($t){
+                        switch ($t){
+                            case 'pet_sitting': return 'bg-orange-100 text-orange-800 border border-orange-200';
+                            case 'grooming': return 'bg-blue-100 text-blue-800 border border-blue-200';
+                            case 'vet': return 'bg-green-100 text-green-800 border border-green-200';
+                            default: return 'bg-gray-100 text-gray-800 border border-gray-200';
+                        }
+                    }
+                    ?>
                     <div class="flex items-center justify-between">
                         <div>
                             <h1 class="text-3xl font-bold">Appointments Management</h1>
                             <p class="text-gray-600 mt-1">Track and manage pet care appointments</p>
                         </div>
                         <div class="flex items-center gap-2">
-                            <select class="px-3 py-2 border border-gray-300 rounded-md w-40">
-                                <option value="all">All Services</option>
-                                <option value="pet-sitting">Pet Sitting</option>
-                                <option value="grooming">Grooming</option>
-                                <option value="vet">Veterinary</option>
-                            </select>
-                            <button class="bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white px-4 py-2 rounded-md flex items-center gap-2">
-                                <i data-lucide="plus" class="w-4 h-4"></i>
-                                New Appointment
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Service Type Cards -->
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div class="bg-gradient-to-br from-orange-50 to-amber-50 border border-orange-200 rounded-lg p-4">
-                            <div class="flex items-center gap-3">
-                                <div class="w-10 h-10 bg-orange-500 rounded-full flex items-center justify-center">
-                                    <i data-lucide="paw-print" class="w-5 h-5 text-white"></i>
-                                </div>
-                                <div>
-                                    <p class="font-medium text-orange-700">Pet Sitting</p>
-                                    <p class="text-sm text-orange-600">1 appointments</p>
-                                </div>
+                            <div class="flex items-center gap-2">
+                                <label class="text-sm text-gray-600">Date:</label>
+                                <input type="date" id="apptDateFrom" class="px-2 py-1 border border-gray-300 rounded-md">
+                                <span class="text-gray-400">to</span>
+                                <input type="date" id="apptDateTo" class="px-2 py-1 border border-gray-300 rounded-md">
                             </div>
-                        </div>
-
-                        <div class="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-4">
-                            <div class="flex items-center gap-3">
-                                <div class="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center">
-                                    <i data-lucide="heart" class="w-5 h-5 text-white"></i>
-                                </div>
-                                <div>
-                                    <p class="font-medium text-blue-700">Grooming</p>
-                                    <p class="text-sm text-blue-600">1 appointments</p>
-                                </div>
+                            <div class="flex items-center gap-2 ml-4">
+                                <label class="text-sm text-gray-600">Time:</label>
+                                <input type="time" id="apptTimeFrom" class="px-2 py-1 border border-gray-300 rounded-md">
+                                <span class="text-gray-400">to</span>
+                                <input type="time" id="apptTimeTo" class="px-2 py-1 border border-gray-300 rounded-md">
                             </div>
-                        </div>
-
-                        <div class="bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-lg p-4">
-                            <div class="flex items-center gap-3">
-                                <div class="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center">
-                                    <i data-lucide="activity" class="w-5 h-5 text-white"></i>
-                                </div>
-                                <div>
-                                    <p class="font-medium text-green-700">Veterinary</p>
-                                    <p class="text-sm text-green-600">1 appointments</p>
-                                </div>
-                            </div>
+                            <button id="resetApptFilters" class="ml-2 px-3 py-2 border border-gray-300 rounded-md hover:bg-gray-50">Reset</button>
                         </div>
                     </div>
 
                     <div class="bg-white rounded-lg border border-gray-200">
                         <div class="p-6 border-b border-gray-200">
-                            <div class="flex items-center justify-between">
-                                <h3 class="text-lg font-semibold">All Appointments</h3>
-                                <div class="flex items-center gap-2">
-                                    <input type="text" placeholder="Search appointments..." class="px-3 py-2 border border-gray-300 rounded-md w-64">
-                                    <button class="px-3 py-2 border border-gray-300 rounded-md hover:bg-gray-50">
-                                        <i data-lucide="filter" class="w-4 h-4"></i>
-                                    </button>
+                            <div class="flex flex-col gap-3">
+                                <div class="flex items-center justify-between gap-3">
+                                    <h3 class="text-lg font-semibold">All Appointments</h3>
+                                    <div class="relative">
+                                        <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4"></i>
+                                        <input id="appointmentsSearch" type="text" placeholder="Search appointments..." class="pl-9 pr-3 py-2 border border-gray-300 rounded-md w-72" />
+                                    </div>
+                                </div>
+                                <div id="apptTabs" class="flex items-center gap-2">
+                                    <button data-appt-filter="all" class="appt-tab px-3 py-1.5 rounded-full border text-sm bg-gray-900 text-white border-gray-900">All</button>
+                                    <button data-appt-filter="pet_sitting" class="appt-tab px-3 py-1.5 rounded-full border text-sm border-orange-300 text-orange-700 bg-orange-50">Pet Sitting</button>
+                                    <button data-appt-filter="grooming" class="appt-tab px-3 py-1.5 rounded-full border text-sm border-blue-300 text-blue-700 bg-blue-50">Grooming</button>
+                                    <button data-appt-filter="vet" class="appt-tab px-3 py-1.5 rounded-full border text-sm border-green-300 text-green-700 bg-green-50">Veterinary</button>
                                 </div>
                             </div>
                         </div>
                         <div class="overflow-x-auto">
-                            <table class="w-full">
+                            <table class="w-full" id="allAppointmentsTable">
                                 <thead class="bg-gray-50 border-b">
                                     <tr>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Pet Owner</th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Pet</th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Service</th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sitter</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Full Name</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contact</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Pet Name</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Pet Type</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Breed</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Age</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Appointment Type</th>
                                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date & Time</th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Notes</th>
                                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
                                     </tr>
                                 </thead>
                                 <tbody id="appointmentsTableBody" class="bg-white divide-y divide-gray-200">
-                                    <!-- Appointments will be populated by JavaScript -->
+                                <?php if (empty($appointments)): ?>
+                                    <tr><td colspan="11" class="px-6 py-6 text-center text-gray-500">No appointments found.</td></tr>
+                                <?php else: foreach ($appointments as $ap):
+                                    $type = (string)($ap['appointments_type'] ?? '');
+                                    $aaType = (string)($ap['aa_type'] ?? '');
+                                    $addr = trim(implode(', ', array_filter([
+                                        $ap['aa_address'] ?? '',
+                                        $ap['aa_city'] ?? '',
+                                        $ap['aa_province'] ?? '',
+                                    ])), ', ');
+                                    $typeDisplay = '';
+                                    if ($type === 'pet_sitting') {
+                                        if ($aaType === 'home-sitting') {
+                                            $typeDisplay = 'Home-sitting' . ($addr !== '' ? ' — ' . e($addr) : '');
+                                        } elseif ($aaType === 'drop_off') {
+                                            $typeDisplay = 'Drop Off';
+                                        } else {
+                                            $typeDisplay = 'Pet Sitting';
+                                        }
+                                    } elseif ($type === 'grooming') {
+                                        $typeDisplay = 'Grooming';
+                                    } elseif ($type === 'vet') {
+                                        $typeDisplay = 'Veterinary';
+                                    } else {
+                                        $typeDisplay = ucfirst(str_replace('_',' ', $type));
+                                    }
+                                    $dt = $ap['appointments_date'] ?? '';
+                                    $iso = '';
+                                    if ($dt) { $iso = str_replace(' ', 'T', $dt); }
+                                    // Notes: from appointment_address. Column appointments_notes removed.
+                                    $notes = trim((string)($ap['aa_notes'] ?? ''));
+                                ?>
+                                    <tr data-id="<?php echo (int)$ap['appointments_id']; ?>" data-type="<?php echo e($type); ?>" data-status="<?php echo e($ap['appointments_status'] ?? ''); ?>" data-datetime="<?php echo e($iso); ?>" data-search="<?php echo e(strtolower(($ap['appointments_full_name'] ?? '') . ' ' . ($ap['appointments_email'] ?? '') . ' ' . ($ap['appointments_phone'] ?? '') . ' ' . ($ap['appointments_pet_name'] ?? '') . ' ' . ($ap['appointments_pet_type'] ?? '') . ' ' . ($ap['appointments_pet_breed'] ?? ''))); ?>">
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900"><?php echo e($ap['appointments_full_name'] ?? ''); ?></td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                                            <div class="space-y-0.5">
+                                                <div><?php echo e($ap['appointments_phone'] ?? ''); ?></div>
+                                                <div class="text-gray-500 text-xs"><?php echo e($ap['appointments_email'] ?? ''); ?></div>
+                                            </div>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900"><?php echo e($ap['appointments_pet_name'] ?? ''); ?></td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-xs">
+                                            <span class="px-2 py-1 rounded-full <?php echo type_badge_class($ap['appointments_pet_type'] ?? ''); ?>"><?php echo e(ucfirst((string)($ap['appointments_pet_type'] ?? ''))); ?></span>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900"><?php echo e($ap['appointments_pet_breed'] ?? ''); ?></td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900"><?php echo e($ap['appointments_pet_age_years'] ?? ''); ?></td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-xs">
+                                            <span class="px-2 py-1 rounded-full <?php echo type_badge_class($type); ?>"><?php echo e($typeDisplay); ?></span>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900"><?php echo e($dt ? date('M d, Y h:i A', strtotime($dt)) : ''); ?></td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700 truncate max-w-xs" title="<?php echo e($notes); ?>"><?php echo e($notes); ?></td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-xs">
+                                            <?php $st = (string)($ap['appointments_status'] ?? '');
+                                                $cls = $st==='confirmed'?'bg-indigo-100 text-indigo-800 border border-indigo-200':($st==='completed'?'bg-green-100 text-green-800 border border-green-200':($st==='cancelled'?'bg-red-100 text-red-800 border border-red-200':'bg-yellow-100 text-yellow-800 border border-yellow-200'));
+                                            ?>
+                                            <span class="px-2 py-1 rounded-full <?php echo $cls; ?>"><?php echo e(ucfirst($st)); ?></span>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                            <div class="flex items-center gap-2">
+                                                <button class="p-1 text-gray-400 hover:text-gray-600 btn-appt-edit" title="Edit"><i data-lucide="edit" class="w-4 h-4"></i></button>
+                                                <button class="p-1 text-red-400 hover:text-red-600 btn-appt-delete" title="Delete"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                <?php endforeach; endif; ?>
                                 </tbody>
                             </table>
                         </div>
                     </div>
+                    
                 </div>
 
                 <!-- Pet Owners Section -->
@@ -1261,6 +1331,78 @@ function resolveImageUrl($path) {
 
     <!-- Modals -->
     
+    <!-- Edit Appointment Modal -->
+    <div id="editAppointmentModal" class="fixed inset-0 bg-black bg-opacity-40 hidden items-center justify-center z-50">
+        <div class="bg-white rounded-lg p-6 w-full max-w-2xl mx-4">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-semibold">Edit Appointment</h3>
+                <button id="editApptClose" class="text-gray-400 hover:text-gray-600"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
+            <form id="editAppointmentForm" class="space-y-4">
+                <input type="hidden" name="action" value="update">
+                <input type="hidden" name="appointments_id" id="edit_appt_id">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Full Name</label>
+                        <input type="text" name="appointments_full_name" id="edit_appt_full_name" class="mt-1 w-full border border-gray-300 rounded-md px-3 py-2">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Email</label>
+                        <input type="email" name="appointments_email" id="edit_appt_email" class="mt-1 w-full border border-gray-300 rounded-md px-3 py-2">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Phone</label>
+                        <input type="text" name="appointments_phone" id="edit_appt_phone" class="mt-1 w-full border border-gray-300 rounded-md px-3 py-2">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Pet Name</label>
+                        <input type="text" name="appointments_pet_name" id="edit_appt_pet_name" class="mt-1 w-full border border-gray-300 rounded-md px-3 py-2">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Pet Type</label>
+                        <input type="text" name="appointments_pet_type" id="edit_appt_pet_type" class="mt-1 w-full border border-gray-300 rounded-md px-3 py-2">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Breed</label>
+                        <input type="text" name="appointments_pet_breed" id="edit_appt_pet_breed" class="mt-1 w-full border border-gray-300 rounded-md px-3 py-2">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Age (years)</label>
+                        <input type="number" step="1" min="0" name="appointments_pet_age_years" id="edit_appt_pet_age" class="mt-1 w-full border border-gray-300 rounded-md px-3 py-2">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Type</label>
+                        <select name="appointments_type" id="edit_appt_type" class="mt-1 w-full border border-gray-300 rounded-md px-3 py-2">
+                            <option value="pet_sitting">Pet Sitting</option>
+                            <option value="grooming">Grooming</option>
+                            <option value="vet">Veterinary</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Date & Time</label>
+                        <input type="datetime-local" name="appointments_date" id="edit_appt_datetime" class="mt-1 w-full border border-gray-300 rounded-md px-3 py-2">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Status</label>
+                        <select name="appointments_status" id="edit_appt_status" class="mt-1 w-full border border-gray-300 rounded-md px-3 py-2">
+                            <option value="pending">Pending</option>
+                            <option value="confirmed">Confirmed</option>
+                            <option value="completed">Completed</option>
+                            <option value="cancelled">Cancelled</option>
+                        </select>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Notes</label>
+                    <textarea name="aa_notes" id="edit_appt_notes" rows="3" class="mt-1 w-full border border-gray-300 rounded-md px-3 py-2"></textarea>
+                </div>
+                <div class="flex items-center justify-end gap-2 pt-2">
+                    <button type="button" id="editApptCancel" class="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50">Cancel</button>
+                    <button type="submit" class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
     
     <!-- Add Product Modal -->
     <div id="addProductModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
@@ -1574,10 +1716,209 @@ function resolveImageUrl($path) {
         document.addEventListener('DOMContentLoaded', function() {
             lucide.createIcons();
             updateChart();
-            populateAppointments();
+            // populateAppointments(); // replaced by server-rendered table
             populatePetOwners();
             populateSubscribers();
             initProductFilters();
+
+            // Appointments filtering and actions (single All table)
+            (function initAppointments(){
+                const table = document.getElementById('allAppointmentsTable');
+                const allRows = Array.from(table.querySelectorAll('tbody tr'));
+                const tabs = Array.from(document.querySelectorAll('#apptTabs .appt-tab'));
+                const search = document.getElementById('appointmentsSearch');
+                const dateFrom = document.getElementById('apptDateFrom');
+                const dateTo = document.getElementById('apptDateTo');
+                const timeFrom = document.getElementById('apptTimeFrom');
+                const timeTo = document.getElementById('apptTimeTo');
+                const resetBtn = document.getElementById('resetApptFilters');
+
+                let currentService = 'all';
+
+                function matchesFilters(tr){
+                    // Service
+                    if (currentService !== 'all' && tr.getAttribute('data-type') !== currentService) return false;
+                    // Date/time
+                    const iso = tr.getAttribute('data-datetime') || '';
+                    if (iso) {
+                        const [dPart, tPart] = iso.split('T');
+                        const tVal = tPart ? tPart.substring(0,5) : '';
+                        if (dateFrom && dateFrom.value && dPart < dateFrom.value) return false;
+                        if (dateTo && dateTo.value && dPart > dateTo.value) return false;
+                        if (timeFrom && timeFrom.value && tVal && tVal < timeFrom.value) return false;
+                        if (timeTo && timeTo.value && tVal && tVal > timeTo.value) return false;
+                    }
+                    // Search
+                    const q = (search?.value || '').trim().toLowerCase();
+                    if (q) {
+                        const hay = tr.getAttribute('data-search') || '';
+                        if (!hay.includes(q)) return false;
+                    }
+                    return true;
+                }
+
+                function applyFilters(){
+                    let anyVisible = false;
+                    allRows.forEach(tr => {
+                        const show = matchesFilters(tr);
+                        tr.style.display = show ? '' : 'none';
+                        if (show) anyVisible = true;
+                    });
+                    const colSpan = table.querySelector('thead tr').children.length;
+                    let emptyRow = table.querySelector('tbody tr[data-empty]');
+                    if (!anyVisible) {
+                        if (!emptyRow) {
+                            emptyRow = document.createElement('tr');
+                            emptyRow.setAttribute('data-empty','1');
+                            emptyRow.innerHTML = `<td colspan="${colSpan}" class="px-6 py-6 text-center text-gray-500">No matching appointments.</td>`;
+                            table.querySelector('tbody').appendChild(emptyRow);
+                        }
+                    } else if (emptyRow) {
+                        emptyRow.remove();
+                    }
+                }
+
+                tabs.forEach(btn => btn.addEventListener('click', () => {
+                    tabs.forEach(b => b.classList.remove('bg-gray-900','text-white','border-gray-900'));
+                    tabs.forEach(b => b.classList.remove('ring-1','ring-gray-900'));
+                    tabs.forEach(b => b.classList.add('opacity-90'));
+                    btn.classList.add('bg-gray-900','text-white','border-gray-900');
+                    btn.classList.remove('opacity-90');
+                    currentService = btn.getAttribute('data-appt-filter');
+                    applyFilters();
+                }));
+
+                [search, dateFrom, dateTo, timeFrom, timeTo].forEach(el => { if (el) el.addEventListener('input', applyFilters); });
+                [dateFrom, dateTo, timeFrom, timeTo].forEach(el => { if (el) el.addEventListener('change', applyFilters); });
+                if (resetBtn) resetBtn.addEventListener('click', () => {
+                    if (dateFrom) dateFrom.value = '';
+                    if (dateTo) dateTo.value = '';
+                    if (timeFrom) timeFrom.value = '';
+                    if (timeTo) timeTo.value = '';
+                    if (search) search.value = '';
+                    currentService = 'all';
+                    // activate All tab
+                    const allTab = document.querySelector('#apptTabs [data-appt-filter="all"]');
+                    if (allTab) allTab.click(); else applyFilters();
+                });
+
+                // Actions: edit/delete
+                const editModal = document.getElementById('editAppointmentModal');
+                const editClose = document.getElementById('editApptClose');
+                const editCancel = document.getElementById('editApptCancel');
+                const editForm = document.getElementById('editAppointmentForm');
+                function openEdit(){ editModal.classList.remove('hidden'); editModal.classList.add('flex'); }
+                function closeEdit(){ editModal.classList.add('hidden'); editModal.classList.remove('flex'); editForm.reset(); }
+                if (editClose) editClose.addEventListener('click', closeEdit);
+                if (editCancel) editCancel.addEventListener('click', closeEdit);
+                if (editModal) editModal.addEventListener('click', (e)=>{ if(e.target===editModal) closeEdit(); });
+
+                function fillFormFromRow(tr){
+                    const id = tr.getAttribute('data-id');
+                    document.getElementById('edit_appt_id').value = id;
+                    document.getElementById('edit_appt_full_name').value = tr.children[0].textContent.trim();
+                    const phone = tr.children[1].querySelector('div>div:first-child')?.textContent.trim() || '';
+                    const email = tr.children[1].querySelector('div>div.text-xs')?.textContent.trim() || '';
+                    document.getElementById('edit_appt_phone').value = phone;
+                    document.getElementById('edit_appt_email').value = email;
+                    document.getElementById('edit_appt_pet_name').value = tr.children[2].textContent.trim();
+                    document.getElementById('edit_appt_pet_type').value = tr.getAttribute('data-search')?.split(' ')?.[0] || '';
+                    document.getElementById('edit_appt_pet_breed').value = tr.children[4].textContent.trim();
+                    document.getElementById('edit_appt_pet_age').value = tr.children[5].textContent.trim();
+                    document.getElementById('edit_appt_type').value = tr.getAttribute('data-type') || 'pet_sitting';
+                    const iso = tr.getAttribute('data-datetime') || '';
+                    document.getElementById('edit_appt_datetime').value = iso;
+                    const statusCell = tr.querySelector('td:nth-last-child(2)');
+                    const statusText = (statusCell?.innerText || statusCell?.textContent || '').trim().toLowerCase();
+                    const stSel = document.getElementById('edit_appt_status');
+                    if (stSel) stSel.value = statusText || 'pending';
+                    document.getElementById('edit_appt_notes').value = tr.children[8].getAttribute('title') || tr.children[8].textContent.trim();
+                }
+
+                table.addEventListener('click', async (e)=>{
+                    const editBtn = e.target.closest('.btn-appt-edit');
+                    const delBtn = e.target.closest('.btn-appt-delete');
+                    const tr = e.target.closest('tr');
+                    if (!tr) return;
+                    const id = tr.getAttribute('data-id');
+                    if (editBtn) {
+                        try {
+                            // Try to fetch latest record
+                            const res = await fetch(`../../controllers/admin/appointmentcontroller.php?action=get&id=${encodeURIComponent(id)}`);
+                            let ok = res.ok; let data = null;
+                            try { data = await res.json(); } catch(_){}
+                            if (ok && data && data.success && data.item) {
+                                const a = data.item;
+                                document.getElementById('edit_appt_id').value = a.id;
+                                document.getElementById('edit_appt_full_name').value = a.full_name||'';
+                                document.getElementById('edit_appt_email').value = a.email||'';
+                                document.getElementById('edit_appt_phone').value = a.phone||'';
+                                document.getElementById('edit_appt_pet_name').value = a.pet_name||'';
+                                document.getElementById('edit_appt_pet_type').value = a.pet_type||'';
+                                document.getElementById('edit_appt_pet_breed').value = a.pet_breed||'';
+                                document.getElementById('edit_appt_pet_age').value = a.pet_age||'';
+                                document.getElementById('edit_appt_type').value = a.type||'pet_sitting';
+                                document.getElementById('edit_appt_datetime').value = a.datetime||'';
+                                document.getElementById('edit_appt_status').value = a.status||'pending';
+                                document.getElementById('edit_appt_notes').value = a.notes||'';
+                            } else {
+                                fillFormFromRow(tr);
+                            }
+                            openEdit();
+                        } catch(err) {
+                            fillFormFromRow(tr); openEdit();
+                        }
+                    } else if (delBtn) {
+                        if (!confirm('Delete this appointment? This action cannot be undone.')) return;
+                        try {
+                            const fd = new FormData();
+                            fd.append('action','delete');
+                            fd.append('appointments_id', id);
+                            const res = await fetch('../../controllers/admin/appointmentcontroller.php', { method:'POST', body: fd });
+                            const data = await res.json();
+                            if (!data.success) { alert(data.error||'Delete failed'); return; }
+                            tr.remove();
+                            applyFilters();
+                        } catch(err){ alert('Network error deleting'); }
+                    }
+                });
+
+                if (editForm) editForm.addEventListener('submit', async (e)=>{
+                    e.preventDefault();
+                    const fd = new FormData(editForm);
+                    try {
+                        const res = await fetch('../../controllers/admin/appointmentcontroller.php', { method:'POST', body: fd });
+                        const data = await res.json();
+                        if (!data.success) { alert(data.error||'Update failed'); return; }
+                        // Update row inline
+                        const id = data.item.id;
+                        const row = table.querySelector(`tbody tr[data-id="${CSS.escape(String(id))}"]`);
+                        if (row) {
+                            row.children[0].textContent = data.item.full_name || '';
+                            row.children[1].querySelector('div>div:first-child').textContent = data.item.phone || '';
+                            row.children[1].querySelector('div>div.text-xs').textContent = data.item.email || '';
+                            row.children[2].textContent = data.item.pet_name || '';
+                            row.children[4].textContent = data.item.pet_breed || '';
+                            row.children[5].textContent = data.item.pet_age || '';
+                            row.setAttribute('data-type', data.item.type || 'pet_sitting');
+                            row.setAttribute('data-datetime', data.item.datetime || '');
+                            // Date cell
+                            row.children[7].textContent = data.item.datetime_fmt || '';
+                            // Notes
+                            row.children[8].textContent = data.item.notes || '';
+                            row.children[8].setAttribute('title', data.item.notes || '');
+                            // Status chip (second-to-last cell)
+                            const statusCell2 = row.querySelector('td:nth-last-child(2)');
+                            if (statusCell2) statusCell2.innerHTML = data.item.status_chip_html;
+                        }
+                        closeEdit();
+                        applyFilters();
+                    } catch(err){ alert('Network error updating'); }
+                });
+
+                // Initial apply
+                applyFilters();
+            })();
         });
 
         // Sidebar functions

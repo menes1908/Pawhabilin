@@ -3,9 +3,9 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Sep 23, 2025 at 01:42 PM
+-- Generation Time: Sep 23, 2025 at 04:34 PM
 -- Server version: 10.4.32-MariaDB
--- PHP Version: 8.0.30
+-- PHP Version: 8.2.12
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
@@ -44,8 +44,14 @@ CREATE TABLE `admin_activity_logs` (
 CREATE TABLE `appointments` (
   `appointments_id` int(11) NOT NULL,
   `users_id` int(11) NOT NULL,
-  `pets_id` int(11) NOT NULL,
-  `appointments_type` enum('grooming','vaccination','pet_sitting','other') NOT NULL,
+  `appointments_full_name` varchar(255) DEFAULT NULL,
+  `appointments_email` varchar(255) DEFAULT NULL COMMENT 'Client email',
+  `appointments_phone` varchar(25) DEFAULT NULL COMMENT 'Client phone number',
+  `appointments_pet_name` varchar(100) DEFAULT NULL COMMENT 'Pet name',
+  `appointments_pet_type` enum('dog','cat','bird','fish','other') DEFAULT NULL COMMENT 'Pet type',
+  `appointments_pet_breed` varchar(100) DEFAULT NULL COMMENT 'Pet breed',
+  `appointments_pet_age_years` varchar(5) DEFAULT NULL,
+  `appointments_type` enum('grooming','vet','pet_sitting') NOT NULL,
   `appointments_date` datetime NOT NULL,
   `sitters_id` int(11) DEFAULT NULL,
   `aa_id` int(11) DEFAULT NULL,
@@ -53,6 +59,17 @@ CREATE TABLE `appointments` (
   `appointments_notes` text DEFAULT NULL,
   `appointments_created_at` datetime DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `appointments`
+--
+
+INSERT INTO `appointments` (`appointments_id`, `users_id`, `appointments_full_name`, `appointments_email`, `appointments_phone`, `appointments_pet_name`, `appointments_pet_type`, `appointments_pet_breed`, `appointments_pet_age_years`, `appointments_type`, `appointments_date`, `sitters_id`, `aa_id`, `appointments_status`, `appointments_notes`, `appointments_created_at`) VALUES
+(1, 2, 'Pietro Escano', 'pe@gmail.com', '09738983249', 'Laurence', 'dog', 'German Sheperd', '2', 'grooming', '2025-09-25 09:00:00', NULL, NULL, 'pending', NULL, '2025-09-23 21:50:39'),
+(2, 2, 'Ace Jerbis', 'ajo23@gmail.com', '09562378940', 'Peter', 'bird', 'Parrot', '4', 'pet_sitting', '2025-09-30 14:00:00', NULL, 1, 'pending', NULL, '2025-09-23 21:55:12'),
+(3, 2, 'Ace Jerbis', 'ajo23@gmail.com', '09562378940', 'Peter', 'bird', 'Parrot', '4', 'pet_sitting', '2025-09-30 14:00:00', NULL, 2, 'pending', '{\"fullName\":\"Ace Jerbis\",\"email\":\"ajo23@gmail.com\",\"phone\":\"09562378940\",\"pet\":{\"name\":\"Peter\",\"type\":\"bird\",\"breed\":\"Parrot\",\"age\":\"4\"},\"specialRequests\":\"\",\"submittedAt\":\"2025-09-23T15:56:01+02:00\",\"petSitting\":{\"mode\":\"home\",\"address\":\"23, Poblacion\",\"city\":\"Padre Garcia\",\"postal\":\"4224\",\"notes\":\"\"}}', '2025-09-23 21:56:01'),
+(4, 2, 'Jastin Andal', 'ja@gmail.com', '09632478324', 'Iris', 'cat', 'Persian', '3', 'vet', '2025-09-30 15:00:00', NULL, NULL, 'pending', '{\"fullName\":\"Jastin Andal\",\"email\":\"ja@gmail.com\",\"phone\":\"09632478324\",\"pet\":{\"name\":\"Iris\",\"type\":\"cat\",\"breed\":\"Persian\",\"age\":\"3\"},\"specialRequests\":\"\",\"submittedAt\":\"2025-09-23T16:30:00+02:00\"}', '2025-09-23 22:30:00'),
+(5, 2, 'Grd Mln', 'gm@gmail.com', '09834723942', 'Jape', 'dog', 'Golden Retriever', '6', 'pet_sitting', '2025-10-03 09:00:00', NULL, 3, 'pending', '{\"fullName\":\"Grd Mln\",\"email\":\"gm@gmail.com\",\"phone\":\"09834723942\",\"pet\":{\"name\":\"Jape\",\"type\":\"dog\",\"breed\":\"Golden Retriever\",\"age\":\"6\"},\"specialRequests\":\"\",\"submittedAt\":\"2025-09-23T16:32:59+02:00\",\"petSitting\":{\"mode\":\"home\",\"address\":\"12, Pigain\",\"city\":\"San Jose\",\"postal\":\"4227\",\"notes\":\"papasok sa tulay\"}}', '2025-09-23 22:32:59');
 
 -- --------------------------------------------------------
 
@@ -63,12 +80,21 @@ CREATE TABLE `appointments` (
 CREATE TABLE `appointment_address` (
   `aa_id` int(11) NOT NULL,
   `appointments_id` int(11) NOT NULL,
-  `aa_type` enum('client_home','sitter_facility') NOT NULL,
+  `aa_type` enum('home-sitting','drop_off') NOT NULL,
   `aa_address` varchar(255) DEFAULT NULL,
   `aa_city` varchar(100) DEFAULT NULL,
   `aa_postal_code` varchar(20) DEFAULT NULL,
   `aa_notes` text DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `appointment_address`
+--
+
+INSERT INTO `appointment_address` (`aa_id`, `appointments_id`, `aa_type`, `aa_address`, `aa_city`, `aa_postal_code`, `aa_notes`) VALUES
+(1, 2, 'home-sitting', '23, Poblacion', 'Padre Garcia', '4224', ''),
+(2, 3, 'home-sitting', '23, Poblacion', 'Padre Garcia', '4224', ''),
+(3, 5, 'home-sitting', '12, Pigain', 'San Jose', '4227', 'papasok sa tulay');
 
 -- --------------------------------------------------------
 
@@ -305,7 +331,6 @@ ALTER TABLE `admin_activity_logs`
 ALTER TABLE `appointments`
   ADD PRIMARY KEY (`appointments_id`),
   ADD KEY `users_id` (`users_id`),
-  ADD KEY `pets_id` (`pets_id`),
   ADD KEY `sitters_id` (`sitters_id`),
   ADD KEY `appointments_ibfk_4` (`aa_id`);
 
@@ -408,13 +433,13 @@ ALTER TABLE `admin_activity_logs`
 -- AUTO_INCREMENT for table `appointments`
 --
 ALTER TABLE `appointments`
-  MODIFY `appointments_id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `appointments_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
 
 --
 -- AUTO_INCREMENT for table `appointment_address`
 --
 ALTER TABLE `appointment_address`
-  MODIFY `aa_id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `aa_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- AUTO_INCREMENT for table `deliveries`
@@ -426,7 +451,7 @@ ALTER TABLE `deliveries`
 -- AUTO_INCREMENT for table `pets`
 --
 ALTER TABLE `pets`
-  MODIFY `pets_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `pets_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
 
 --
 -- AUTO_INCREMENT for table `pickups`
@@ -497,7 +522,6 @@ ALTER TABLE `admin_activity_logs`
 --
 ALTER TABLE `appointments`
   ADD CONSTRAINT `appointments_ibfk_1` FOREIGN KEY (`users_id`) REFERENCES `users` (`users_id`) ON DELETE CASCADE,
-  ADD CONSTRAINT `appointments_ibfk_2` FOREIGN KEY (`pets_id`) REFERENCES `pets` (`pets_id`) ON DELETE CASCADE,
   ADD CONSTRAINT `appointments_ibfk_3` FOREIGN KEY (`sitters_id`) REFERENCES `sitters` (`sitters_id`) ON DELETE SET NULL,
   ADD CONSTRAINT `appointments_ibfk_4` FOREIGN KEY (`aa_id`) REFERENCES `appointment_address` (`aa_id`) ON DELETE SET NULL;
 

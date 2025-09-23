@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Sep 20, 2025 at 07:33 AM
+-- Generation Time: Sep 23, 2025 at 01:42 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.0.30
 
@@ -105,6 +105,14 @@ CREATE TABLE `pets` (
   `pets_created_at` datetime DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+--
+-- Dumping data for table `pets`
+--
+
+INSERT INTO `pets` (`pets_id`, `users_id`, `pets_name`, `pets_species`, `pets_breed`, `pets_gender`, `pets_image_url`, `pets_created_at`) VALUES
+(1, 2, 'Fred', 'Dog', 'Shih Tzu', 'male', NULL, '2025-09-23 17:49:35'),
+(2, 2, 'Kitty', 'Cat', 'Egyptian', 'female', NULL, '2025-09-23 17:50:19');
+
 -- --------------------------------------------------------
 
 --
@@ -173,6 +181,13 @@ CREATE TABLE `sitters` (
   `sitters_active` tinyint(1) DEFAULT 1,
   `sitters_created_at` datetime DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `sitters`
+--
+
+INSERT INTO `sitters` (`sitters_id`, `sitters_name`, `sitters_bio`, `sitter_email`, `sitters_contact`, `sitter_specialty`, `sitter_experience`, `sitters_image_url`, `sitters_active`, `sitters_created_at`) VALUES
+(1, 'John Ricardo', 'qw3aed', 'jr@gmail.com', '0956 789 0999', 'Dog, Cat, Fish', '4 years', 'pictures/sitters/images-1758347866-6335.jpg', 1, '2025-09-20 13:57:46');
 
 -- --------------------------------------------------------
 
@@ -254,7 +269,9 @@ CREATE TABLE `users` (
 --
 
 INSERT INTO `users` (`users_id`, `users_firstname`, `users_lastname`, `users_username`, `users_email`, `users_password_hash`, `users_role`, `users_image_url`, `users_created_at`) VALUES
-(1, 'Admin', '', 'ADMIN', 'admin256@admin.com', 'Abcd@1234', '1', NULL, '2025-09-18 21:52:11');
+(1, 'Admin', '', 'ADMIN', 'admin256@admin.com', 'Abcd@1234', '1', NULL, '2025-09-18 21:52:11'),
+(2, 'Accel', 'John', 'ajo23', 'ajo23@gmail.com', 'Acejohn123@', '0', NULL, '2025-09-20 16:12:45'),
+(3, 'Grade', 'Lat', 'glat', 'glat21@gmail.com', 'Glat1234!', '0', NULL, '2025-09-23 13:23:55');
 
 -- --------------------------------------------------------
 
@@ -289,7 +306,8 @@ ALTER TABLE `appointments`
   ADD PRIMARY KEY (`appointments_id`),
   ADD KEY `users_id` (`users_id`),
   ADD KEY `pets_id` (`pets_id`),
-  ADD KEY `sitters_id` (`sitters_id`);
+  ADD KEY `sitters_id` (`sitters_id`),
+  ADD KEY `appointments_ibfk_4` (`aa_id`);
 
 --
 -- Indexes for table `appointment_address`
@@ -408,7 +426,7 @@ ALTER TABLE `deliveries`
 -- AUTO_INCREMENT for table `pets`
 --
 ALTER TABLE `pets`
-  MODIFY `pets_id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `pets_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- AUTO_INCREMENT for table `pickups`
@@ -426,7 +444,7 @@ ALTER TABLE `products`
 -- AUTO_INCREMENT for table `sitters`
 --
 ALTER TABLE `sitters`
-  MODIFY `sitters_id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `sitters_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT for table `subscriptions`
@@ -456,7 +474,7 @@ ALTER TABLE `transaction_subscriptions`
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
-  MODIFY `users_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `users_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- AUTO_INCREMENT for table `user_subscriptions`
@@ -480,7 +498,8 @@ ALTER TABLE `admin_activity_logs`
 ALTER TABLE `appointments`
   ADD CONSTRAINT `appointments_ibfk_1` FOREIGN KEY (`users_id`) REFERENCES `users` (`users_id`) ON DELETE CASCADE,
   ADD CONSTRAINT `appointments_ibfk_2` FOREIGN KEY (`pets_id`) REFERENCES `pets` (`pets_id`) ON DELETE CASCADE,
-  ADD CONSTRAINT `appointments_ibfk_3` FOREIGN KEY (`sitters_id`) REFERENCES `sitters` (`sitters_id`) ON DELETE SET NULL;
+  ADD CONSTRAINT `appointments_ibfk_3` FOREIGN KEY (`sitters_id`) REFERENCES `sitters` (`sitters_id`) ON DELETE SET NULL,
+  ADD CONSTRAINT `appointments_ibfk_4` FOREIGN KEY (`aa_id`) REFERENCES `appointment_address` (`aa_id`) ON DELETE SET NULL;
 
 --
 -- Constraints for table `appointment_address`

@@ -149,7 +149,7 @@ $stats = [
                         </div>
                     </div>
 
-                    <a href="shop" class="text-muted-foreground hover:text-foreground transition-colors">Shop</a>
+                    <a href="shop.php" class="text-muted-foreground hover:text-foreground transition-colors">Shop</a>
                     
                     
                     <div class="relative" id="appointmentsWrapper">

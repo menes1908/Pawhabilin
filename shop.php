@@ -1,100 +1,594 @@
+<?php
+// Start session to potentially check login status (future enhancement)
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Shop - pawhabilin</title>
-    <!-- Tailwind CSS CDN for testing -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Custom Tailwind config for font if needed -->
-    <script>
-      tailwind.config = {
-        theme: {
-          extend: {
-            fontFamily: {
-              'brand': ['\'La Belle Aurore\', cursive'],
-            },
-            colors: {
-              background: '#fff',
-              'muted-foreground': '#6b7280',
-              foreground: '#111827',
-              accent: '#f3f4f6',
-              secondary: '#f59e42',
-              'secondary-foreground': '#fff',
-              destructive: '#ef4444',
-              'destructive-foreground': '#fff',
-            },
-          },
-        },
-      }
-    </script>
+    <title>Pet Accessories Shop - Pawhabilin</title>
+    <meta name="description" content="Shop premium pet accessories, toys, collars, leashes, grooming tools, and apparel for your beloved pets at pawhabilin.">
+    <meta name="keywords" content="pet accessories, dog collars, pet toys, leashes, grooming tools, pet apparel, pawhabilin">
+    
+        <!-- Global variables & custom base styles -->
+        <link rel="stylesheet" href="globals.css">
+
+        <!-- Tailwind CSS (CDN) - added because utilities were not rendering without a build step -->
+        <script>
+            // Tailwind CDN configuration mapping custom CSS variable tokens to color utilities
+            tailwind = {
+                config: {
+                    theme: {
+                        extend: {
+                            colors: {
+                                background: 'var(--color-background)',
+                                foreground: 'var(--color-foreground)',
+                                card: 'var(--color-card)',
+                                'card-foreground': 'var(--color-card-foreground)',
+                                popover: 'var(--color-popover)',
+                                'popover-foreground': 'var(--color-popover-foreground)',
+                                primary: 'var(--color-primary)',
+                                'primary-foreground': 'var(--color-primary-foreground)',
+                                secondary: 'var(--color-secondary)',
+                                'secondary-foreground': 'var(--color-secondary-foreground)',
+                                muted: 'var(--color-muted)',
+                                'muted-foreground': 'var(--color-muted-foreground)',
+                                accent: 'var(--color-accent)',
+                                'accent-foreground': 'var(--color-accent-foreground)',
+                                destructive: 'var(--color-destructive)',
+                                'destructive-foreground': 'var(--color-destructive-foreground)',
+                                border: 'var(--color-border)',
+                                input: 'var(--color-input)',
+                                ring: 'var(--color-ring)',
+                                sidebar: 'var(--color-sidebar)',
+                                'sidebar-foreground': 'var(--color-sidebar-foreground)',
+                                'sidebar-primary': 'var(--color-sidebar-primary)',
+                                'sidebar-primary-foreground': 'var(--color-sidebar-primary-foreground)',
+                                'sidebar-accent': 'var(--color-sidebar-accent)',
+                                'sidebar-accent-foreground': 'var(--color-sidebar-accent-foreground)',
+                                'sidebar-border': 'var(--color-sidebar-border)',
+                                'sidebar-ring': 'var(--color-sidebar-ring)'
+                            },
+                            borderColor: {
+                                DEFAULT: 'var(--color-border)'
+                            }
+                        }
+                    }
+                }
+            };
+        </script>
+        <script src="https://cdn.tailwindcss.com"></script>
+    
     <!-- Google Fonts - La Belle Aurore -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=La+Belle+Aurore&display=swap" rel="stylesheet">
+    
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    
+    <style>
+        /* Custom animations and shop-specific styles */
+        @keyframes float {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-15px) rotate(3deg); }
+        }
+        
+        @keyframes pulse-glow {
+            0%, 100% { box-shadow: 0 0 20px rgba(249, 115, 22, 0.3); }
+            50% { box-shadow: 0 0 30px rgba(249, 115, 22, 0.5); }
+        }
+        
+        @keyframes slide-in-up {
+            from { transform: translateY(30px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        
+        @keyframes gradient-shift {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+        
+        @keyframes wiggle {
+            0%, 100% { transform: rotate(0deg); }
+            25% { transform: rotate(-2deg); }
+            75% { transform: rotate(2deg); }
+        }
+        
+        @keyframes paw-bounce {
+            0%, 100% { transform: scale(1) rotate(0deg); }
+            50% { transform: scale(1.1) rotate(5deg); }
+        }
+        
+        @keyframes cart-bounce {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); }
+        }
+        
+        .floating-element {
+            animation: float 4s ease-in-out infinite;
+        }
+        
+        .floating-element:nth-child(2) {
+            animation-delay: -1.5s;
+        }
+        
+        .floating-element:nth-child(3) {
+            animation-delay: -3s;
+        }
+        
+        .pulse-glow {
+            animation: pulse-glow 2s ease-in-out infinite;
+        }
+        
+        .slide-in-up {
+            animation: slide-in-up 0.6s ease-out forwards;
+        }
+        
+        .gradient-bg {
+            background: linear-gradient(-45deg, #f97316, #fb923c, #fbbf24, #f59e0b);
+            background-size: 400% 400%;
+            animation: gradient-shift 6s ease infinite;
+        }
+        
+        /* PawGrid™ Layout */
+        .paw-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 24px;
+            padding: 20px 0;
+        }
+        
+        .product-card {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.85));
+            backdrop-filter: blur(15px);
+            border: 2px solid rgba(249, 115, 22, 0.1);
+            border-radius: 20px;
+            padding: 20px;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            position: relative;
+            overflow: hidden;
+            cursor: pointer;
+        }
+        
+        .product-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+            transition: left 0.5s ease;
+        }
+        
+        .product-card:hover::before {
+            left: 100%;
+        }
+        
+        .product-card:hover {
+            transform: translateY(-10px) scale(1.03);
+            border-color: rgba(249, 115, 22, 0.3);
+            box-shadow: 0 20px 40px rgba(249, 115, 22, 0.2);
+        }
+        
+        .product-image {
+            width: 100%;
+            height: 200px;
+            border-radius: 15px;
+            overflow: hidden;
+            margin-bottom: 16px;
+            position: relative;
+            background: linear-gradient(45deg, #f9fafb, #f3f4f6);
+        }
+        
+        .product-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.4s ease;
+        }
+        
+        .product-card:hover .product-image img {
+            transform: scale(1.1);
+        }
+        
+        .paw-print-hover {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            width: 30px;
+            height: 30px;
+            background: rgba(249, 115, 22, 0.9);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transform: scale(0);
+            transition: all 0.3s ease;
+        }
+        
+        .product-card:hover .paw-print-hover {
+            opacity: 1;
+            transform: scale(1);
+            animation: paw-bounce 0.6s ease-in-out;
+        }
+        
+        .product-badge {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .product-badge.new {
+            background: linear-gradient(135deg, #10b981, #059669);
+        }
+        
+        .product-badge.bundle {
+            background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+        }
+        
+        /* Variant Swatches */
+        .variant-swatches {
+            display: flex;
+            gap: 8px;
+            margin: 12px 0;
+            flex-wrap: wrap;
+        }
+        
+        .variant-swatch {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            border: 2px solid #e5e7eb;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            position: relative;
+        }
+        
+        .variant-swatch.paw-shape {
+            border-radius: 45% 40% 45% 40%;
+            transform: rotate(45deg);
+        }
+        
+        .variant-swatch.bone-shape {
+            border-radius: 50px 20px 50px 20px;
+        }
+        
+        .variant-swatch:hover {
+            border-color: #f97316;
+            transform: scale(1.1);
+        }
+        
+        .variant-swatch.active {
+            border-color: #f97316;
+            box-shadow: 0 0 0 2px rgba(249, 115, 22, 0.2);
+        }
+        
+        /* Sticky Mini Cart */
+        .mini-cart {
+            position: fixed;
+            top: 50%;
+            right: 20px;
+            transform: translateY(-50%);
+            z-index: 1000;
+            background: linear-gradient(135deg, #f97316, #fb923c);
+            color: white;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 20px rgba(249, 115, 22, 0.4);
+        }
+        
+        .mini-cart:hover {
+            transform: translateY(-50%) scale(1.1);
+            box-shadow: 0 6px 25px rgba(249, 115, 22, 0.5);
+        }
+        
+        .cart-count {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: #ef4444;
+            color: white;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+            animation: cart-bounce 0.3s ease;
+        }
+        
+        /* Quick View Drawer */
+        .quick-view-drawer {
+            position: fixed;
+            top: 0;
+            right: -100%;
+            width: 100%;
+            max-width: 500px;
+            height: 100vh;
+            background: white;
+            z-index: 1001;
+            transition: right 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            overflow-y: auto;
+            box-shadow: -10px 0 30px rgba(0, 0, 0, 0.2);
+        }
+        
+        .quick-view-drawer.open {
+            right: 0;
+        }
+        
+        .drawer-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+        
+        .drawer-overlay.open {
+            opacity: 1;
+            visibility: visible;
+        }
+        
+        /* Category Filter */
+        .category-tabs {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 32px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        
+        .category-tab {
+            padding: 12px 24px;
+            border-radius: 25px;
+            background: white;
+            border: 2px solid #e5e7eb;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 500;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .category-tab::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(249, 115, 22, 0.1), transparent);
+            transition: left 0.5s ease;
+        }
+        
+        .category-tab:hover::before {
+            left: 100%;
+        }
+        
+        .category-tab:hover {
+            border-color: #f97316;
+            color: #f97316;
+        }
+        
+        .category-tab.active {
+            background: linear-gradient(135deg, #f97316, #fb923c);
+            color: white;
+            border-color: #f97316;
+        }
+        
+        /* Bundle Deal Cards */
+        .bundle-card {
+            background: linear-gradient(135deg, #fef3c7, #fde68a);
+            border: 2px solid #f59e0b;
+            border-radius: 20px;
+            padding: 24px;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.4s ease;
+        }
+        
+        .bundle-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 30px rgba(245, 158, 11, 0.3);
+        }
+        
+        .bundle-ribbon {
+            position: absolute;
+            top: 20px;
+            right: -30px;
+            background: #ef4444;
+            color: white;
+            padding: 8px 40px;
+            transform: rotate(45deg);
+            font-size: 12px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+        
+        /* Search and Filter */
+        .search-container {
+            position: relative;
+            max-width: 400px;
+            margin: 0 auto 32px;
+        }
+        
+        .search-input {
+            width: 100%;
+            padding: 16px 50px 16px 20px;
+            border: 2px solid #e5e7eb;
+            border-radius: 25px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+        }
+        
+        .search-input:focus {
+            outline: none;
+            border-color: #f97316;
+            box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.1);
+        }
+        
+        .search-icon {
+            position: absolute;
+            right: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #9ca3af;
+        }
+        
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .paw-grid {
+                grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+                gap: 16px;
+            }
+            
+            .mini-cart {
+                width: 50px;
+                height: 50px;
+                right: 15px;
+            }
+            
+            .cart-count {
+                width: 20px;
+                height: 20px;
+                font-size: 10px;
+            }
+            
+            .quick-view-drawer {
+                width: 100%;
+                max-width: 100%;
+            }
+            
+            .category-tabs {
+                justify-content: flex-start;
+                overflow-x: auto;
+                padding-bottom: 8px;
+            }
+            
+            .category-tab {
+                flex-shrink: 0;
+            }
+        }
+        
+        /* Loading Animation */
+        .loading-skeleton {
+            background: linear-gradient(90deg, #f0f0f0 25%, transparent 37%, #f0f0f0 63%);
+            background-size: 400% 100%;
+            animation: skeleton-loading 1.4s ease infinite;
+        }
+        
+        @keyframes skeleton-loading {
+            0% { background-position: 100% 50%; }
+            100% { background-position: 0 50%; }
+        }
+        
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: linear-gradient(45deg, #f97316, #fb923c);
+            border-radius: 4px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: linear-gradient(45deg, #ea580c, #f97316);
+        }
+    </style>
 </head>
-<body class="min-h-screen bg-background">
-    <!-- Header -->
+<body class="min-h-screen bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-50">
+    <!-- Header (revised per request: centered, larger, no wishlist, icon-only cart) -->
     <header class="sticky top-0 z-50 border-b bg-background/80 backdrop-blur-sm">
-        <div class="container mx-auto px-4">
-            <div class="flex h-16 items-center justify-between">
-                <div class="flex items-center space-x-2">
-                    <div class="w-24 h-24 rounded-lg overflow-hidden flex items-center justify-center" style="width:77px; height:77px;">
+        <div class="mx-auto px-4 w-full max-w-7xl">
+            <div class="flex h-20 items-center justify-between">
+                <a href="index.php" class="flex items-center space-x-2 group">
+                    <div class="w-20 h-20 rounded-lg overflow-hidden flex items-center justify-center transition-transform duration-300 hover:rotate-12" style="width:77px; height:77px;">
                         <img src="./pictures/Pawhabilin logo.png" alt="Pawhabilin Logo" class="w-full h-full object-contain" />
                     </div>
-                    <span class="text-xl font-semibold bg-gradient-to-r from-orange-600 to-amber-600 bg-clip-text text-transparent" style="font-family: 'La Lou Big', cursive;">
+                    <span class="text-xl font-semibold bg-gradient-to-r from-orange-600 to-amber-600 bg-clip-text text-transparent brand-font">
                         Pawhabilin
                     </span>
-                </div>
+                </a>
                 
                 <nav class="hidden md:flex items-center space-x-8">
+                    <a href="index.php" class="text-muted-foreground hover:text-foreground transition-colors">About</a>
                     <!-- Pet Sitter Dropdown -->
-                     <a href="index.php" class="text-muted-foreground hover:text-foreground transition-colors">About</a>
                     <div class="relative" id="petsitterWrapper">
                         <button id="petsitterButton" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="petsitterMenu" class="text-muted-foreground hover:text-foreground transition-colors inline-flex items-center gap-2">
                             Pet Sitter
                             <i data-lucide="chevron-down" class="w-4 h-4 transition-transform duration-200"></i>
                         </button>
-
                         <div id="petsitterMenu" class="absolute left-0 mt-2 w-56 origin-top-left rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 nav-dropdown transition-all duration-200" role="menu" aria-hidden="true">
                             <div class="py-1">
-                                <a href="find-sitters" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">Find a Pet Sitter</a>
+                                <a href="find-sitters.php" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">Find a Pet Sitter</a>
                                 <a href="views/users/become_sitter.php" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">Become a Sitter</a>
                             </div>
                         </div>
                     </div>
 
-                    <a href="shop" class="text-muted-foreground hover:text-foreground transition-colors">Shop</a>
-                    
+                    <a href="shop.php" class="text-muted-foreground hover:text-foreground transition-colors">Shop</a>
                     
                     <div class="relative" id="appointmentsWrapper">
                         <button id="appointmentsButton" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="appointmentsMenu" class="text-muted-foreground hover:text-foreground transition-colors inline-flex items-center gap-2">
                             Appointments
                             <i data-lucide="chevron-down" class="w-4 h-4 transition-transform duration-200"></i>
                         </button>
-
                         <div id="appointmentsMenu" class="absolute right-0 mt-2 w-48 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 nav-dropdown transition-all duration-200" role="menu" aria-hidden="true">
                             <div class="py-1">
-                                <a href="views/users/book_grooming.php" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">Grooming Appointment</a>
+                                <a href="book_appointments.php" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">Grooming Appointment</a>
                                 <a href="appointments.php" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">Vet Appointment</a>
                             </div>
                         </div>
                     </div>
 
-                    <a href="views/users/subscriptions.php" class="text-muted-foreground hover:text-foreground transition-colors">Subscription</a>
-
-                    
+                    <a href="subscriptions.php" class="text-muted-foreground hover:text-foreground transition-colors">Subscription</a>
                     <a href="#support" class="text-muted-foreground hover:text-foreground transition-colors">Support</a>
                 </nav>
 
-                <div class="flex items-center gap-3">
-                    <a href="login" class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2">
+                <div class="flex items-center gap-4">
+                    <button onclick="toggleCart()" class="relative inline-flex items-center justify-center w-11 h-11 rounded-full bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-all">
+                        <i data-lucide="shopping-cart" class="w-5 h-5"></i>
+                        <span id="cart-count" class="absolute -top-1 -right-1 min-w-[20px] h-5 px-1 bg-red-500 text-[11px] leading-5 font-semibold rounded-full flex items-center justify-center">0</span>
+                    </button>
+                    <a href="login.php" class="hidden lg:inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 hover:bg-accent hover:text-accent-foreground h-10 px-4">
                         Log In
                     </a>
-                    <a href="registration" class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 h-10 px-4 py-2 bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white">
+                    <a href="registration.php" class="hidden lg:inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white h-10 px-5">
                         Sign Up
                     </a>
                 </div>
@@ -102,495 +596,542 @@
         </div>
     </header>
 
+    <!-- Floating background elements -->
+    <div class="fixed inset-0 overflow-hidden pointer-events-none z-0">
+        <div class="floating-element absolute top-20 left-10 opacity-20">
+            <i data-lucide="paw-print" class="w-16 h-16 text-orange-300 transform rotate-12"></i>
+        </div>
+        <div class="floating-element absolute top-40 right-20 opacity-20">
+            <i data-lucide="gift" class="w-12 h-12 text-amber-300 transform -rotate-12"></i>
+        </div>
+        <div class="floating-element absolute bottom-40 left-16 opacity-20">
+            <i data-lucide="heart" class="w-14 h-14 text-orange-200 transform rotate-45"></i>
+        </div>
+    </div>
 
-    <!-- Shop Hero Section -->
-    <section class="py-16 bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-50">
-        <div class="container mx-auto px-4">
-            <div class="max-w-4xl mx-auto text-center space-y-8">
-                <div class="space-y-6">
-                    <div class="inline-flex items-center rounded-md border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 bg-white/80 text-orange-600 border-orange-200">
-                        <i data-lucide="package" class="w-3 h-3 mr-1"></i>
-                        Pet Shop
+    <!-- Hero Section -->
+    <section class="relative py-16 overflow-hidden gradient-bg">
+        <div class="container mx-auto px-4 relative z-10">
+            <div class="max-w-4xl mx-auto text-center text-white">
+                <div class="space-y-8 slide-in-up">
+                    <div class="inline-flex items-center rounded-full border border-white/20 px-6 py-2 text-sm font-medium bg-white/10 backdrop-blur-sm">
+                        <i data-lucide="shopping-bag" class="w-4 h-4 mr-2"></i>
+                        Premium Pet Accessories
                     </div>
                     
-                    <h1 class="text-4xl md:text-5xl lg:text-6xl font-bold bg-gradient-to-r from-orange-600 via-amber-600 to-yellow-600 bg-clip-text text-transparent">
-                        Everything Your Pet Needs
+                    <h1 class="text-4xl md:text-6xl lg:text-7xl font-bold">
+                        Everything Your Pet
+                        <span class="block brand-font text-5xl md:text-7xl lg:text-8xl text-amber-200">Needs & Loves</span>
                     </h1>
                     
-                    <p class="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto">
-                        Premium pet products delivered to your door. From nutritious food to fun toys, we have everything to keep your furry friends happy and healthy.
+                    <p class="text-xl md:text-2xl text-white/90 max-w-3xl mx-auto leading-relaxed">
+                        Discover our curated collection of premium pet accessories, toys, apparel, and essentials. 
+                        From stylish collars to interactive toys, we have everything to keep your pets happy and healthy.
                     </p>
-                </div>
-
-                <!-- Search Bar -->
-                <div class="max-w-2xl mx-auto">
-                    <div class="rounded-lg border bg-white/80 backdrop-blur-sm shadow-lg p-6">
-                        <div class="flex flex-col md:flex-row gap-4">
-                            <div class="flex-1 relative">
-                                <i data-lucide="search" class="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4"></i>
-                                <input 
-                                    type="text" 
-                                    placeholder="Search for products..." 
-                                    id="product-search"
-                                    class="flex h-12 w-full rounded-md border border-gray-200 bg-transparent px-3 py-1 pl-10 text-base shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-orange-500 focus-visible:border-orange-500 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
-                                />
-                            </div>
-                            <button class="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white h-12 px-8">
-                                <i data-lucide="search" class="w-4 h-4 mr-2"></i>
-                                Search
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Filters and Products -->
-    <section class="py-12">
-        <div class="container mx-auto px-4">
-            <!-- Category Filters -->
-            <div class="mb-8">
-                <div class="flex flex-wrap gap-2 mb-6" id="category-filters">
-                    <button class="category-btn inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white h-8 px-3" data-category="All">All</button>
-                    <button class="category-btn inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 border border-orange-200 text-orange-600 hover:bg-orange-50 bg-transparent h-8 px-3" data-category="Dog Food">Dog Food</button>
-                    <button class="category-btn inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 border border-orange-200 text-orange-600 hover:bg-orange-50 bg-transparent h-8 px-3" data-category="Cat Food">Cat Food</button>
-                    <button class="category-btn inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 border border-orange-200 text-orange-600 hover:bg-orange-50 bg-transparent h-8 px-3" data-category="Toys">Toys</button>
-                    <button class="category-btn inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 border border-orange-200 text-orange-600 hover:bg-orange-50 bg-transparent h-8 px-3" data-category="Accessories">Accessories</button>
-                    <button class="category-btn inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 border border-orange-200 text-orange-600 hover:bg-orange-50 bg-transparent h-8 px-3" data-category="Grooming">Grooming</button>
-                    <button class="category-btn inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 border border-orange-200 text-orange-600 hover:bg-orange-50 bg-transparent h-8 px-3" data-category="Treats">Treats</button>
-                    <button class="category-btn inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 border border-orange-200 text-orange-600 hover:bg-orange-50 bg-transparent h-8 px-3" data-category="Health & Wellness">Health & Wellness</button>
-                    <button class="category-btn inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 border border-orange-200 text-orange-600 hover:bg-orange-50 bg-transparent h-8 px-3" data-category="Training">Training</button>
-                </div>
-
-                <!-- Sort and View Controls -->
-                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-                    <div class="text-sm text-muted-foreground" id="product-count">
-                        Showing 12 products
-                    </div>
                     
-                    <div class="flex items-center gap-4">
-                        <!-- Sort Dropdown -->
-                        <div class="flex items-center gap-2">
-                            <span class="text-sm text-muted-foreground">Sort by:</span>
-                            <select id="sort-select" class="flex h-9 w-full items-center justify-between whitespace-nowrap rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1 w-40">
-                                <option value="featured">Featured</option>
-                                <option value="name">Name A-Z</option>
-                                <option value="price-low">Price: Low to High</option>
-                                <option value="price-high">Price: High to Low</option>
-                                <option value="rating">Rating</option>
-                            </select>
-                        </div>
-
-                        <!-- View Mode Toggle -->
-                        <div class="flex border rounded-lg overflow-hidden">
-                            <button id="grid-view-btn" class="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 bg-orange-500 hover:bg-orange-600 text-white h-8 px-3">
-                                <i data-lucide="grid-3x3" class="w-4 h-4"></i>
-                            </button>
-                            <button id="list-view-btn" class="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 hover:bg-accent hover:text-accent-foreground bg-transparent h-8 px-3">
-                                <i data-lucide="list" class="w-4 h-4"></i>
-                            </button>
-                        </div>
+                    <div class="flex flex-col sm:flex-row gap-6 justify-center items-center pt-8">
+                        <button onclick="scrollToProducts()" class="group inline-flex items-center justify-center gap-3 whitespace-nowrap rounded-full text-lg font-semibold transition-all duration-300 bg-white text-orange-600 hover:bg-orange-50 h-14 px-8 transform hover:scale-105 hover:shadow-2xl">
+                            <i data-lucide="shopping-cart" class="w-6 h-6 group-hover:scale-110 transition-transform duration-300"></i>
+                            Shop Now
+                            <i data-lucide="arrow-right" class="w-5 h-5 group-hover:translate-x-1 transition-transform duration-300"></i>
+                        </button>
+                        
+                        <button class="group inline-flex items-center justify-center gap-3 whitespace-nowrap rounded-full text-lg font-medium transition-all duration-300 border-2 border-white text-white hover:bg-white hover:text-orange-600 h-14 px-8 transform hover:scale-105">
+                            <i data-lucide="gift" class="w-5 h-5 group-hover:rotate-12 transition-transform duration-300"></i>
+                            View Bundles
+                        </button>
                     </div>
                 </div>
-            </div>
-
-            <!-- Products Grid -->
-            <div id="products-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                <!-- Products will be inserted here by JavaScript -->
-            </div>
-
-            <!-- Empty State -->
-            <div id="empty-state" class="hidden text-center py-12">
-                <i data-lucide="package" class="w-16 h-16 text-gray-300 mx-auto mb-4"></i>
-                <h3 class="text-lg font-semibold text-gray-600 mb-2">No products found</h3>
-                <p class="text-gray-500">Try adjusting your filters or search terms.</p>
             </div>
         </div>
     </section>
 
-    <!-- Newsletter Signup -->
-    <section class="py-16 bg-gray-50">
+    <!-- Bundle Deals Section -->
+    <section class="py-16 bg-white relative z-10">
         <div class="container mx-auto px-4">
-            <div class="max-w-2xl mx-auto text-center space-y-6">
-                <h2 class="text-3xl font-bold">Stay Updated</h2>
-                <p class="text-muted-foreground">
-                    Get the latest deals and new product announcements delivered to your inbox.
-                </p>
-                <div class="flex flex-col sm:flex-row gap-4 max-w-md mx-auto">
-                    <input type="email" placeholder="Enter your email" class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 md:text-sm flex-1" />
-                    <button class="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white h-9 px-4 py-2">
-                        Subscribe
-                    </button>
+            <div class="text-center mb-12">
+                <div class="inline-flex items-center rounded-md border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 bg-orange-50 text-orange-600 border-orange-200 mb-6">
+                    <i data-lucide="gift" class="w-3 h-3 mr-1"></i>
+                    Special Bundles
                 </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- CTA Section -->
-    <section class="py-20 bg-gradient-to-r from-orange-600 to-amber-700">
-        <div class="container mx-auto px-4 text-center">
-            <div class="max-w-3xl mx-auto space-y-8 text-white">
-                <h2 class="text-3xl lg:text-4xl font-bold">
-                    Need Help Choosing?
+                <h2 class="text-4xl md:text-5xl font-bold mb-6">
+                    <span class="bg-gradient-to-r from-orange-600 via-amber-600 to-yellow-600 bg-clip-text text-transparent">
+                        Bundle & Save
+                    </span>
                 </h2>
-                <p class="text-lg opacity-90">
-                    Our pet care experts are here to help you find the perfect products for your furry friends. 
-                    Get personalized recommendations today!
+                <p class="text-xl text-gray-700 max-w-3xl mx-auto">
+                    Get everything your pet needs with our specially curated bundles. Save up to 30% compared to buying items individually.
                 </p>
-                
-                <div class="flex flex-col sm:flex-row gap-4 justify-center">
-                    <button class="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 bg-secondary text-secondary-foreground shadow-sm hover:bg-secondary/80 h-10 px-4 py-2 text-base font-semibold">
-                        Chat with Expert
-                    </button>
-                    <button class="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 border border-white text-white hover:bg-white hover:text-orange-600 bg-transparent h-10 px-4 py-2 text-base">
-                        Find a Pet Sitter
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <!-- Puppy Starter Kit -->
+                <div class="bundle-card">
+                    <div class="bundle-ribbon">Save 25%</div>
+                    <div class="mb-6">
+                        <div class="w-16 h-16 bg-gradient-to-br from-orange-500 to-amber-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <i data-lucide="dog" class="w-8 h-8 text-white"></i>
+                        </div>
+                        <h3 class="text-2xl font-bold text-gray-800 mb-2">Puppy Starter Kit</h3>
+                        <p class="text-gray-600 mb-4">Everything you need for your new puppy</p>
+                        <div class="text-center">
+                            <span class="text-3xl font-bold text-orange-600">₱2,499</span>
+                            <span class="text-lg text-gray-500 line-through ml-2">₱3,299</span>
+                        </div>
+                    </div>
+                    <div class="space-y-2 mb-6">
+                        <div class="flex items-center gap-2 text-sm text-gray-700">
+                            <i data-lucide="check-circle" class="w-4 h-4 text-green-500"></i>
+                            <span>Premium Puppy Collar</span>
+                        </div>
+                        <div class="flex items-center gap-2 text-sm text-gray-700">
+                            <i data-lucide="check-circle" class="w-4 h-4 text-green-500"></i>
+                            <span>Adjustable Leash</span>
+                        </div>
+                        <div class="flex items-center gap-2 text-sm text-gray-700">
+                            <i data-lucide="check-circle" class="w-4 h-4 text-green-500"></i>
+                            <span>Interactive Chew Toys (3x)</span>
+                        </div>
+                        <div class="flex items-center gap-2 text-sm text-gray-700">
+                            <i data-lucide="check-circle" class="w-4 h-4 text-green-500"></i>
+                            <span>Food & Water Bowls</span>
+                        </div>
+                        <div class="flex items-center gap-2 text-sm text-gray-700">
+                            <i data-lucide="check-circle" class="w-4 h-4 text-green-500"></i>
+                            <span>Training Treats</span>
+                        </div>
+                    </div>
+                    <button onclick="addBundleToCart('puppy-starter')" class="w-full bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white font-semibold py-3 px-6 rounded-lg transition-all duration-300 transform hover:scale-105">
+                        Add Bundle to Cart
                     </button>
                 </div>
 
-                <div class="flex flex-col sm:flex-row gap-6 justify-center items-center text-sm opacity-80 pt-4">
-                    <div class="flex items-center gap-2">
-                        <i data-lucide="phone" class="w-4 h-4"></i>
-                        (02) 8123-4567
+                <!-- Cat Care Combo -->
+                <div class="bundle-card">
+                    <div class="bundle-ribbon">Save 30%</div>
+                    <div class="mb-6">
+                        <div class="w-16 h-16 bg-gradient-to-br from-purple-500 to-pink-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <i data-lucide="cat" class="w-8 h-8 text-white"></i>
+                        </div>
+                        <h3 class="text-2xl font-bold text-gray-800 mb-2">Cat Care Combo</h3>
+                        <p class="text-gray-600 mb-4">Complete care package for your feline friend</p>
+                        <div class="text-center">
+                            <span class="text-3xl font-bold text-purple-600">₱1,899</span>
+                            <span class="text-lg text-gray-500 line-through ml-2">₱2,699</span>
+                        </div>
                     </div>
-                    <div class="flex items-center gap-2">
-                        <i data-lucide="mail" class="w-4 h-4"></i>
-                        shop@pawhabilin.ph
+                    <div class="space-y-2 mb-6">
+                        <div class="flex items-center gap-2 text-sm text-gray-700">
+                            <i data-lucide="check-circle" class="w-4 h-4 text-green-500"></i>
+                            <span>Designer Cat Collar</span>
+                        </div>
+                        <div class="flex items-center gap-2 text-sm text-gray-700">
+                            <i data-lucide="check-circle" class="w-4 h-4 text-green-500"></i>
+                            <span>Interactive Feather Toy</span>
+                        </div>
+                        <div class="flex items-center gap-2 text-sm text-gray-700">
+                            <i data-lucide="check-circle" class="w-4 h-4 text-green-500"></i>
+                            <span>Scratching Post</span>
+                        </div>
+                        <div class="flex items-center gap-2 text-sm text-gray-700">
+                            <i data-lucide="check-circle" class="w-4 h-4 text-green-500"></i>
+                            <span>Catnip Toys (5x)</span>
+                        </div>
+                        <div class="flex items-center gap-2 text-sm text-gray-700">
+                            <i data-lucide="check-circle" class="w-4 h-4 text-green-500"></i>
+                            <span>Grooming Kit</span>
+                        </div>
                     </div>
+                    <button onclick="addBundleToCart('cat-care')" class="w-full bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 text-white font-semibold py-3 px-6 rounded-lg transition-all duration-300 transform hover:scale-105">
+                        Add Bundle to Cart
+                    </button>
+                </div>
+
+                <!-- Grooming Essentials -->
+                <div class="bundle-card">
+                    <div class="bundle-ribbon">Save 20%</div>
+                    <div class="mb-6">
+                        <div class="w-16 h-16 bg-gradient-to-br from-blue-500 to-cyan-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <i data-lucide="scissors" class="w-8 h-8 text-white"></i>
+                        </div>
+                        <h3 class="text-2xl font-bold text-gray-800 mb-2">Grooming Essentials</h3>
+                        <p class="text-gray-600 mb-4">Professional grooming tools for home care</p>
+                        <div class="text-center">
+                            <span class="text-3xl font-bold text-blue-600">₱3,199</span>
+                            <span class="text-lg text-gray-500 line-through ml-2">₱3,999</span>
+                        </div>
+                    </div>
+                    <div class="space-y-2 mb-6">
+                        <div class="flex items-center gap-2 text-sm text-gray-700">
+                            <i data-lucide="check-circle" class="w-4 h-4 text-green-500"></i>
+                            <span>Professional Brush Set</span>
+                        </div>
+                        <div class="flex items-center gap-2 text-sm text-gray-700">
+                            <i data-lucide="check-circle" class="w-4 h-4 text-green-500"></i>
+                            <span>Nail Clippers</span>
+                        </div>
+                        <div class="flex items-center gap-2 text-sm text-gray-700">
+                            <i data-lucide="check-circle" class="w-4 h-4 text-green-500"></i>
+                            <span>Pet Shampoo & Conditioner</span>
+                        </div>
+                        <div class="flex items-center gap-2 text-sm text-gray-700">
+                            <i data-lucide="check-circle" class="w-4 h-4 text-green-500"></i>
+                            <span>Microfiber Towels (2x)</span>
+                        </div>
+                        <div class="flex items-center gap-2 text-sm text-gray-700">
+                            <i data-lucide="check-circle" class="w-4 h-4 text-green-500"></i>
+                            <span>Ear Cleaning Solution</span>
+                        </div>
+                    </div>
+                    <button onclick="addBundleToCart('grooming-essentials')" class="w-full bg-gradient-to-r from-blue-500 to-cyan-600 hover:from-blue-600 hover:to-cyan-700 text-white font-semibold py-3 px-6 rounded-lg transition-all duration-300 transform hover:scale-105">
+                        Add Bundle to Cart
+                    </button>
                 </div>
             </div>
         </div>
     </section>
+
+    <!-- Products Section -->
+    <section id="products-section" class="py-16 bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-50 relative z-10">
+        <div class="container mx-auto px-4">
+            <div class="text-center mb-12">
+                <div class="inline-flex items-center rounded-md border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 bg-white/80 text-orange-600 border-orange-200 mb-6">
+                    <i data-lucide="paw-print" class="w-3 h-3 mr-1"></i>
+                    Shop by Category
+                </div>
+                <h2 class="text-4xl md:text-5xl font-bold mb-6">
+                    <span class="bg-gradient-to-r from-orange-600 via-amber-600 to-yellow-600 bg-clip-text text-transparent">
+                        Premium Pet Accessories
+                    </span>
+                </h2>
+                <p class="text-xl text-gray-700 max-w-3xl mx-auto mb-8">
+                    Browse our carefully curated collection of high-quality accessories, toys, and essentials for your beloved pets.
+                </p>
+            </div>
+
+            <!-- Search Bar -->
+            <div class="search-container">
+                <input type="text" id="search-input" class="search-input" placeholder="Search for products..." onkeyup="filterProducts()">
+                <i data-lucide="search" class="search-icon w-5 h-5"></i>
+            </div>
+
+            <!-- Category Tabs -->
+            <div class="category-tabs">
+                <button class="category-tab active" onclick="filterByCategory('all')" data-category="all">
+                    <i data-lucide="grid-3x3" class="w-4 h-4 mr-2 inline"></i>
+                    All Products
+                </button>
+                <button class="category-tab" onclick="filterByCategory('collars')" data-category="collars">
+                    <i data-lucide="circle" class="w-4 h-4 mr-2 inline"></i>
+                    Collars & Leashes
+                </button>
+                <button class="category-tab" onclick="filterByCategory('toys')" data-category="toys">
+                    <i data-lucide="gamepad-2" class="w-4 h-4 mr-2 inline"></i>
+                    Toys & Entertainment
+                </button>
+                <button class="category-tab" onclick="filterByCategory('apparel')" data-category="apparel">
+                    <i data-lucide="shirt" class="w-4 h-4 mr-2 inline"></i>
+                    Pet Apparel
+                </button>
+                <button class="category-tab" onclick="filterByCategory('grooming')" data-category="grooming">
+                    <i data-lucide="scissors" class="w-4 h-4 mr-2 inline"></i>
+                    Grooming Tools
+                </button>
+                <button class="category-tab" onclick="filterByCategory('feeding')" data-category="feeding">
+                    <i data-lucide="bowl" class="w-4 h-4 mr-2 inline"></i>
+                    Feeding & Water
+                </button>
+            </div>
+
+            <!-- Products Grid (PawGrid™ Layout) -->
+            <div id="products-grid" class="paw-grid">
+                <!-- Products will be dynamically loaded here -->
+            </div>
+
+            <!-- Load More Button -->
+            <div class="text-center mt-12">
+                <button onclick="loadMoreProducts()" class="inline-flex items-center justify-center gap-3 whitespace-nowrap rounded-full text-lg font-semibold transition-all duration-300 bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white h-14 px-8 transform hover:scale-105">
+                    <i data-lucide="plus" class="w-5 h-5"></i>
+                    Load More Products
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <!-- Mini Cart -->
+    <div class="mini-cart" onclick="toggleCart()">
+        <i data-lucide="shopping-cart" class="w-6 h-6"></i>
+        <div class="cart-count" id="mini-cart-count">0</div>
+    </div>
+
+    <!-- Quick View Drawer -->
+    <div class="drawer-overlay" id="drawer-overlay" onclick="closeQuickView()"></div>
+    <div class="quick-view-drawer" id="quick-view-drawer">
+        <div class="p-6 border-b border-gray-200">
+            <div class="flex items-center justify-between">
+                <h3 class="text-xl font-bold">Quick View</h3>
+                <button onclick="closeQuickView()" class="p-2 hover:bg-gray-100 rounded-full transition-colors duration-200">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+        </div>
+        <div id="quick-view-content" class="p-6">
+            <!-- Quick view content will be dynamically loaded here -->
+        </div>
+    </div>
 
     <!-- Footer -->
-    <footer class="py-12 bg-gray-900 text-white">
+    <footer class="py-12 bg-gray-900 text-white relative z-10">
         <div class="container mx-auto px-4">
             <div class="grid md:grid-cols-4 gap-8">
                 <div class="space-y-4">
                     <div class="flex items-center space-x-2">
                         <div class="w-8 h-8 rounded-lg overflow-hidden">
-                            <img src="https://images.unsplash.com/photo-1601758228041-f3b2795255f1?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxwdXBweSUyMGtpdCUyMGFjY2Vzc29yaWVzfGVufDF8fHx8MTc1NjU0MzcxNXww&ixlib=rb-4.1.0&q=80&w=1080" alt="pawhabilin Logo" class="w-full h-full object-contain" />
+                            <img src="https://images.unsplash.com/photo-1601758228041-f3b2795255f1?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxwdXBweSUyMGtpdCUyMGFjY2Vzc29yaWVzfGVufDF8fHx8MTc1NjU0MzcxNXww&ixlib=rb-4.1.0&q=80&w=1080" alt="pawhabilin Logo" class="w-full h-full object-contain">
                         </div>
                         <span class="text-xl font-semibold brand-font">pawhabilin</span>
                     </div>
                     <p class="text-gray-400">
-                        The Philippines' most trusted pet sitting platform and pet product store.
+                        The Philippines' most trusted pet care platform providing premium accessories and comprehensive services for your beloved pets.
                     </p>
                 </div>
 
                 <div class="space-y-4">
-                    <h4 class="font-semibold">Shop</h4>
+                    <h4 class="font-semibold">Shop Categories</h4>
                     <ul class="space-y-2 text-gray-400">
-                        <li><a href="#" class="hover:text-white transition-colors">Dog Products</a></li>
-                        <li><a href="#" class="hover:text-white transition-colors">Cat Products</a></li>
-                        <li><a href="#" class="hover:text-white transition-colors">Pet Accessories</a></li>
-                        <li><a href="#" class="hover:text-white transition-colors">Health & Wellness</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">Collars & Leashes</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">Toys & Entertainment</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">Pet Apparel</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">Grooming Tools</a></li>
                     </ul>
                 </div>
 
                 <div class="space-y-4">
                     <h4 class="font-semibold">Services</h4>
                     <ul class="space-y-2 text-gray-400">
-                        <li><a href="find-sitter.php" class="hover:text-white transition-colors">Find a Pet Sitter</a></li>
-                        <li><a href="#" class="hover:text-white transition-colors">Become a Pet Sitter</a></li>
-                        <li><a href="#" class="hover:text-white transition-colors">Pet Training</a></li>
-                        <li><a href="#" class="hover:text-white transition-colors">Veterinary Care</a></li>
+                        <li><a href="book_appointments.php" class="hover:text-white transition-colors">Book Appointment</a></li>
+                        <li><a href="find-sitter.php" class="hover:text-white transition-colors">Find Pet Sitter</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">Pet Care Tips</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">Emergency Care</a></li>
                     </ul>
                 </div>
 
                 <div class="space-y-4">
-                    <h4 class="font-semibold">Support</h4>
+                    <h4 class="font-semibold">Contact</h4>
                     <ul class="space-y-2 text-gray-400">
-                        <li><a href="#" class="hover:text-white transition-colors">Help Center</a></li>
-                        <li><a href="#" class="hover:text-white transition-colors">Shipping Info</a></li>
-                        <li><a href="#" class="hover:text-white transition-colors">Returns</a></li>
-                        <li><a href="#" class="hover:text-white transition-colors">Contact Us</a></li>
+                        <li class="flex items-center gap-2">
+                            <i data-lucide="phone" class="w-4 h-4"></i>
+                            +63 912 345 6789
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <i data-lucide="mail" class="w-4 h-4"></i>
+                            shop@pawhabilin.com
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <i data-lucide="map-pin" class="w-4 h-4"></i>
+                            Cebu City, Philippines
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <i data-lucide="truck" class="w-4 h-4"></i>
+                            Free Delivery ₱1,500+
+                        </li>
                     </ul>
                 </div>
             </div>
 
             <div class="mt-12 pt-8 border-t border-gray-800 text-center text-gray-400">
-                <p>&copy; 2025 pawhabilin Philippines. All rights reserved.</p>
+                <p>&copy; 2025 pawhabilin Philippines. All rights reserved. | Secure Shopping | 30-Day Returns</p>
             </div>
         </div>
     </footer>
 
     <script>
-        // Product data
-        const allProducts = [
+        // Initialize Lucide icons
+        document.addEventListener('DOMContentLoaded', function() {
+            lucide.createIcons();
+            loadProducts();
+            
+            // Add slide-in animation to elements
+            const animatedElements = document.querySelectorAll('.slide-in-up');
+            animatedElements.forEach((element, index) => {
+                setTimeout(() => {
+                    element.style.opacity = '1';
+                    element.style.transform = 'translateY(0)';
+                }, index * 100);
+            });
+        });
+
+        // Product data (in a real application, this would come from a database)
+        const products = [
             {
                 id: 1,
-                name: "Premium Dog Kibble - Adult Formula",
-                category: "Dog Food",
-                price: 1299,
-                originalPrice: 1599,
+                name: "Premium Leather Dog Collar",
+                category: "collars",
+                price: 899,
+                originalPrice: 1299,
+                image: "https://images.unsplash.com/photo-1608848461950-0fe51dfc41cb?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxsZWF0aGVyJTIwZG9nJTIwY29sbGFyfGVufDF8fHx8MTc1ODYxMDgyOXww&ixlib=rb-4.1.0&q=80&w=1080",
+                badge: "Sale",
                 rating: 4.8,
-                reviews: 234,
-                image: "https://images.unsplash.com/photo-1572950947301-fb417712da10?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxwcmVtaXVtJTIwZG9nJTIwZm9vZCUyMGtpYmJsZXxlbnwxfHx8fDE3NTY1NDM3MTV8MA&ixlib=rb-4.1.0&q=80&w=1080",
-                badge: "Best Seller",
-                inStock: true,
-                description: "High-quality protein formula for adult dogs with chicken and rice.",
-                brand: "PetNutrition Pro",
-                weight: "15kg"
+                variants: [
+                    { type: "color", value: "#8B4513", name: "Brown" },
+                    { type: "color", value: "#000000", name: "Black" },
+                    { type: "color", value: "#654321", name: "Tan" }
+                ],
+                description: "Handcrafted premium leather collar with adjustable sizing and durable hardware."
             },
             {
                 id: 2,
-                name: "Nutritious Cat Food - Salmon & Tuna",
-                category: "Cat Food",
-                price: 899,
-                originalPrice: null,
-                rating: 4.9,
-                reviews: 156,
-                image: "https://images.unsplash.com/photo-1734654901149-02a9a5f7993b?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxjYXQlMjBmb29kJTIwYm93bHxlbnwxfHx8fDE3NTY1MDk4MzR8MA&ixlib=rb-4.1.0&q=80&w=1080",
+                name: "Interactive Puzzle Toy",
+                category: "toys",
+                price: 599,
+                image: "https://images.unsplash.com/photo-1605034313761-73ea4a0cfbf3?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxpbnRlcmFjdGl2ZSUyMGRvZyUyMHRveXxlbnwxfHx8fDE3NTg2MTA4NDF8MA&ixlib=rb-4.1.0&q=80&w=1080",
                 badge: "New",
-                inStock: true,
-                description: "Premium wet food with real salmon and tuna, rich in omega-3.",
-                brand: "FelineFresh",
-                weight: "400g x 12 cans"
+                rating: 4.9,
+                variants: [
+                    { type: "size", value: "S", name: "Small" },
+                    { type: "size", value: "M", name: "Medium" },
+                    { type: "size", value: "L", name: "Large" }
+                ],
+                description: "Mental stimulation puzzle toy that keeps your dog engaged and mentally active."
             },
             {
                 id: 3,
-                name: "Interactive Puzzle Dog Toy",
-                category: "Toys",
-                price: 459,
-                originalPrice: 599,
+                name: "Cozy Pet Sweater",
+                category: "apparel",
+                price: 799,
+                image: "https://images.unsplash.com/photo-1583337130417-3346a1be7dee?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxwZXQlMjBzd2VhdGVyJTIwZG9nfGVufDF8fHx8MTc1ODYxMDg0N3ww&ixlib=rb-4.1.0&q=80&w=1080",
                 rating: 4.7,
-                reviews: 89,
-                image: "https://images.unsplash.com/photo-1659700097688-f26bf79735af?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxkb2clMjB0b3klMjByb3BlJTIwYmFsbHxlbnwxfHx8fDE3NTY0Njk1Mjd8MA&ixlib=rb-4.1.0&q=80&w=1080",
-                badge: "Sale",
-                inStock: true,
-                description: "Mental stimulation toy that challenges your dog while dispensing treats.",
-                brand: "SmartPaws",
-                weight: "500g"
+                variants: [
+                    { type: "color", value: "#FF69B4", name: "Pink" },
+                    { type: "color", value: "#87CEEB", name: "Blue" },
+                    { type: "color", value: "#98FB98", name: "Green" }
+                ],
+                description: "Soft and warm sweater perfect for keeping your pet comfortable in cooler weather."
             },
             {
                 id: 4,
-                name: "Durable Pet Collar & Leash Set",
-                category: "Accessories",
-                price: 699,
-                originalPrice: null,
-                rating: 4.6,
-                reviews: 67,
-                image: "https://images.unsplash.com/photo-1577447278822-37801be21738?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxwZXQlMjBjb2xsYXIlMjBsZWFzaHxlbnwxfHx8fDE3NTY0NDcwNjZ8MA&ixlib=rb-4.1.0&q=80&w=1080",
-                badge: null,
-                inStock: true,
-                description: "Adjustable nylon collar with matching 6ft leash, perfect for daily walks.",
-                brand: "WalkSafe",
-                weight: "200g"
+                name: "Professional Grooming Kit",
+                category: "grooming",
+                price: 1299,
+                image: "https://images.unsplash.com/photo-1576201836106-db1758fd1c97?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxwZXQlMjBncm9vbWluZyUyMGtpdHxlbnwxfHx8fDE3NTg2MTA4NTJ8MA&ixlib=rb-4.1.0&q=80&w=1080",
+                badge: "Bundle",
+                rating: 4.9,
+                variants: [
+                    { type: "type", value: "basic", name: "Basic Kit" },
+                    { type: "type", value: "premium", name: "Premium Kit" }
+                ],
+                description: "Complete grooming kit with professional-grade tools for home pet care."
             },
             {
                 id: 5,
-                name: "Healthy Training Treats",
-                category: "Treats",
-                price: 329,
-                originalPrice: 399,
-                rating: 4.8,
-                reviews: 143,
-                image: "https://images.unsplash.com/photo-1714846624589-bae6531e86e6?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxwZXQlMjB0cmVhdHMlMjBzbmFja3N8ZW58MXx8fHwxNzU2NDQ3MDY2fDA&ixlib=rb-4.1.0&q=80&w=1080",
-                badge: "Popular",
-                inStock: false,
-                description: "Low-calorie training treats made with natural ingredients and real meat.",
-                brand: "HealthyPaws",
-                weight: "200g"
+                name: "Stainless Steel Food Bowl",
+                category: "feeding",
+                price: 399,
+                image: "https://images.unsplash.com/photo-1583512603805-3cc6b41f3edb?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxzdGFpbmxlc3MlMjBzdGVlbCUyMGRvZyUyMGJvd2x8ZW58MXx8fHwxNzU4NjEwODU4fDA&ixlib=rb-4.1.0&q=80&w=1080",
+                rating: 4.6,
+                variants: [
+                    { type: "size", value: "S", name: "Small (1 cup)" },
+                    { type: "size", value: "M", name: "Medium (2 cups)" },
+                    { type: "size", value: "L", name: "Large (3 cups)" }
+                ],
+                description: "Durable stainless steel bowl that's easy to clean and won't retain odors."
             },
             {
                 id: 6,
-                name: "Professional Grooming Brush Set",
-                category: "Grooming",
-                price: 799,
-                originalPrice: null,
-                rating: 4.9,
-                reviews: 98,
-                image: "https://images.unsplash.com/photo-1625279138876-8910c2af9a30?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxwZXQlMjBncm9vbWluZyUyMGJydXNofGVufDF8fHx8MTc1NjQzODM3N3ww&ixlib=rb-4.1.0&q=80&w=1080",
-                badge: "Premium",
-                inStock: true,
-                description: "Complete grooming set with slicker brush, pin brush, and nail clippers.",
-                brand: "GroomPro",
-                weight: "300g"
-            },
-            {
-                id: 7,
-                name: "Puppy Starter Kit",
-                category: "Accessories",
-                price: 1899,
-                originalPrice: 2399,
-                rating: 4.7,
-                reviews: 76,
-                image: "https://images.unsplash.com/photo-1601758228041-f3b2795255f1?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxwdXBweSUyMGtpdCUyMGFjY2Vzc29yaWVzfGVufDF8fHx8MTc1NjU0MzcxNXww&ixlib=rb-4.1.0&q=80&w=1080",
-                badge: "Bundle",
-                inStock: true,
-                description: "Everything you need for your new puppy: bed, toys, bowls, and more.",
-                brand: "PuppyLife",
-                weight: "2kg"
-            },
-            {
-                id: 8,
-                name: "Cat Scratching Post Tower",
-                category: "Toys",
-                price: 2299,
-                originalPrice: null,
-                rating: 4.8,
-                reviews: 123,
-                image: "https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxjYXQlMjBzY3JhdGNoaW5nJTIwcG9zdHxlbnwxfHx8fDE3NTY1NDM3MTV8MA&ixlib=rb-4.1.0&q=80&w=1080",
-                badge: "Premium",
-                inStock: true,
-                description: "Multi-level scratching post with sisal rope and cozy perches.",
-                brand: "CatHaven",
-                weight: "8kg"
-            },
-            {
-                id: 9,
-                name: "Joint Health Supplements",
-                category: "Health & Wellness",
-                price: 1199,
-                originalPrice: null,
-                rating: 4.6,
-                reviews: 89,
-                image: "https://images.unsplash.com/photo-1471193945509-9ad0617afabf?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxwZXQlMjBzdXBwbGVtZW50cyUyMHBpbGxzfGVufDF8fHx8MTc1NjU0MzcxNXww&ixlib=rb-4.1.0&q=80&w=1080",
-                badge: "Vet Recommended",
-                inStock: true,
-                description: "Glucosamine and chondroitin supplements for joint health and mobility.",
-                brand: "VetHealth",
-                weight: "90 tablets"
-            },
-            {
-                id: 10,
-                name: "Training Clicker Set",
-                category: "Training",
-                price: 199,
-                originalPrice: 249,
+                name: "Retractable Dog Leash",
+                category: "collars",
+                price: 699,
+                originalPrice: 899,
+                image: "https://images.unsplash.com/photo-1601758174493-a2ead1d6c15e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxyZXRyYWN0YWJsZSUyMGRvZyUyMGxlYXNofGVufDF8fHx8MTc1ODYxMDg2M3ww&ixlib=rb-4.1.0&q=80&w=1080",
+                badge: "Sale",
                 rating: 4.5,
-                reviews: 234,
-                image: "https://images.unsplash.com/photo-1551717743-49959800b1f6?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxkb2clMjB0cmFpbmluZyUyMGNsaWNrZXJ8ZW58MXx8fHwxNzU2NTQzNzE1fDA&ixlib=rb-4.1.0&q=80&w=1080",
-                badge: "Beginner Friendly",
-                inStock: true,
-                description: "Professional training clickers with wrist strap and training guide.",
-                brand: "TrainRight",
-                weight: "50g"
-            },
-            {
-                id: 11,
-                name: "Premium Cat Litter",
-                category: "Accessories",
-                price: 599,
-                originalPrice: null,
-                rating: 4.7,
-                reviews: 167,
-                image: "https://images.unsplash.com/photo-1545529468-42764ef8c85f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxjYXQlMjBsaXR0ZXIlMjBib3h8ZW58MXx8fHwxNzU2NTQzNzE1fDA&ixlib=rb-4.1.0&q=80&w=1080",
-                badge: "Odor Control",
-                inStock: true,
-                description: "Clumping clay litter with advanced odor control technology.",
-                brand: "CleanPaws",
-                weight: "10kg"
-            },
-            {
-                id: 12,
-                name: "Dental Chew Sticks",
-                category: "Treats",
-                price: 449,
-                originalPrice: 529,
-                rating: 4.8,
-                reviews: 198,
-                image: "https://images.unsplash.com/photo-1588943211346-0908a1fb0b01?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxkb2clMjBkZW50YWwlMjBjaGV3fGVufDF8fHx8MTc1NjU0MzcxNXww&ixlib=rb-4.1.0&q=80&w=1080",
-                badge: "Dental Health",
-                inStock: true,
-                description: "Natural dental chews that help reduce tartar and freshen breath.",
-                brand: "DentalCare",
-                weight: "300g"
+                variants: [
+                    { type: "length", value: "3m", name: "3 meters" },
+                    { type: "length", value: "5m", name: "5 meters" }
+                ],
+                description: "High-quality retractable leash with comfortable grip and reliable locking mechanism."
             }
         ];
 
-        // State variables
-        let selectedCategory = "All";
-        let sortBy = "featured";
-        let viewMode = "grid";
-        let cartItems = 0;
-        let searchQuery = "";
+        let cart = [];
+        let currentCategory = 'all';
+        let displayedProducts = 6;
 
-        // Helper functions
-        function getBadgeClass(badge) {
-            const badgeClasses = {
-                "Sale": "bg-red-500 hover:bg-red-600",
-                "New": "bg-green-500 hover:bg-green-600", 
-                "Best Seller": "bg-blue-500 hover:bg-blue-600",
-                "Popular": "bg-purple-500 hover:bg-purple-600",
-                "Bundle": "bg-pink-500 hover:bg-pink-600",
-                "Vet Recommended": "bg-teal-500 hover:bg-teal-600",
-                "Dental Health": "bg-cyan-500 hover:bg-cyan-600",
-                "Beginner Friendly": "bg-indigo-500 hover:bg-indigo-600",
-                "Odor Control": "bg-violet-500 hover:bg-violet-600",
-                "Premium": "bg-yellow-500 hover:bg-yellow-600"
-            };
-            return badgeClasses[badge] || "bg-yellow-500 hover:bg-yellow-600";
-        }
-
-        function formatPrice(price) {
-            return `₱${price.toLocaleString()}`;
-        }
-
-        function createProductCard(product, isListView = false) {
-            const cardClass = isListView ? 'flex' : '';
-            const imageContainerClass = isListView ? 'w-48 flex-shrink-0' : '';
-            const imageClass = isListView ? 'h-48' : 'aspect-square';
-            const contentClass = isListView ? 'flex-1' : '';
-            const titleClass = isListView ? 'text-lg' : 'text-sm';
+        // Load products based on current filters
+        function loadProducts() {
+            const filteredProducts = currentCategory === 'all' 
+                ? products 
+                : products.filter(product => product.category === currentCategory);
             
+            const productsToShow = filteredProducts.slice(0, displayedProducts);
+            const productsGrid = document.getElementById('products-grid');
+            
+            productsGrid.innerHTML = productsToShow.map(product => createProductCard(product)).join('');
+            lucide.createIcons();
+        }
+
+        // Create product card HTML
+        function createProductCard(product) {
+            const discountPercentage = product.originalPrice 
+                ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
+                : 0;
+
             return `
-                <div class="overflow-hidden hover:shadow-lg transition-all duration-300 hover:-translate-y-1 bg-white border border-gray-200 rounded-lg ${cardClass}">
-                    <div class="relative ${imageContainerClass}">
-                        <div class="${imageClass} overflow-hidden">
-                            <img src="${product.image}" alt="${product.name}" class="w-full h-full object-cover" onerror="this.src='https://images.unsplash.com/photo-1601758228041-f3b2795255f1?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxwdXBweSUyMGtpdCUyMGFjY2Vzc29yaWVzfGVufDF8fHx8MTc1NjU0MzcxNXww&ixlib=rb-4.1.0&q=80&w=1080'" />
+                <div class="product-card" data-category="${product.category}" data-name="${product.name.toLowerCase()}">
+                    ${product.badge ? `<div class="product-badge ${product.badge.toLowerCase()}">${product.badge}</div>` : ''}
+                    <div class="product-image">
+                        <img src="${product.image}" alt="${product.name}" loading="lazy">
+                        <div class="paw-print-hover">
+                            <i data-lucide="eye" class="w-4 h-4 text-white"></i>
                         </div>
-                        
-                        ${product.badge ? `
-                            <div class="absolute top-3 left-3">
-                                <div class="inline-flex items-center rounded-md px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 ${getBadgeClass(product.badge)} text-white">
-                                    ${product.badge}
-                                </div>
-                            </div>
-                        ` : ''}
-
-                        ${!product.inStock ? `
-                            <div class="absolute inset-0 bg-black/50 flex items-center justify-center">
-                                <div class="inline-flex items-center rounded-md px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 bg-destructive text-destructive-foreground">Out of Stock</div>
-                            </div>
-                        ` : ''}
-
-                        <button class="absolute top-3 right-3 w-8 h-8 p-0 bg-white/80 hover:bg-white inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground">
-                            <i data-lucide="heart" class="w-4 h-4"></i>
-                        </button>
                     </div>
                     
-                    <div class="p-4 ${contentClass}">
-                        <div class="space-y-3">
-                            <div>
-                                <div class="text-xs text-gray-500 mb-1">${product.brand}</div>
-                                <h3 class="font-semibold ${titleClass} mb-2 line-clamp-2">${product.name}</h3>
-                                
-                                ${isListView ? `<p class="text-sm text-gray-600 mb-3 line-clamp-2">${product.description}</p>` : ''}
-                                
-                                <div class="flex items-center gap-1 mb-2">
-                                    <i data-lucide="star" class="w-3 h-3 fill-yellow-400 text-yellow-400"></i>
-                                    <span class="text-xs font-medium">${product.rating}</span>
-                                    <span class="text-xs text-muted-foreground">(${product.reviews})</span>
+                    <div class="space-y-3">
+                        <div>
+                            <h3 class="text-lg font-bold text-gray-800 mb-1">${product.name}</h3>
+                            <div class="flex items-center gap-2 mb-2">
+                                <div class="flex items-center">
+                                    ${'★'.repeat(Math.floor(product.rating))}${'☆'.repeat(5-Math.floor(product.rating))}
                                 </div>
-                                
-                                <div class="flex items-center justify-between">
-                                    <div class="flex items-center gap-2">
-                                        <span class="font-bold text-orange-600">${formatPrice(product.price)}</span>
-                                        ${product.originalPrice ? `<span class="text-xs text-muted-foreground line-through">${formatPrice(product.originalPrice)}</span>` : ''}
-                                    </div>
-                                    ${isListView ? `<div class="text-xs text-gray-500">${product.weight}</div>` : ''}
-                                </div>
+                                <span class="text-sm text-gray-600">(${product.rating})</span>
                             </div>
-
-                            <button 
-                                class="w-full bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 h-8 px-3 ${!product.inStock ? 'opacity-50 cursor-not-allowed' : ''}"
-                                ${!product.inStock ? 'disabled' : ''}
-                                onclick="addToCart(${product.id})"
-                            >
-                                <i data-lucide="shopping-cart" class="w-3 h-3 mr-1"></i>
-                                ${product.inStock ? "Add to Cart" : "Out of Stock"}
+                        </div>
+                        
+                        ${product.variants ? `
+                        <div class="variant-swatches">
+                            ${product.variants.slice(0, 3).map((variant, index) => `
+                                <div class="variant-swatch ${variant.type === 'color' ? '' : 'bone-shape'} ${index === 0 ? 'active' : ''}" 
+                                     style="${variant.type === 'color' ? `background-color: ${variant.value}` : 'background-color: #f3f4f6'}"
+                                     title="${variant.name}">
+                                </div>
+                            `).join('')}
+                        </div>
+                        ` : ''}
+                        
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <span class="text-xl font-bold text-orange-600">₱${product.price.toLocaleString()}</span>
+                                ${product.originalPrice ? `
+                                    <span class="text-sm text-gray-500 line-through ml-2">₱${product.originalPrice.toLocaleString()}</span>
+                                ` : ''}
+                            </div>
+                            ${discountPercentage > 0 ? `
+                                <span class="text-xs bg-red-100 text-red-600 px-2 py-1 rounded-full font-semibold">
+                                    ${discountPercentage}% OFF
+                                </span>
+                            ` : ''}
+                        </div>
+                        
+                        <div class="flex gap-2">
+                            <button onclick="openQuickView(${product.id})" 
+                                    class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-2 px-4 rounded-lg transition-all duration-200 flex items-center justify-center gap-2">
+                                <i data-lucide="eye" class="w-4 h-4"></i>
+                                Quick View
+                            </button>
+                            <button onclick="addToCart(${product.id})" 
+                                    class="flex-1 bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white font-medium py-2 px-4 rounded-lg transition-all duration-200 flex items-center justify-center gap-2">
+                                <i data-lucide="shopping-cart" class="w-4 h-4"></i>
+                                Add to Cart
                             </button>
                         </div>
                     </div>
@@ -598,215 +1139,327 @@
             `;
         }
 
+        // Filter products by category
+        function filterByCategory(category) {
+            currentCategory = category;
+            displayedProducts = 6;
+            
+            // Update active tab
+            document.querySelectorAll('.category-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelector(`[data-category="${category}"]`).classList.add('active');
+            
+            loadProducts();
+        }
+
+        // Filter products by search
         function filterProducts() {
-            return allProducts.filter(product => {
-                const matchesCategory = selectedCategory === "All" || product.category === selectedCategory;
-                const matchesSearch = searchQuery === "" || 
-                    product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                    product.brand.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                    product.category.toLowerCase().includes(searchQuery.toLowerCase());
+            const searchTerm = document.getElementById('search-input').value.toLowerCase();
+            const productCards = document.querySelectorAll('.product-card');
+            
+            productCards.forEach(card => {
+                const productName = card.dataset.name;
+                const shouldShow = productName.includes(searchTerm) && 
+                                 (currentCategory === 'all' || card.dataset.category === currentCategory);
                 
-                return matchesCategory && matchesSearch;
+                card.style.display = shouldShow ? 'block' : 'none';
             });
         }
 
-        function sortProducts(products) {
-            const sorted = [...products];
-            
-            switch (sortBy) {
-                case "price-low":
-                    return sorted.sort((a, b) => a.price - b.price);
-                case "price-high":
-                    return sorted.sort((a, b) => b.price - a.price);
-                case "rating":
-                    return sorted.sort((a, b) => b.rating - a.rating);
-                case "name":
-                    return sorted.sort((a, b) => a.name.localeCompare(b.name));
-                default:
-                    return sorted;
-            }
+        // Load more products
+        function loadMoreProducts() {
+            displayedProducts += 6;
+            loadProducts();
         }
 
-        function renderProducts() {
-            const filteredProducts = filterProducts();
-            const sortedProducts = sortProducts(filteredProducts);
-            
-            const productsGrid = document.getElementById('products-grid');
-            const emptyState = document.getElementById('empty-state');
-            const productCount = document.getElementById('product-count');
-            
-            // Update product count
-            let countText = `Showing ${sortedProducts.length} products`;
-            if (selectedCategory !== "All") {
-                countText += ` in ${selectedCategory}`;
-            }
-            productCount.textContent = countText;
-            
-            if (sortedProducts.length === 0) {
-                productsGrid.innerHTML = '';
-                emptyState.classList.remove('hidden');
-            } else {
-                emptyState.classList.add('hidden');
-                
-                // Update grid classes based on view mode
-                productsGrid.className = viewMode === "grid" 
-                    ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
-                    : "flex flex-col gap-4";
-                
-                productsGrid.innerHTML = sortedProducts.map(product => 
-                    createProductCard(product, viewMode === "list")
-                ).join('');
-            }
-            
-            // Re-initialize Lucide icons
-            if (window.lucide) {
-                lucide.createIcons();
-            }
-        }
-
-        function updateCategoryButtons() {
-            const categoryButtons = document.querySelectorAll('.category-btn');
-            categoryButtons.forEach(btn => {
-                const category = btn.getAttribute('data-category');
-                if (category === selectedCategory) {
-                    btn.className = 'category-btn inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white h-8 px-3';
-                } else {
-                    btn.className = 'category-btn inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 border border-orange-200 text-orange-600 hover:bg-orange-50 bg-transparent h-8 px-3';
-                }
-            });
-        }
-
-        function updateViewButtons() {
-            const gridBtn = document.getElementById('grid-view-btn');
-            const listBtn = document.getElementById('list-view-btn');
-            
-            if (viewMode === "grid") {
-                gridBtn.className = 'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 bg-orange-500 hover:bg-orange-600 text-white h-8 px-3';
-                listBtn.className = 'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 hover:bg-accent hover:text-accent-foreground bg-transparent h-8 px-3';
-            } else {
-                listBtn.className = 'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 bg-orange-500 hover:bg-orange-600 text-white h-8 px-3';
-                gridBtn.className = 'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 hover:bg-accent hover:text-accent-foreground bg-transparent h-8 px-3';
-            }
-        }
-
+        // Add product to cart
         function addToCart(productId) {
-            cartItems++;
-            const cartBadge = document.getElementById('cart-badge');
-            cartBadge.textContent = cartItems;
-            cartBadge.classList.remove('hidden');
+            const product = products.find(p => p.id === productId);
+            if (product) {
+                const existingItem = cart.find(item => item.id === productId);
+                if (existingItem) {
+                    existingItem.quantity += 1;
+                } else {
+                    cart.push({ ...product, quantity: 1 });
+                }
+                updateCartUI();
+                showNotification(`${product.name} added to cart!`, 'success');
+            }
         }
 
-        // Event listeners
-        document.addEventListener('DOMContentLoaded', function() {
-            // Category filter buttons
-            document.querySelectorAll('.category-btn').forEach(btn => {
-                btn.addEventListener('click', function() {
-                    selectedCategory = this.getAttribute('data-category');
-                    updateCategoryButtons();
-                    renderProducts();
-                });
-            });
+        // Add bundle to cart
+        function addBundleToCart(bundleType) {
+            const bundles = {
+                'puppy-starter': { name: 'Puppy Starter Kit', price: 2499, id: 'bundle-1' },
+                'cat-care': { name: 'Cat Care Combo', price: 1899, id: 'bundle-2' },
+                'grooming-essentials': { name: 'Grooming Essentials', price: 3199, id: 'bundle-3' }
+            };
+            
+            const bundle = bundles[bundleType];
+            if (bundle) {
+                const existingItem = cart.find(item => item.id === bundle.id);
+                if (existingItem) {
+                    existingItem.quantity += 1;
+                } else {
+                    cart.push({ ...bundle, quantity: 1, image: 'https://images.unsplash.com/photo-1601758228041-f3b2795255f1?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxwdXBweSUyMGtpdCUyMGFjY2Vzc29yaWVzfGVufDF8fHx8MTc1NjU0MzcxNXww&ixlib=rb-4.1.0&q=80&w=1080' });
+                }
+                updateCartUI();
+                showNotification(`${bundle.name} added to cart!`, 'success');
+            }
+        }
 
-            // Sort dropdown
-            document.getElementById('sort-select').addEventListener('change', function() {
-                sortBy = this.value;
-                renderProducts();
-            });
+        // Update cart UI
+        function updateCartUI() {
+            const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
+            document.getElementById('cart-count').textContent = totalItems;
+            document.getElementById('mini-cart-count').textContent = totalItems;
+            
+            // Animate cart icon
+            const cartIcon = document.querySelector('.mini-cart');
+            cartIcon.style.animation = 'cart-bounce 0.3s ease';
+            setTimeout(() => {
+                cartIcon.style.animation = '';
+            }, 300);
+        }
 
-            // View mode buttons
-            document.getElementById('grid-view-btn').addEventListener('click', function() {
-                viewMode = "grid";
-                updateViewButtons();
-                renderProducts();
-            });
-
-            document.getElementById('list-view-btn').addEventListener('click', function() {
-                viewMode = "list";
-                updateViewButtons();
-                renderProducts();
-            });
-
-            // Search functionality
-            document.getElementById('product-search').addEventListener('input', function() {
-                searchQuery = this.value;
-                renderProducts();
-            });
-
-            // Initialize Lucide icons
-            if (window.lucide) {
+        // Open quick view
+        function openQuickView(productId) {
+            const product = products.find(p => p.id === productId);
+            if (product) {
+                const content = `
+                    <div class="space-y-6">
+                        <div class="aspect-square w-full rounded-lg overflow-hidden bg-gray-100">
+                            <img src="${product.image}" alt="${product.name}" class="w-full h-full object-cover">
+                        </div>
+                        
+                        <div>
+                            <h3 class="text-2xl font-bold text-gray-800 mb-2">${product.name}</h3>
+                            <div class="flex items-center gap-2 mb-4">
+                                <div class="flex items-center text-yellow-400">
+                                    ${'★'.repeat(Math.floor(product.rating))}${'☆'.repeat(5-Math.floor(product.rating))}
+                                </div>
+                                <span class="text-sm text-gray-600">(${product.rating} rating)</span>
+                            </div>
+                            
+                            <p class="text-gray-600 mb-4">${product.description}</p>
+                            
+                            <div class="flex items-center gap-4 mb-6">
+                                <span class="text-2xl font-bold text-orange-600">₱${product.price.toLocaleString()}</span>
+                                ${product.originalPrice ? `
+                                    <span class="text-lg text-gray-500 line-through">₱${product.originalPrice.toLocaleString()}</span>
+                                ` : ''}
+                            </div>
+                            
+                            ${product.variants ? `
+                            <div class="mb-6">
+                                <h4 class="font-medium text-gray-800 mb-3">Available Options:</h4>
+                                <div class="flex gap-2 flex-wrap">
+                                    ${product.variants.map(variant => `
+                                        <button class="px-3 py-2 border border-gray-300 rounded-lg text-sm hover:border-orange-500 hover:text-orange-500 transition-colors">
+                                            ${variant.name}
+                                        </button>
+                                    `).join('')}
+                                </div>
+                            </div>
+                            ` : ''}
+                            
+                            <button onclick="addToCart(${product.id}); closeQuickView();" 
+                                    class="w-full bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white font-semibold py-3 px-6 rounded-lg transition-all duration-200 flex items-center justify-center gap-2">
+                                <i data-lucide="shopping-cart" class="w-5 h-5"></i>
+                                Add to Cart
+                            </button>
+                        </div>
+                    </div>
+                `;
+                
+                document.getElementById('quick-view-content').innerHTML = content;
+                document.getElementById('quick-view-drawer').classList.add('open');
+                document.getElementById('drawer-overlay').classList.add('open');
+                document.body.style.overflow = 'hidden';
                 lucide.createIcons();
             }
+        }
 
-            // Initial render
-            renderProducts();
-        });
-    </script>
-    <script>
-        (function() {
-            function initDropdown({ wrapperId, buttonId, menuId }) {
-                const wrapper = document.getElementById(wrapperId);
-                const btn = document.getElementById(buttonId);
-                const menu = document.getElementById(menuId);
-                const chevron = btn && btn.querySelector('i[data-lucide="chevron-down"]');
-                let persist = false;
-                let hoverTimeout = null;
+        // Close quick view
+        function closeQuickView() {
+            document.getElementById('quick-view-drawer').classList.remove('open');
+            document.getElementById('drawer-overlay').classList.remove('open');
+            document.body.style.overflow = 'auto';
+        }
 
-                if (!wrapper || !btn || !menu) return;
-
-                function setOpen(open) {
-                    if (open) {
-                        menu.classList.add('open');
-                        menu.classList.remove('opacity-0');
-                        menu.classList.remove('translate-y-2');
-                        menu.setAttribute('aria-hidden', 'false');
-                        btn.setAttribute('aria-expanded', 'true');
-                        if (chevron) chevron.style.transform = 'rotate(180deg)';
-                    } else {
-                        menu.classList.remove('open');
-                        menu.classList.add('opacity-0');
-                        menu.classList.add('translate-y-2');
-                        menu.setAttribute('aria-hidden', 'true');
-                        btn.setAttribute('aria-expanded', 'false');
-                        if (chevron) chevron.style.transform = '';
-                    }
-                }
-
-                wrapper.addEventListener('mouseenter', function() {
-                    if (hoverTimeout) clearTimeout(hoverTimeout);
-                    setOpen(true);
-                });
-
-                wrapper.addEventListener('mouseleave', function() {
-                    if (persist) return;
-                    hoverTimeout = setTimeout(function() { setOpen(false); }, 150);
-                });
-
-                btn.addEventListener('click', function(e) {
-                    e.stopPropagation();
-                    persist = !persist;
-                    setOpen(persist);
-                });
-
-                document.addEventListener('click', function(e) {
-                    if (!wrapper.contains(e.target)) {
-                        persist = false;
-                        setOpen(false);
-                    }
-                });
-
-                document.addEventListener('keydown', function(e) {
-                    if (e.key === 'Escape') {
-                        persist = false;
-                        setOpen(false);
-                    }
-                });
-
-                setOpen(false);
+        // Toggle cart
+        function toggleCart() {
+            if (cart.length === 0) {
+                showNotification('Your cart is empty!', 'info');
+                return;
             }
+            
+                const cartItems = cart.map(item => `
+                    <div class="flex items-center gap-3 p-3 border-b group">
+                        <img src="${item.image}" alt="${item.name}" class="w-12 h-12 object-cover rounded" />
+                        <div class="flex-1">
+                            <h4 class="font-medium">${item.name}</h4>
+                            <p class="text-sm text-gray-600">Qty: ${item.quantity} × ₱${item.price.toLocaleString()}</p>
+                            <div class="flex items-center gap-2 mt-2">
+                                <button onclick="decrementItem('${item.id}')" class="px-2 py-1 text-xs rounded bg-gray-100 hover:bg-gray-200">-</button>
+                                <button onclick="incrementItem('${item.id}')" class="px-2 py-1 text-xs rounded bg-gray-100 hover:bg-gray-200">+</button>
+                                <button onclick="removeFromCart('${item.id}')" class="ml-auto inline-flex items-center gap-1 text-xs text-red-600 hover:text-red-700">
+                                    <i data-lucide="trash-2" class="w-3 h-3"></i> Remove
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+            
+            const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+            
+            const cartContent = `
+                <div class="space-y-4">
+                    <h3 class="text-xl font-bold">Shopping Cart</h3>
+                    <div class="max-h-60 overflow-y-auto">
+                        ${cartItems}
+                    </div>
+                    <div class="pt-4 border-t">
+                        <div class="flex justify-between items-center mb-4">
+                            <span class="font-semibold">Total: ₱${total.toLocaleString()}</span>
+                        </div>
+                        <button onclick="proceedToCheckout()" class="w-full bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white font-semibold py-3 px-6 rounded-lg transition-all duration-200">
+                            Proceed to Checkout
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('quick-view-content').innerHTML = cartContent;
+            document.getElementById('quick-view-drawer').classList.add('open');
+            document.getElementById('drawer-overlay').classList.add('open');
+            document.body.style.overflow = 'hidden';
+        }
 
-            initDropdown({ wrapperId: 'appointmentsWrapper', buttonId: 'appointmentsButton', menuId: 'appointmentsMenu' });
-            initDropdown({ wrapperId: 'petsitterWrapper', buttonId: 'petsitterButton', menuId: 'petsitterMenu' });
-        })();
+        // Scroll to products section
+        function scrollToProducts() {
+            document.getElementById('products-section').scrollIntoView({
+                behavior: 'smooth'
+            });
+        }
+
+        // Show notification
+        function showNotification(message, type = 'success') {
+            const notification = document.createElement('div');
+            notification.className = `fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg transform transition-all duration-300 translate-x-full ${
+                type === 'success' ? 'bg-green-500 text-white' : 
+                type === 'info' ? 'bg-blue-500 text-white' :
+                'bg-red-500 text-white'
+            }`;
+            notification.innerHTML = `
+                <div class="flex items-center gap-3">
+                    <i data-lucide="${type === 'success' ? 'check-circle' : type === 'info' ? 'info' : 'alert-circle'}" class="w-5 h-5"></i>
+                    <span>${message}</span>
+                </div>
+            `;
+            
+            document.body.appendChild(notification);
+            lucide.createIcons();
+            
+            // Slide in
+            setTimeout(() => {
+                notification.classList.remove('translate-x-full');
+            }, 100);
+            
+            // Slide out and remove
+            setTimeout(() => {
+                notification.classList.add('translate-x-full');
+                setTimeout(() => {
+                    document.body.removeChild(notification);
+                }, 300);
+            }, 3000);
+        }
+
+        // Parallax effect for floating elements
+        window.addEventListener('scroll', () => {
+            const scrolled = window.pageYOffset;
+            const parallaxElements = document.querySelectorAll('.floating-element');
+            
+            parallaxElements.forEach((element, index) => {
+                const speed = 0.05 + (index * 0.02);
+                const yPos = -(scrolled * speed);
+                element.style.transform = `translate3d(0, ${yPos}px, 0)`;
+            });
+        });
+
+        // Close quick view on escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeQuickView();
+            }
+        });
+
+        // Proceed to checkout handler
+        function proceedToCheckout() {
+            window.location.href = 'login.php?redirect=shop.php';
+        }
+
+        // Cart item quantity helpers
+        function incrementItem(id) {
+            const item = cart.find(i => i.id == id);
+            if (item) { item.quantity += 1; updateCartUI(); toggleCart(); }
+        }
+        function decrementItem(id) {
+            const item = cart.find(i => i.id == id);
+            if (item) {
+                item.quantity -= 1;
+                if (item.quantity <= 0) {
+                    cart = cart.filter(i => i.id != id);
+                }
+                updateCartUI();
+                if (cart.length === 0) {
+                    closeQuickView();
+                } else {
+                    toggleCart();
+                }
+            }
+        }
+        function removeFromCart(id) {
+            cart = cart.filter(i => i.id != id);
+            updateCartUI();
+            if (cart.length === 0) {
+                closeQuickView();
+            } else {
+                toggleCart();
+            }
+            showNotification('Item removed from cart', 'info');
+        }
+                // Dropdown behavior (fix): open on hover, toggle on click
+                (function initDropdowns(){
+                    function initDropdown(wrapperId, buttonId, menuId){
+                        const wrapper = document.getElementById(wrapperId);
+                        const button = document.getElementById(buttonId);
+                        const menu = document.getElementById(menuId);
+                        const chevron = button && button.querySelector('i[data-lucide="chevron-down"]');
+                        if(!wrapper||!button||!menu) return; 
+                        let persist = false; let hideTimer;
+                        function setOpen(open){
+                            if(open){
+                                menu.classList.add('open');
+                                menu.setAttribute('aria-hidden','false');
+                                if(chevron) chevron.classList.add('rotate-180');
+                            } else {
+                                menu.classList.remove('open');
+                                menu.setAttribute('aria-hidden','true');
+                                if(chevron) chevron.classList.remove('rotate-180');
+                            }
+                        }
+                        setOpen(false);
+                        wrapper.addEventListener('mouseenter',()=>{clearTimeout(hideTimer); setOpen(true);});
+                        wrapper.addEventListener('mouseleave',()=>{ if(!persist){ hideTimer=setTimeout(()=>setOpen(false),150);} });
+                        button.addEventListener('click',(e)=>{ e.stopPropagation(); persist=!persist; setOpen(persist); });
+                        document.addEventListener('click',(e)=>{ if(!wrapper.contains(e.target)){ persist=false; setOpen(false);} });
+                        document.addEventListener('keydown',(e)=>{ if(e.key==='Escape'){ persist=false; setOpen(false);} });
+                    }
+                    initDropdown('petsitterWrapper','petsitterButton','petsitterMenu');
+                    initDropdown('appointmentsWrapper','appointmentsButton','appointmentsMenu');
+                })();
     </script>
 </body>
 </html>

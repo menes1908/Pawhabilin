@@ -1,4 +1,4 @@
-/* Removed unsupported @custom-variant at-rule */
+/* Plain CSS version (Tailwind-specific at-rules removed) */
 
 :root {
   --font-size: 14px;
@@ -78,6 +78,7 @@
   --sidebar-ring: oklch(0.439 0 0);
 }
 
+/* Derived color variables for components */
 :root {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -119,72 +120,63 @@
   --color-sidebar-ring: var(--sidebar-ring);
 }
 
-@layer base {
-  * {
-    border-color: var(--color-border);
-    outline: none;
-    outline-offset: 0;
-  }
+/* Base element resets (formerly in Tailwind @layer base) */
+* {
+  border-color: var(--color-border);
+  outline: none;
+  outline-offset: 0;
+}
 
-  body {
-    background-color: var(--color-background);
-    color: var(--color-foreground);
-  }
+body {
+  background-color: var(--color-background);
+  color: var(--color-foreground);
 }
 
 /**
  * Base typography. This is not applied to elements which have an ancestor with a Tailwind text class.
  */
-@layer base {
-  :where(:not(:has([class*=" text-"]), :not(:has([class^="text-"])))) {
-    h1 {
-      font-size: var(--text-2xl);
-      font-weight: var(--font-weight-medium);
-      line-height: 1.5;
-    }
+/* Base typography (removed Tailwind @layer wrapper) */
+:where(:not(:has([class*=" text-"]), :not(:has([class^="text-"])))) h1 {
+  font-size: var(--text-2xl);
+  font-weight: var(--font-weight-medium);
+  line-height: 1.5;
+}
 
-    h2 {
-      font-size: var(--text-xl);
-      font-weight: var(--font-weight-medium);
-      line-height: 1.5;
-    }
+:where(:not(:has([class*=" text-"]), :not(:has([class^="text-"])))) h2 {
+  font-size: var(--text-xl);
+  font-weight: var(--font-weight-medium);
+  line-height: 1.5;
+}
 
-    h3 {
-      font-size: var(--text-lg);
-      font-weight: var(--font-weight-medium);
-      line-height: 1.5;
-    }
+:where(:not(:has([class*=" text-"]), :not(:has([class^="text-"])))) h3 {
+  font-size: var(--text-lg);
+  font-weight: var(--font-weight-medium);
+  line-height: 1.5;
+}
 
-    h4 {
-      font-size: var(--text-base);
-      font-weight: var(--font-weight-medium);
-      line-height: 1.5;
-    }
+:where(:not(:has([class*=" text-"]), :not(:has([class^="text-"])))) h4 {
+  font-size: var(--text-base);
+  font-weight: var(--font-weight-medium);
+  line-height: 1.5;
+}
 
-    p {
-      font-size: var(--text-base);
-      font-weight: var(--font-weight-normal);
-      line-height: 1.5;
-    }
+:where(:not(:has([class*=" text-"]), :not(:has([class^="text-"])))) p {
+  font-size: var(--text-base);
+  font-weight: var(--font-weight-normal);
+  line-height: 1.5;
+}
 
-    label {
-      font-size: var(--text-base);
-      font-weight: var(--font-weight-medium);
-      line-height: 1.5;
-    }
+:where(:not(:has([class*=" text-"]), :not(:has([class^="text-"])))) label,
+:where(:not(:has([class*=" text-"]), :not(:has([class^="text-"])))) button {
+  font-size: var(--text-base);
+  font-weight: var(--font-weight-medium);
+  line-height: 1.5;
+}
 
-    button {
-      font-size: var(--text-base);
-      font-weight: var(--font-weight-medium);
-      line-height: 1.5;
-    }
-
-    input {
-      font-size: var(--text-base);
-      font-weight: var(--font-weight-normal);
-      line-height: 1.5;
-    }
-  }
+:where(:not(:has([class*=" text-"]), :not(:has([class^="text-"])))) input {
+  font-size: var(--text-base);
+  font-weight: var(--font-weight-normal);
+  line-height: 1.5;
 }
 
 html {

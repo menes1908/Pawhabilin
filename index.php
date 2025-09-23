@@ -166,7 +166,7 @@ $stats = [
                         </div>
                     </div>
 
-                    <a href="views/users/subscriptions.php" class="text-muted-foreground hover:text-foreground transition-colors">Subscription</a>
+                    <a href="subscriptions.php" class="text-muted-foreground hover:text-foreground transition-colors">Subscription</a>
 
                     
                     <a href="#support" class="text-muted-foreground hover:text-foreground transition-colors">Support</a>

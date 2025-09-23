@@ -1,8 +1,15 @@
 <?php
-// Start session to potentially check login status (future enhancement)
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
+// Refactored: connect products to database using model (removes dummy JS products)
+if (session_status() === PHP_SESSION_NONE) session_start();
+require_once __DIR__.'/database.php';
+require_once __DIR__.'/models/product.php';
+function h($v){ return htmlspecialchars($v ?? '', ENT_QUOTES,'UTF-8'); }
+if(empty($_SESSION['csrf'])) $_SESSION['csrf']=bin2hex(random_bytes(16)); $csrf=$_SESSION['csrf'];
+$q=trim($_GET['q']??''); $cat=$_GET['cat']??''; $sort=$_GET['sort']??'new'; $page=(int)($_GET['page']??1);
+// Derive cart count from session (after server add)
+$cartCount = 0; if(!empty($_SESSION['cart']) && is_array($_SESSION['cart'])){ foreach($_SESSION['cart'] as $c){ $cartCount += (int)($c['qty']??0); } }
+$filters=['q'=>$q,'cat'=>$cat,'page'=>$page,'limit'=>12,'sort'=>$sort];
+$res=product_fetch_paginated($connections,$filters); $items=$res['items']; $total=$res['total']; $pages=$res['pages']; $page=$res['page'];
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -211,6 +218,7 @@ if (session_status() === PHP_SESSION_NONE) {
             opacity: 0;
             transform: scale(0);
             transition: all 0.3s ease;
+            cursor: pointer;
         }
         
         .product-card:hover .paw-print-hover {
@@ -329,7 +337,7 @@ if (session_status() === PHP_SESSION_NONE) {
             max-width: 500px;
             height: 100vh;
             background: white;
-            z-index: 1001;
+            z-index: 10050; /* elevated above header */
             transition: right 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
             overflow-y: auto;
             box-shadow: -10px 0 30px rgba(0, 0, 0, 0.2);
@@ -346,7 +354,7 @@ if (session_status() === PHP_SESSION_NONE) {
             width: 100%;
             height: 100vh;
             background: rgba(0, 0, 0, 0.5);
-            z-index: 1000;
+            z-index: 10040; /* just below drawer */
             opacity: 0;
             visibility: hidden;
             transition: all 0.3s ease;
@@ -376,7 +384,25 @@ if (session_status() === PHP_SESSION_NONE) {
             font-weight: 500;
             position: relative;
             overflow: hidden;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+            height: 52px;
+            flex: 0 0 auto; /* prevent shrinking so horizontal alignment is consistent */
         }
+        #categoryTabsRow {
+            display: flex;
+            flex-wrap: nowrap;
+            gap: 12px;
+            justify-content: flex-start;
+            overflow-x: auto;
+            padding-bottom: 6px;
+            scrollbar-width: thin;
+        }
+        #categoryTabsRow::-webkit-scrollbar { height: 8px; }
+        #categoryTabsRow::-webkit-scrollbar-track { background: transparent; }
+        #categoryTabsRow::-webkit-scrollbar-thumb { background: linear-gradient(45deg,#f97316,#fb923c); border-radius:4px; }
         
         .category-tab::before {
             content: '';
@@ -533,7 +559,7 @@ if (session_status() === PHP_SESSION_NONE) {
 </head>
 <body class="min-h-screen bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-50">
     <!-- Header (revised per request: centered, larger, no wishlist, icon-only cart) -->
-    <header class="sticky top-0 z-50 border-b bg-background/80 backdrop-blur-sm">
+    <header class="sticky top-0 z-40 border-b bg-background/80 backdrop-blur-sm">
         <div class="mx-auto px-4 w-full max-w-7xl">
             <div class="flex h-20 items-center justify-between">
                 <a href="index.php" class="flex items-center space-x-2 group">
@@ -583,7 +609,7 @@ if (session_status() === PHP_SESSION_NONE) {
                 <div class="flex items-center gap-4">
                     <button onclick="toggleCart()" class="relative inline-flex items-center justify-center w-11 h-11 rounded-full bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-all">
                         <i data-lucide="shopping-cart" class="w-5 h-5"></i>
-                        <span id="cart-count" class="absolute -top-1 -right-1 min-w-[20px] h-5 px-1 bg-red-500 text-[11px] leading-5 font-semibold rounded-full flex items-center justify-center">0</span>
+                        <span id="cart-count" class="absolute -top-1 -right-1 min-w-[20px] h-5 px-1 bg-red-500 text-[11px] leading-5 font-semibold rounded-full flex items-center justify-center"><?php echo (int)$cartCount; ?></span>
                     </button>
                     <a href="login.php" class="hidden lg:inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 hover:bg-accent hover:text-accent-foreground h-10 px-4">
                         Log In
@@ -646,24 +672,19 @@ if (session_status() === PHP_SESSION_NONE) {
         </div>
     </section>
 
-    <!-- Bundle Deals Section -->
+    <!-- Bundle Deals Section (UI only; buttons currently show notification) -->
     <section class="py-16 bg-white relative z-10">
         <div class="container mx-auto px-4">
             <div class="text-center mb-12">
-                <div class="inline-flex items-center rounded-md border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 bg-orange-50 text-orange-600 border-orange-200 mb-6">
+                <div class="inline-flex items-center rounded-md border px-2.5 py-0.5 text-xs font-semibold bg-orange-50 text-orange-600 border-orange-200 mb-6">
                     <i data-lucide="gift" class="w-3 h-3 mr-1"></i>
                     Special Bundles
                 </div>
                 <h2 class="text-4xl md:text-5xl font-bold mb-6">
-                    <span class="bg-gradient-to-r from-orange-600 via-amber-600 to-yellow-600 bg-clip-text text-transparent">
-                        Bundle & Save
-                    </span>
+                    <span class="bg-gradient-to-r from-orange-600 via-amber-600 to-yellow-600 bg-clip-text text-transparent">Bundle & Save</span>
                 </h2>
-                <p class="text-xl text-gray-700 max-w-3xl mx-auto">
-                    Get everything your pet needs with our specially curated bundles. Save up to 30% compared to buying items individually.
-                </p>
+                <p class="text-xl text-gray-700 max-w-3xl mx-auto">Get everything your pet needs with our specially curated bundles. Save more vs buying individually.</p>
             </div>
-
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                 <!-- Puppy Starter Kit -->
                 <div class="bundle-card">
@@ -679,33 +700,15 @@ if (session_status() === PHP_SESSION_NONE) {
                             <span class="text-lg text-gray-500 line-through ml-2">₱3,299</span>
                         </div>
                     </div>
-                    <div class="space-y-2 mb-6">
-                        <div class="flex items-center gap-2 text-sm text-gray-700">
-                            <i data-lucide="check-circle" class="w-4 h-4 text-green-500"></i>
-                            <span>Premium Puppy Collar</span>
-                        </div>
-                        <div class="flex items-center gap-2 text-sm text-gray-700">
-                            <i data-lucide="check-circle" class="w-4 h-4 text-green-500"></i>
-                            <span>Adjustable Leash</span>
-                        </div>
-                        <div class="flex items-center gap-2 text-sm text-gray-700">
-                            <i data-lucide="check-circle" class="w-4 h-4 text-green-500"></i>
-                            <span>Interactive Chew Toys (3x)</span>
-                        </div>
-                        <div class="flex items-center gap-2 text-sm text-gray-700">
-                            <i data-lucide="check-circle" class="w-4 h-4 text-green-500"></i>
-                            <span>Food & Water Bowls</span>
-                        </div>
-                        <div class="flex items-center gap-2 text-sm text-gray-700">
-                            <i data-lucide="check-circle" class="w-4 h-4 text-green-500"></i>
-                            <span>Training Treats</span>
-                        </div>
+                    <div class="space-y-2 mb-6 text-sm text-gray-700">
+                        <div class="flex items-center gap-2"><i data-lucide="check-circle" class="w-4 h-4 text-green-500"></i><span>Premium Puppy Collar</span></div>
+                        <div class="flex items-center gap-2"><i data-lucide="check-circle" class="w-4 h-4 text-green-500"></i><span>Adjustable Leash</span></div>
+                        <div class="flex items-center gap-2"><i data-lucide="check-circle" class="w-4 h-4 text-green-500"></i><span>Interactive Chew Toys (3x)</span></div>
+                        <div class="flex items-center gap-2"><i data-lucide="check-circle" class="w-4 h-4 text-green-500"></i><span>Food & Water Bowls</span></div>
+                        <div class="flex items-center gap-2"><i data-lucide="check-circle" class="w-4 h-4 text-green-500"></i><span>Training Treats</span></div>
                     </div>
-                    <button onclick="addBundleToCart('puppy-starter')" class="w-full bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white font-semibold py-3 px-6 rounded-lg transition-all duration-300 transform hover:scale-105">
-                        Add Bundle to Cart
-                    </button>
+                    <button type="button" onclick="showNotification('Bundle checkout coming soon','info')" class="w-full bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white font-semibold py-3 px-6 rounded-lg transition-all duration-300 transform hover:scale-105">Add Bundle</button>
                 </div>
-
                 <!-- Cat Care Combo -->
                 <div class="bundle-card">
                     <div class="bundle-ribbon">Save 30%</div>
@@ -720,33 +723,15 @@ if (session_status() === PHP_SESSION_NONE) {
                             <span class="text-lg text-gray-500 line-through ml-2">₱2,699</span>
                         </div>
                     </div>
-                    <div class="space-y-2 mb-6">
-                        <div class="flex items-center gap-2 text-sm text-gray-700">
-                            <i data-lucide="check-circle" class="w-4 h-4 text-green-500"></i>
-                            <span>Designer Cat Collar</span>
-                        </div>
-                        <div class="flex items-center gap-2 text-sm text-gray-700">
-                            <i data-lucide="check-circle" class="w-4 h-4 text-green-500"></i>
-                            <span>Interactive Feather Toy</span>
-                        </div>
-                        <div class="flex items-center gap-2 text-sm text-gray-700">
-                            <i data-lucide="check-circle" class="w-4 h-4 text-green-500"></i>
-                            <span>Scratching Post</span>
-                        </div>
-                        <div class="flex items-center gap-2 text-sm text-gray-700">
-                            <i data-lucide="check-circle" class="w-4 h-4 text-green-500"></i>
-                            <span>Catnip Toys (5x)</span>
-                        </div>
-                        <div class="flex items-center gap-2 text-sm text-gray-700">
-                            <i data-lucide="check-circle" class="w-4 h-4 text-green-500"></i>
-                            <span>Grooming Kit</span>
-                        </div>
+                    <div class="space-y-2 mb-6 text-sm text-gray-700">
+                        <div class="flex items-center gap-2"><i data-lucide="check-circle" class="w-4 h-4 text-green-500"></i><span>Designer Cat Collar</span></div>
+                        <div class="flex items-center gap-2"><i data-lucide="check-circle" class="w-4 h-4 text-green-500"></i><span>Interactive Feather Toy</span></div>
+                        <div class="flex items-center gap-2"><i data-lucide="check-circle" class="w-4 h-4 text-green-500"></i><span>Scratching Post</span></div>
+                        <div class="flex items-center gap-2"><i data-lucide="check-circle" class="w-4 h-4 text-green-500"></i><span>Catnip Toys (5x)</span></div>
+                        <div class="flex items-center gap-2"><i data-lucide="check-circle" class="w-4 h-4 text-green-500"></i><span>Grooming Kit</span></div>
                     </div>
-                    <button onclick="addBundleToCart('cat-care')" class="w-full bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 text-white font-semibold py-3 px-6 rounded-lg transition-all duration-300 transform hover:scale-105">
-                        Add Bundle to Cart
-                    </button>
+                    <button type="button" onclick="showNotification('Bundle checkout coming soon','info')" class="w-full bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 text-white font-semibold py-3 px-6 rounded-lg transition-all duration-300 transform hover:scale-105">Add Bundle</button>
                 </div>
-
                 <!-- Grooming Essentials -->
                 <div class="bundle-card">
                     <div class="bundle-ribbon">Save 20%</div>
@@ -761,36 +746,19 @@ if (session_status() === PHP_SESSION_NONE) {
                             <span class="text-lg text-gray-500 line-through ml-2">₱3,999</span>
                         </div>
                     </div>
-                    <div class="space-y-2 mb-6">
-                        <div class="flex items-center gap-2 text-sm text-gray-700">
-                            <i data-lucide="check-circle" class="w-4 h-4 text-green-500"></i>
-                            <span>Professional Brush Set</span>
-                        </div>
-                        <div class="flex items-center gap-2 text-sm text-gray-700">
-                            <i data-lucide="check-circle" class="w-4 h-4 text-green-500"></i>
-                            <span>Nail Clippers</span>
-                        </div>
-                        <div class="flex items-center gap-2 text-sm text-gray-700">
-                            <i data-lucide="check-circle" class="w-4 h-4 text-green-500"></i>
-                            <span>Pet Shampoo & Conditioner</span>
-                        </div>
-                        <div class="flex items-center gap-2 text-sm text-gray-700">
-                            <i data-lucide="check-circle" class="w-4 h-4 text-green-500"></i>
-                            <span>Microfiber Towels (2x)</span>
-                        </div>
-                        <div class="flex items-center gap-2 text-sm text-gray-700">
-                            <i data-lucide="check-circle" class="w-4 h-4 text-green-500"></i>
-                            <span>Ear Cleaning Solution</span>
-                        </div>
+                    <div class="space-y-2 mb-6 text-sm text-gray-700">
+                        <div class="flex items-center gap-2"><i data-lucide="check-circle" class="w-4 h-4 text-green-500"></i><span>Professional Brush Set</span></div>
+                        <div class="flex items-center gap-2"><i data-lucide="check-circle" class="w-4 h-4 text-green-500"></i><span>Nail Clippers</span></div>
+                        <div class="flex items-center gap-2"><i data-lucide="check-circle" class="w-4 h-4 text-green-500"></i><span>Pet Shampoo & Conditioner</span></div>
+                        <div class="flex items-center gap-2"><i data-lucide="check-circle" class="w-4 h-4 text-green-500"></i><span>Microfiber Towels (2x)</span></div>
+                        <div class="flex items-center gap-2"><i data-lucide="check-circle" class="w-4 h-4 text-green-500"></i><span>Ear Cleaning Solution</span></div>
                     </div>
-                    <button onclick="addBundleToCart('grooming-essentials')" class="w-full bg-gradient-to-r from-blue-500 to-cyan-600 hover:from-blue-600 hover:to-cyan-700 text-white font-semibold py-3 px-6 rounded-lg transition-all duration-300 transform hover:scale-105">
-                        Add Bundle to Cart
-                    </button>
+                    <button type="button" onclick="showNotification('Bundle checkout coming soon','info')" class="w-full bg-gradient-to-r from-blue-500 to-cyan-600 hover:from-blue-600 hover:to-cyan-700 text-white font-semibold py-3 px-6 rounded-lg transition-all duration-300 transform hover:scale-105">Add Bundle</button>
                 </div>
             </div>
         </div>
     </section>
-
+    
     <!-- Products Section -->
     <section id="products-section" class="py-16 bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-50 relative z-10">
         <div class="container mx-auto px-4">
@@ -809,657 +777,395 @@ if (session_status() === PHP_SESSION_NONE) {
                 </p>
             </div>
 
-            <!-- Search Bar -->
-            <div class="search-container">
-                <input type="text" id="search-input" class="search-input" placeholder="Search for products..." onkeyup="filterProducts()">
-                <i data-lucide="search" class="search-icon w-5 h-5"></i>
-            </div>
-
-            <!-- Category Tabs -->
-            <div class="category-tabs">
-                <button class="category-tab active" onclick="filterByCategory('all')" data-category="all">
-                    <i data-lucide="grid-3x3" class="w-4 h-4 mr-2 inline"></i>
-                    All Products
-                </button>
-                <button class="category-tab" onclick="filterByCategory('collars')" data-category="collars">
-                    <i data-lucide="circle" class="w-4 h-4 mr-2 inline"></i>
-                    Collars & Leashes
-                </button>
-                <button class="category-tab" onclick="filterByCategory('toys')" data-category="toys">
-                    <i data-lucide="gamepad-2" class="w-4 h-4 mr-2 inline"></i>
-                    Toys & Entertainment
-                </button>
-                <button class="category-tab" onclick="filterByCategory('apparel')" data-category="apparel">
-                    <i data-lucide="shirt" class="w-4 h-4 mr-2 inline"></i>
-                    Pet Apparel
-                </button>
-                <button class="category-tab" onclick="filterByCategory('grooming')" data-category="grooming">
-                    <i data-lucide="scissors" class="w-4 h-4 mr-2 inline"></i>
-                    Grooming Tools
-                </button>
-                <button class="category-tab" onclick="filterByCategory('feeding')" data-category="feeding">
-                    <i data-lucide="bowl" class="w-4 h-4 mr-2 inline"></i>
-                    Feeding & Water
-                </button>
-            </div>
-
-            <!-- Products Grid (PawGrid™ Layout) -->
-            <div id="products-grid" class="paw-grid">
-                <!-- Products will be dynamically loaded here -->
-            </div>
-
-            <!-- Load More Button -->
-            <div class="text-center mt-12">
-                <button onclick="loadMoreProducts()" class="inline-flex items-center justify-center gap-3 whitespace-nowrap rounded-full text-lg font-semibold transition-all duration-300 bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white h-14 px-8 transform hover:scale-105">
-                    <i data-lucide="plus" class="w-5 h-5"></i>
-                    Load More Products
-                </button>
-            </div>
-        </div>
-    </section>
-
-    <!-- Mini Cart -->
-    <div class="mini-cart" onclick="toggleCart()">
-        <i data-lucide="shopping-cart" class="w-6 h-6"></i>
-        <div class="cart-count" id="mini-cart-count">0</div>
-    </div>
-
-    <!-- Quick View Drawer -->
-    <div class="drawer-overlay" id="drawer-overlay" onclick="closeQuickView()"></div>
-    <div class="quick-view-drawer" id="quick-view-drawer">
-        <div class="p-6 border-b border-gray-200">
-            <div class="flex items-center justify-between">
-                <h3 class="text-xl font-bold">Quick View</h3>
-                <button onclick="closeQuickView()" class="p-2 hover:bg-gray-100 rounded-full transition-colors duration-200">
-                    <i data-lucide="x" class="w-5 h-5"></i>
-                </button>
-            </div>
-        </div>
-        <div id="quick-view-content" class="p-6">
-            <!-- Quick view content will be dynamically loaded here -->
-        </div>
-    </div>
-
-    <!-- Footer -->
-    <footer class="py-12 bg-gray-900 text-white relative z-10">
-        <div class="container mx-auto px-4">
-            <div class="grid md:grid-cols-4 gap-8">
-                <div class="space-y-4">
-                    <div class="flex items-center space-x-2">
-                        <div class="w-8 h-8 rounded-lg overflow-hidden">
-                            <img src="https://images.unsplash.com/photo-1601758228041-f3b2795255f1?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxwdXBweSUyMGtpdCUyMGFjY2Vzc29yaWVzfGVufDF8fHx8MTc1NjU0MzcxNXww&ixlib=rb-4.1.0&q=80&w=1080" alt="pawhabilin Logo" class="w-full h-full object-contain">
+                        <!-- Search + Category (server-side) -->
+                        <div class="search-container" style="margin-bottom:28px;">
+                            <form method="get" style="position:relative;display:flex;flex-direction:column;gap:18px;align-items:center;">
+                                <div id="categoryTabsRow">
+                                    <?php
+                                        $catLabels=[''=>'All Products','food'=>'Feeding & Water','accessory'=>'Collars & Leashes','toy'=>'Toys & Entertainment','necessity'=>'Grooming Tools'];
+                                        $catIcons=[''=>'grid-3x3','food'=>'bowl','accessory'=>'circle','toy'=>'gamepad-2','necessity'=>'scissors'];
+                                        $activeCat = $cat === '' ? 'all' : $cat;
+                                        foreach($catLabels as $k=>$label){
+                                            $icon=$catIcons[$k] ?? 'paw-print';
+                                            $dataCat = $k==='' ? 'all' : $k;
+                                            $activeClass = $activeCat === $dataCat ? 'active' : '';
+                                            echo '<button type="button" data-cat="'.h($dataCat).'" class="category-tab '.h($activeClass).'">'
+                                                .'<i data-lucide="'.h($icon).'" class="w-4 h-4"></i>'
+                                                .h($label).'</button>';
+                                        }
+                                    ?>
+                                </div>
+                                <div style="width:100%;max-width:420px;position:relative;">
+                                    <?php if($cat!==''): ?><input type="hidden" name="cat" value="<?= h($cat) ?>" /><?php endif; ?>
+                                    <input id="search-input" type="text" name="q" class="search-input" placeholder="Search for products..." value="<?= h($q) ?>" />
+                                    <i data-lucide="search" class="search-icon w-5 h-5"></i>
+                                </div>
+                                <div style="display:flex;gap:10px;align-items:center;">
+                                    <label style="font-size:12px;color:#6b7280;">Sort:</label>
+                                    <select name="sort" onchange="this.form.submit()" style="padding:10px 14px;border:2px solid #e5e7eb;border-radius:25px;font-size:14px;">
+                                        <?php $opts=['new'=>'Newest','price_asc'=>'Price ↑','price_desc'=>'Price ↓','name_asc'=>'Name A-Z','name_desc'=>'Name Z-A','stock_desc'=>'Stock']; foreach($opts as $k=>$label){ $sel=$sort===$k?'selected':''; echo '<option value="'.h($k).'" '.$sel.'>'.h($label).'</option>'; } ?>
+                                    </select>
+                                    <button type="submit" style="display:none">Apply</button>
+                                </div>
+                            </form>
                         </div>
-                        <span class="text-xl font-semibold brand-font">pawhabilin</span>
-                    </div>
-                    <p class="text-gray-400">
-                        The Philippines' most trusted pet care platform providing premium accessories and comprehensive services for your beloved pets.
-                    </p>
-                </div>
+                        
+                        <div class="paw-grid">
+                            <?php if($total===0): ?>
+                                <p class="text-center col-span-full text-sm text-gray-500">No products found.</p>
+                            <?php else: foreach($items as $p): $stock=(int)($p['products_stock']??0); $img=$p['products_image_url']??''; if($img && !preg_match('/^https?:/i',$img)) $img=ltrim($img,'/'); $disabled=$stock<=0; ?>
+                                <div class="product-card" data-product-id="<?= (int)$p['products_id'] ?>" data-category="<?= h($p['products_category']) ?>" data-name="<?= strtolower(h($p['products_name'])) ?>">
+                                    <?php if($stock<=0): ?><div class="product-badge" style="background:linear-gradient(135deg,#6b7280,#374151)">Out</div><?php endif; ?>
+                                    <div class="product-image">
+                                        <?php if($img): ?><img src="<?= h($img) ?>" alt="<?= h($p['products_name']) ?>" loading="lazy"><?php else: ?><span style="font-size:12px;color:#6b7280;display:flex;align-items:center;justify-content:center;height:100%;">No Image</span><?php endif; ?>
+                                        <div class="paw-print-hover" onclick="openQuickViewDb(<?= (int)$p['products_id'] ?>)"><i data-lucide="eye" class="w-4 h-4 text-white"></i></div>
+                                    </div>
+                                    <div class="space-y-3">
+                                        <div>
+                                            <h3 class="text-lg font-bold text-gray-800 mb-1"><?= h($p['products_name']) ?></h3>
+                                            <div class="flex items-center gap-2 mb-2">
+                                                <div class="text-xs font-medium uppercase tracking-wide text-gray-500"><?= h(product_category_label($p['products_category'])) ?></div>
+                                                <span class="text-xs text-gray-400">Stock: <?= $stock ?></span>
+                                            </div>
+                                        </div>
+                                        <div class="flex items-center justify-between">
+                                            <span class="text-xl font-bold text-orange-600">₱<?= number_format((float)$p['products_price'],2) ?></span>
+                                        </div>
+                                        <div class="flex gap-2">
+                                            <button type="button" data-qv="<?= (int)$p['products_id'] ?>" class="quick-view-btn flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-2 px-4 rounded-lg transition-all duration-200 flex items-center justify-center gap-2 text-sm">
+                                                <i data-lucide="eye" class="w-4 h-4"></i> Quick View
+                                            </button>
+                                            <form method="post" action="shop/cart_add.php" class="flex gap-2 ajax-cart-add" data-product-id="<?= (int)$p['products_id'] ?>" style="flex:1;">
+                                                <input type="hidden" name="csrf" value="<?= h($csrf) ?>" />
+                                                <input type="hidden" name="product_id" value="<?= (int)$p['products_id'] ?>" />
+                                                <input type="number" name="qty" value="1" min="1" max="<?= max(1,$stock) ?>" class="w-20 rounded-lg border border-gray-300 px-2 py-2 text-sm" <?= $disabled?'disabled':''; ?> />
+                                                <button type="submit" class="flex-1 bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white font-medium py-2 px-4 rounded-lg transition-all duration-200 flex items-center justify-center gap-2 text-sm" <?= $disabled?'disabled':''; ?>><i data-lucide="shopping-cart" class="w-4 h-4"></i> Add</button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            <?php endforeach; endif; ?>
+                        </div>
+                        <?php if($pages>1): ?>
+                            <div class="mt-10 flex flex-wrap gap-2 justify-center text-sm">
+                                <?php $qs=[]; if($q!=='') $qs['q']=$q; if($cat!=='') $qs['cat']=$cat; if($sort!=='new') $qs['sort']=$sort; for($i=1;$i<=$pages;$i++){ $qs['page']=$i; $href='?'.http_build_query($qs); $active=$i===$page?'background:linear-gradient(135deg,#f97316,#fb923c);color:#fff;border-color:#f97316':'background:#fff;color:#374151;'; echo '<a style="padding:10px 16px;border:2px solid #fcd9b6;border-radius:14px;font-weight:500;'.$active.'" href="'.h($href).'">'.$i.'</a>'; } ?>
+                            </div>
+                        <?php endif; ?>
 
-                <div class="space-y-4">
-                    <h4 class="font-semibold">Shop Categories</h4>
-                    <ul class="space-y-2 text-gray-400">
-                        <li><a href="#" class="hover:text-white transition-colors">Collars & Leashes</a></li>
-                        <li><a href="#" class="hover:text-white transition-colors">Toys & Entertainment</a></li>
-                        <li><a href="#" class="hover:text-white transition-colors">Pet Apparel</a></li>
-                        <li><a href="#" class="hover:text-white transition-colors">Grooming Tools</a></li>
-                    </ul>
-                </div>
-
-                <div class="space-y-4">
-                    <h4 class="font-semibold">Services</h4>
-                    <ul class="space-y-2 text-gray-400">
-                        <li><a href="book_appointments.php" class="hover:text-white transition-colors">Book Appointment</a></li>
-                        <li><a href="find-sitter.php" class="hover:text-white transition-colors">Find Pet Sitter</a></li>
-                        <li><a href="#" class="hover:text-white transition-colors">Pet Care Tips</a></li>
-                        <li><a href="#" class="hover:text-white transition-colors">Emergency Care</a></li>
-                    </ul>
-                </div>
-
-                <div class="space-y-4">
-                    <h4 class="font-semibold">Contact</h4>
-                    <ul class="space-y-2 text-gray-400">
-                        <li class="flex items-center gap-2">
-                            <i data-lucide="phone" class="w-4 h-4"></i>
-                            +63 912 345 6789
-                        </li>
-                        <li class="flex items-center gap-2">
-                            <i data-lucide="mail" class="w-4 h-4"></i>
-                            shop@pawhabilin.com
-                        </li>
-                        <li class="flex items-center gap-2">
-                            <i data-lucide="map-pin" class="w-4 h-4"></i>
-                            Cebu City, Philippines
-                        </li>
-                        <li class="flex items-center gap-2">
-                            <i data-lucide="truck" class="w-4 h-4"></i>
-                            Free Delivery ₱1,500+
-                        </li>
-                    </ul>
-                </div>
-            </div>
-
-            <div class="mt-12 pt-8 border-t border-gray-800 text-center text-gray-400">
-                <p>&copy; 2025 pawhabilin Philippines. All rights reserved. | Secure Shopping | 30-Day Returns</p>
-            </div>
-        </div>
-    </footer>
-
+    <!-- Cleaned JS (legacy static products removed) -->
     <script>
-        // Initialize Lucide icons
-        document.addEventListener('DOMContentLoaded', function() {
-            lucide.createIcons();
-            loadProducts();
-            
-            // Add slide-in animation to elements
-            const animatedElements = document.querySelectorAll('.slide-in-up');
-            animatedElements.forEach((element, index) => {
-                setTimeout(() => {
-                    element.style.opacity = '1';
-                    element.style.transform = 'translateY(0)';
-                }, index * 100);
+    document.addEventListener('DOMContentLoaded',()=>{ if(window.lucide) lucide.createIcons(); ensureDrawerRoot(); });
+
+    // Quick View (DB powered)
+    async function openQuickViewDb(id){
+        // Show drawer immediately with loading skeleton for responsiveness
+        const drawer=document.getElementById('quick-view-drawer');
+        const overlay=document.getElementById('drawer-overlay');
+        const contentEl=document.getElementById('quick-view-content');
+        // Richer skeleton adapted from design reference
+        contentEl.innerHTML=`<div class="space-y-6 animate-pulse">
+            <div class="aspect-square w-full rounded-xl bg-gradient-to-br from-gray-200 to-gray-300"></div>
+            <div class="h-7 bg-gray-200 rounded w-3/4"></div>
+            <div class="flex gap-3">
+                <div class="h-5 bg-gray-200 rounded w-24"></div>
+                <div class="h-5 bg-gray-200 rounded w-16"></div>
+            </div>
+            <div class="space-y-2">
+                <div class="h-4 bg-gray-200 rounded"></div>
+                <div class="h-4 bg-gray-200 rounded w-5/6"></div>
+                <div class="h-4 bg-gray-200 rounded w-2/3"></div>
+            </div>
+            <div class="h-12 bg-gray-200 rounded-lg"></div>
+        </div>`;
+    ensureDrawerRoot();
+    drawer.classList.add('open'); overlay.classList.add('open'); document.body.style.overflow='hidden';
+        try {
+            const res = await fetch('product_view.php?id='+encodeURIComponent(id), {headers:{'Accept':'application/json'}});
+            if(!res.ok) throw new Error('Not found');
+            const p = await res.json();
+            renderQuickView(p);
+        } catch(e){
+            contentEl.innerHTML='<div class="p-4 text-sm text-red-600">Unable to load product details. Please try again later.</div>';
+        }
+    }
+    function renderQuickView(p){
+        const full=Math.floor(p.rating||0); const empty=5-full;
+        const variants=Array.isArray(p.variants)?p.variants:[];
+        const discount=(p.originalPrice&&p.originalPrice>p.price)?Math.round(((p.originalPrice-p.price)/p.originalPrice)*100):0;
+        const content=`<div class="space-y-6">
+            <div class=\"aspect-square w-full rounded-lg overflow-hidden bg-gray-100 flex items-center justify-center\">${p.image?`<img src=\"${p.image}\" alt=\"${escapeHtml(p.name)}\" class=\"w-full h-full object-cover\">`:'<div class=\"text-xs text-gray-400\">No Image</div>'}</div>
+            <div>
+                <h3 class=\"text-2xl font-bold text-gray-800 mb-2\">${escapeHtml(p.name)}</h3>
+                ${p.rating?`<div class=\\"flex items-center gap-2 mb-4\\"><div class=\\"flex items-center text-yellow-400\\">${'★'.repeat(full)}${'☆'.repeat(empty)}</div><span class=\\"text-sm text-gray-600\\">(${p.rating.toFixed(1)} rating)</span></div>`:''}
+                <p class=\"text-gray-600 mb-4 whitespace-pre-line\">${escapeHtml(p.description||'No description.')}</p>
+                <div class=\"flex items-center gap-4 mb-6\">\n                    <span class=\"text-2xl font-bold text-orange-600\">₱${numberFormat(p.price)}</span>\n                    ${p.originalPrice&&p.originalPrice>p.price?`<span class=\\"text-lg text-gray-500 line-through\\">₱${numberFormat(p.originalPrice)}</span>`:''}\n                    ${discount>0?`<span class=\\"text-xs bg-red-100 text-red-600 px-2 py-1 rounded-full font-semibold\\">${discount}% OFF</span>`:''}\n                </div>
+                ${variants.length?`<div class=\\"mb-6\\"><h4 class=\\"font-medium text-gray-800 mb-3\\">Available Options:</h4><div class=\\"flex gap-2 flex-wrap\\">${variants.map((v,i)=>`<button type=\\"button\\" data-variant-index=\\"${i}\\" class=\\"px-3 py-2 border border-gray-300 rounded-lg text-sm hover:border-orange-500 hover:text-orange-500 transition-colors variant-btn\\">${escapeHtml(v.name||v.value||'Option')}</button>`).join('')}</div></div>`:''}
+                <form method=\"post\" action=\"shop/cart_add.php\" class=\"space-y-4 ajax-cart-add\" data-product-id=\"${p.id}\">\n                    <input type=\"hidden\" name=\"csrf\" value=\"<?= h($csrf) ?>\" />\n                    <input type=\"hidden\" name=\"product_id\" value=\"${p.id}\" />\n                    <div class=\"flex items-center gap-3\">\n                        <span class=\"text-xs font-medium text-gray-500\">Quantity</span>\n                        <div class=\"inline-flex items-center rounded-full border border-gray-300 overflow-hidden bg-white shadow-sm\">\n                            <button type=\"button\" class=\"qty-btn px-3 py-1 text-gray-600 hover:bg-gray-100 focus:outline-none focus:bg-gray-100 text-sm\" data-delta=\"-1\" aria-label=\"Decrease quantity\">-</button>\n                            <input name=\"qty\" value=\"1\" min=\"1\" max=\"${p.stock||99}\" type=\"number\" class=\"w-12 text-center text-sm border-0 focus:ring-0 focus:outline-none hide-number-spinner\" />\n                            <button type=\"button\" class=\"qty-btn px-3 py-1 text-gray-600 hover:bg-gray-100 focus:outline-none focus:bg-gray-100 text-sm\" data-delta=\"1\" aria-label=\"Increase quantity\">+</button>\n                        </div>\n                        ${p.stock?`<span class=\\"text-[10px] text-gray-400\\">Stock: ${p.stock}</span>`:''}\n                    </div>\n                    <button type=\"submit\" class=\"w-full bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white font-semibold py-3 px-6 rounded-lg transition-all duration-200 flex items-center justify-center gap-2\">\n                        <i data-lucide=\"shopping-cart\" class=\"w-5 h-5\"></i> Add to Cart\n                    </button>\n                </form>
+            </div>
+        </div>`;
+        document.getElementById('quick-view-content').innerHTML=content;
+        document.getElementById('quick-view-drawer').classList.add('open');
+        document.getElementById('drawer-overlay').classList.add('open');
+        document.body.style.overflow='hidden';
+        if(window.lucide) lucide.createIcons();
+        // Variant button active state handling (simplified)
+        document.querySelectorAll('#quick-view-content .variant-btn').forEach(btn=>{
+            btn.addEventListener('click',()=>{
+                btn.parentElement.querySelectorAll('.variant-btn').forEach(b=>b.classList.remove('border-orange-500','text-orange-500'));
+                btn.classList.add('border-orange-500','text-orange-500');
+            });
+        });
+        // Quantity pill handlers
+        const qtyInput = document.querySelector('#quick-view-content input[name="qty"]');
+        document.querySelectorAll('#quick-view-content .qty-btn').forEach(qb=>{
+            qb.addEventListener('click',()=>{
+                if(!qtyInput) return; const delta=parseInt(qb.getAttribute('data-delta')||'0',10); let v=parseInt(qtyInput.value||'1',10); if(isNaN(v)||v<1) v=1; v+=delta; const max=parseInt(qtyInput.getAttribute('max')||'99',10); if(v<1) v=1; if(v>max) v=max; qtyInput.value=v; });
+        });
+        if(qtyInput){ qtyInput.addEventListener('wheel',e=>{ e.preventDefault(); }, {passive:false}); }
+    }
+    function escapeHtml(str){return (str||'').replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));}
+    function numberFormat(n){return (n||0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});}
+    function closeQuickView(){document.getElementById('quick-view-drawer').classList.remove('open');document.getElementById('drawer-overlay').classList.remove('open');document.body.style.overflow='auto';}
+    function ensureDrawerRoot(){
+        let overlay=document.getElementById('drawer-overlay');
+        let drawer=document.getElementById('quick-view-drawer');
+        if(!overlay){
+            overlay=document.createElement('div');
+            overlay.id='drawer-overlay';
+            overlay.className='drawer-overlay';
+            overlay.addEventListener('click',closeQuickView);
+            document.body.appendChild(overlay);
+        }
+        if(!drawer){
+            drawer=document.createElement('div');
+            drawer.id='quick-view-drawer';
+            drawer.className='quick-view-drawer';
+            drawer.innerHTML=`<div class="p-6 border-b border-gray-200 flex items-center justify-between sticky top-0 bg-white z-10">
+                <h3 class="text-xl font-bold flex items-center gap-2"><i data-lucide="eye" class="w-5 h-5"></i> Quick View</h3>
+                <button type="button" class="p-2 rounded-full hover:bg-gray-100 transition-colors" aria-label="Close Quick View" onclick="closeQuickView()"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div><div id="quick-view-content" class="p-6"></div>`;
+            document.body.appendChild(drawer);
+        } else {
+            // Ensure header bar exists (in case of earlier markup changes)
+            if(!drawer.querySelector('#quick-view-content')){
+                drawer.innerHTML=`<div class="p-6 border-b border-gray-200 flex items-center justify-between sticky top-0 bg-white z-10">
+                    <h3 class="text-xl font-bold flex items-center gap-2"><i data-lucide="eye" class="w-5 h-5"></i> Quick View</h3>
+                    <button type="button" class="p-2 rounded-full hover:bg-gray-100 transition-colors" aria-label="Close Quick View" onclick="closeQuickView()"><i data-lucide="x" class="w-5 h-5"></i></button>
+                </div><div id="quick-view-content" class="p-6"></div>`;
+            }
+        }
+        // Boost z-index directly to avoid any stacking context issues
+        drawer.style.zIndex='10050';
+        overlay.style.zIndex='10040';
+    }
+
+    // Minimal cart stub (legacy JS cart removed)
+    // Build cart data from server (embedded in page for this request)
+    const serverCart = <?php echo json_encode($_SESSION['cart'] ?? []); ?>;
+    function toggleCart(){
+        const items = Object.values(serverCart||{});
+        if(!items.length){ showNotification('Your cart is empty','info'); return; }
+        let total = 0;
+        const rows = items.map(it=>{
+            const line = (it.price*it.qty); total += line; return `<div class=\"flex items-center gap-3 p-3 border-b group\">
+                ${it.image?`<img src=\"${it.image}\" class=\"w-12 h-12 object-cover rounded\" alt=\"${escapeHtml(it.name)}\">`:`<div class=\\"w-12 h-12 flex items-center justify-center text-xs text-gray-400 bg-gray-100 rounded\\">No Img</div>`}
+                <div class=\"flex-1\">
+                    <h4 class=\"font-medium text-sm\">${escapeHtml(it.name)}</h4>
+                    <p class=\"text-xs text-gray-600\">₱${numberFormat(it.price)} × ${it.qty}</p>
+                </div>
+                <form method=\"post\" action=\"shop/cart_remove.php\" class=\"opacity-0 group-hover:opacity-100 transition-opacity\">
+                    <input type=\"hidden\" name=\"csrf\" value=\"<?= h($csrf) ?>\" />
+                    <input type=\"hidden\" name=\"product_id\" value=\"${it.id}\" />
+                    <button type=\"submit\" class=\"text-red-500 hover:text-red-600 text-xs font-semibold flex items-center gap-1\"><i data-lucide=\"trash-2\" class=\"w-4 h-4\"></i>Remove</button>
+                </form>
+            </div>`;
+        }).join('');
+        const html = `<div class="space-y-4">
+            <h3 class="text-xl font-bold">Cart</h3>
+            <div class="max-h-64 overflow-y-auto">${rows}</div>
+            <div class="pt-2 flex justify-between font-semibold"><span>Total:</span><span>₱${numberFormat(total)}</span></div>
+            <button onclick="proceedToCheckout()" class="w-full bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white font-semibold py-3 px-6 rounded-lg transition-all">Checkout</button>
+        </div>`;
+        document.getElementById('quick-view-content').innerHTML=html;
+        document.getElementById('quick-view-drawer').classList.add('open');
+        document.getElementById('drawer-overlay').classList.add('open');
+        document.body.style.overflow='hidden';
+    }
+    function proceedToCheckout(){window.location.href='login.php?redirect=shop.php';}
+
+    // AJAX Cart Handling
+    function initAjaxCart(){
+        document.querySelectorAll('form.ajax-cart-add').forEach(f=>{
+            if(f.dataset.bound) return; f.dataset.bound='1';
+            f.addEventListener('submit', async (e)=>{
+                e.preventDefault();
+                const fd=new FormData(f); fd.append('ajax','1');
+                try{
+                    const res = await fetch(f.action,{method:'POST',body:fd,headers:{'Accept':'application/json'}});
+                    if(!res.ok) throw new Error();
+                    const data = await res.json();
+                    if(data.ok){
+                        updateCartCount(data.cartCount);
+                        showNotification('Added to cart','success');
+                        // Update in-memory serverCart for drawer
+                        serverCart[data.item.id]=data.item;
+                    } else {
+                        showNotification('Add failed','error');
+                    }
+                }catch(err){ showNotification('Add failed','error'); }
             });
         });
 
-        // Product data (in a real application, this would come from a database)
-        const products = [
-            {
-                id: 1,
-                name: "Premium Leather Dog Collar",
-                category: "collars",
-                price: 899,
-                originalPrice: 1299,
-                image: "https://images.unsplash.com/photo-1608848461950-0fe51dfc41cb?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxsZWF0aGVyJTIwZG9nJTIwY29sbGFyfGVufDF8fHx8MTc1ODYxMDgyOXww&ixlib=rb-4.1.0&q=80&w=1080",
-                badge: "Sale",
-                rating: 4.8,
-                variants: [
-                    { type: "color", value: "#8B4513", name: "Brown" },
-                    { type: "color", value: "#000000", name: "Black" },
-                    { type: "color", value: "#654321", name: "Tan" }
-                ],
-                description: "Handcrafted premium leather collar with adjustable sizing and durable hardware."
-            },
-            {
-                id: 2,
-                name: "Interactive Puzzle Toy",
-                category: "toys",
-                price: 599,
-                image: "https://images.unsplash.com/photo-1605034313761-73ea4a0cfbf3?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxpbnRlcmFjdGl2ZSUyMGRvZyUyMHRveXxlbnwxfHx8fDE3NTg2MTA4NDF8MA&ixlib=rb-4.1.0&q=80&w=1080",
-                badge: "New",
-                rating: 4.9,
-                variants: [
-                    { type: "size", value: "S", name: "Small" },
-                    { type: "size", value: "M", name: "Medium" },
-                    { type: "size", value: "L", name: "Large" }
-                ],
-                description: "Mental stimulation puzzle toy that keeps your dog engaged and mentally active."
-            },
-            {
-                id: 3,
-                name: "Cozy Pet Sweater",
-                category: "apparel",
-                price: 799,
-                image: "https://images.unsplash.com/photo-1583337130417-3346a1be7dee?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxwZXQlMjBzd2VhdGVyJTIwZG9nfGVufDF8fHx8MTc1ODYxMDg0N3ww&ixlib=rb-4.1.0&q=80&w=1080",
-                rating: 4.7,
-                variants: [
-                    { type: "color", value: "#FF69B4", name: "Pink" },
-                    { type: "color", value: "#87CEEB", name: "Blue" },
-                    { type: "color", value: "#98FB98", name: "Green" }
-                ],
-                description: "Soft and warm sweater perfect for keeping your pet comfortable in cooler weather."
-            },
-            {
-                id: 4,
-                name: "Professional Grooming Kit",
-                category: "grooming",
-                price: 1299,
-                image: "https://images.unsplash.com/photo-1576201836106-db1758fd1c97?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxwZXQlMjBncm9vbWluZyUyMGtpdHxlbnwxfHx8fDE3NTg2MTA4NTJ8MA&ixlib=rb-4.1.0&q=80&w=1080",
-                badge: "Bundle",
-                rating: 4.9,
-                variants: [
-                    { type: "type", value: "basic", name: "Basic Kit" },
-                    { type: "type", value: "premium", name: "Premium Kit" }
-                ],
-                description: "Complete grooming kit with professional-grade tools for home pet care."
-            },
-            {
-                id: 5,
-                name: "Stainless Steel Food Bowl",
-                category: "feeding",
-                price: 399,
-                image: "https://images.unsplash.com/photo-1583512603805-3cc6b41f3edb?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxzdGFpbmxlc3MlMjBzdGVlbCUyMGRvZyUyMGJvd2x8ZW58MXx8fHwxNzU4NjEwODU4fDA&ixlib=rb-4.1.0&q=80&w=1080",
-                rating: 4.6,
-                variants: [
-                    { type: "size", value: "S", name: "Small (1 cup)" },
-                    { type: "size", value: "M", name: "Medium (2 cups)" },
-                    { type: "size", value: "L", name: "Large (3 cups)" }
-                ],
-                description: "Durable stainless steel bowl that's easy to clean and won't retain odors."
-            },
-            {
-                id: 6,
-                name: "Retractable Dog Leash",
-                category: "collars",
-                price: 699,
-                originalPrice: 899,
-                image: "https://images.unsplash.com/photo-1601758174493-a2ead1d6c15e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxyZXRyYWN0YWJsZSUyMGRvZyUyMGxlYXNofGVufDF8fHx8MTc1ODYxMDg2M3ww&ixlib=rb-4.1.0&q=80&w=1080",
-                badge: "Sale",
-                rating: 4.5,
-                variants: [
-                    { type: "length", value: "3m", name: "3 meters" },
-                    { type: "length", value: "5m", name: "5 meters" }
-                ],
-                description: "High-quality retractable leash with comfortable grip and reliable locking mechanism."
-            }
-        ];
-
-        let cart = [];
-        let currentCategory = 'all';
-        let displayedProducts = 6;
-
-        // Load products based on current filters
-        function loadProducts() {
-            const filteredProducts = currentCategory === 'all' 
-                ? products 
-                : products.filter(product => product.category === currentCategory);
-            
-            const productsToShow = filteredProducts.slice(0, displayedProducts);
-            const productsGrid = document.getElementById('products-grid');
-            
-            productsGrid.innerHTML = productsToShow.map(product => createProductCard(product)).join('');
-            lucide.createIcons();
-        }
-
-        // Create product card HTML
-        function createProductCard(product) {
-            const discountPercentage = product.originalPrice 
-                ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
-                : 0;
-
-            return `
-                <div class="product-card" data-category="${product.category}" data-name="${product.name.toLowerCase()}">
-                    ${product.badge ? `<div class="product-badge ${product.badge.toLowerCase()}">${product.badge}</div>` : ''}
-                    <div class="product-image">
-                        <img src="${product.image}" alt="${product.name}" loading="lazy">
-                        <div class="paw-print-hover">
-                            <i data-lucide="eye" class="w-4 h-4 text-white"></i>
-                        </div>
-                    </div>
-                    
-                    <div class="space-y-3">
-                        <div>
-                            <h3 class="text-lg font-bold text-gray-800 mb-1">${product.name}</h3>
-                            <div class="flex items-center gap-2 mb-2">
-                                <div class="flex items-center">
-                                    ${'★'.repeat(Math.floor(product.rating))}${'☆'.repeat(5-Math.floor(product.rating))}
-                                </div>
-                                <span class="text-sm text-gray-600">(${product.rating})</span>
-                            </div>
-                        </div>
-                        
-                        ${product.variants ? `
-                        <div class="variant-swatches">
-                            ${product.variants.slice(0, 3).map((variant, index) => `
-                                <div class="variant-swatch ${variant.type === 'color' ? '' : 'bone-shape'} ${index === 0 ? 'active' : ''}" 
-                                     style="${variant.type === 'color' ? `background-color: ${variant.value}` : 'background-color: #f3f4f6'}"
-                                     title="${variant.name}">
-                                </div>
-                            `).join('')}
-                        </div>
-                        ` : ''}
-                        
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <span class="text-xl font-bold text-orange-600">₱${product.price.toLocaleString()}</span>
-                                ${product.originalPrice ? `
-                                    <span class="text-sm text-gray-500 line-through ml-2">₱${product.originalPrice.toLocaleString()}</span>
-                                ` : ''}
-                            </div>
-                            ${discountPercentage > 0 ? `
-                                <span class="text-xs bg-red-100 text-red-600 px-2 py-1 rounded-full font-semibold">
-                                    ${discountPercentage}% OFF
-                                </span>
-                            ` : ''}
-                        </div>
-                        
-                        <div class="flex gap-2">
-                            <button onclick="openQuickView(${product.id})" 
-                                    class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-2 px-4 rounded-lg transition-all duration-200 flex items-center justify-center gap-2">
-                                <i data-lucide="eye" class="w-4 h-4"></i>
-                                Quick View
-                            </button>
-                            <button onclick="addToCart(${product.id})" 
-                                    class="flex-1 bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white font-medium py-2 px-4 rounded-lg transition-all duration-200 flex items-center justify-center gap-2">
-                                <i data-lucide="shopping-cart" class="w-4 h-4"></i>
-                                Add to Cart
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            `;
-        }
-
-        // Filter products by category
-        function filterByCategory(category) {
-            currentCategory = category;
-            displayedProducts = 6;
-            
-            // Update active tab
-            document.querySelectorAll('.category-tab').forEach(tab => {
-                tab.classList.remove('active');
-            });
-            document.querySelector(`[data-category="${category}"]`).classList.add('active');
-            
-            loadProducts();
-        }
-
-        // Filter products by search
-        function filterProducts() {
-            const searchTerm = document.getElementById('search-input').value.toLowerCase();
-            const productCards = document.querySelectorAll('.product-card');
-            
-            productCards.forEach(card => {
-                const productName = card.dataset.name;
-                const shouldShow = productName.includes(searchTerm) && 
-                                 (currentCategory === 'all' || card.dataset.category === currentCategory);
-                
-                card.style.display = shouldShow ? 'block' : 'none';
-            });
-        }
-
-        // Load more products
-        function loadMoreProducts() {
-            displayedProducts += 6;
-            loadProducts();
-        }
-
-        // Add product to cart
-        function addToCart(productId) {
-            const product = products.find(p => p.id === productId);
-            if (product) {
-                const existingItem = cart.find(item => item.id === productId);
-                if (existingItem) {
-                    existingItem.quantity += 1;
-                } else {
-                    cart.push({ ...product, quantity: 1 });
-                }
-                updateCartUI();
-                showNotification(`${product.name} added to cart!`, 'success');
-            }
-        }
-
-        // Add bundle to cart
-        function addBundleToCart(bundleType) {
-            const bundles = {
-                'puppy-starter': { name: 'Puppy Starter Kit', price: 2499, id: 'bundle-1' },
-                'cat-care': { name: 'Cat Care Combo', price: 1899, id: 'bundle-2' },
-                'grooming-essentials': { name: 'Grooming Essentials', price: 3199, id: 'bundle-3' }
-            };
-            
-            const bundle = bundles[bundleType];
-            if (bundle) {
-                const existingItem = cart.find(item => item.id === bundle.id);
-                if (existingItem) {
-                    existingItem.quantity += 1;
-                } else {
-                    cart.push({ ...bundle, quantity: 1, image: 'https://images.unsplash.com/photo-1601758228041-f3b2795255f1?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxwdXBweSUyMGtpdCUyMGFjY2Vzc29yaWVzfGVufDF8fHx8MTc1NjU0MzcxNXww&ixlib=rb-4.1.0&q=80&w=1080' });
-                }
-                updateCartUI();
-                showNotification(`${bundle.name} added to cart!`, 'success');
-            }
-        }
-
-        // Update cart UI
-        function updateCartUI() {
-            const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
-            document.getElementById('cart-count').textContent = totalItems;
-            document.getElementById('mini-cart-count').textContent = totalItems;
-            
-            // Animate cart icon
-            const cartIcon = document.querySelector('.mini-cart');
-            cartIcon.style.animation = 'cart-bounce 0.3s ease';
-            setTimeout(() => {
-                cartIcon.style.animation = '';
-            }, 300);
-        }
-
-        // Open quick view
-        function openQuickView(productId) {
-            const product = products.find(p => p.id === productId);
-            if (product) {
-                const content = `
-                    <div class="space-y-6">
-                        <div class="aspect-square w-full rounded-lg overflow-hidden bg-gray-100">
-                            <img src="${product.image}" alt="${product.name}" class="w-full h-full object-cover">
-                        </div>
-                        
-                        <div>
-                            <h3 class="text-2xl font-bold text-gray-800 mb-2">${product.name}</h3>
-                            <div class="flex items-center gap-2 mb-4">
-                                <div class="flex items-center text-yellow-400">
-                                    ${'★'.repeat(Math.floor(product.rating))}${'☆'.repeat(5-Math.floor(product.rating))}
-                                </div>
-                                <span class="text-sm text-gray-600">(${product.rating} rating)</span>
-                            </div>
-                            
-                            <p class="text-gray-600 mb-4">${product.description}</p>
-                            
-                            <div class="flex items-center gap-4 mb-6">
-                                <span class="text-2xl font-bold text-orange-600">₱${product.price.toLocaleString()}</span>
-                                ${product.originalPrice ? `
-                                    <span class="text-lg text-gray-500 line-through">₱${product.originalPrice.toLocaleString()}</span>
-                                ` : ''}
-                            </div>
-                            
-                            ${product.variants ? `
-                            <div class="mb-6">
-                                <h4 class="font-medium text-gray-800 mb-3">Available Options:</h4>
-                                <div class="flex gap-2 flex-wrap">
-                                    ${product.variants.map(variant => `
-                                        <button class="px-3 py-2 border border-gray-300 rounded-lg text-sm hover:border-orange-500 hover:text-orange-500 transition-colors">
-                                            ${variant.name}
-                                        </button>
-                                    `).join('')}
-                                </div>
-                            </div>
-                            ` : ''}
-                            
-                            <button onclick="addToCart(${product.id}); closeQuickView();" 
-                                    class="w-full bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white font-semibold py-3 px-6 rounded-lg transition-all duration-200 flex items-center justify-center gap-2">
-                                <i data-lucide="shopping-cart" class="w-5 h-5"></i>
-                                Add to Cart
-                            </button>
-                        </div>
-                    </div>
-                `;
-                
-                document.getElementById('quick-view-content').innerHTML = content;
-                document.getElementById('quick-view-drawer').classList.add('open');
-                document.getElementById('drawer-overlay').classList.add('open');
-                document.body.style.overflow = 'hidden';
-                lucide.createIcons();
-            }
-        }
-
-        // Close quick view
-        function closeQuickView() {
-            document.getElementById('quick-view-drawer').classList.remove('open');
-            document.getElementById('drawer-overlay').classList.remove('open');
-            document.body.style.overflow = 'auto';
-        }
-
-        // Toggle cart
-        function toggleCart() {
-            if (cart.length === 0) {
-                showNotification('Your cart is empty!', 'info');
-                return;
-            }
-            
-                const cartItems = cart.map(item => `
-                    <div class="flex items-center gap-3 p-3 border-b group">
-                        <img src="${item.image}" alt="${item.name}" class="w-12 h-12 object-cover rounded" />
-                        <div class="flex-1">
-                            <h4 class="font-medium">${item.name}</h4>
-                            <p class="text-sm text-gray-600">Qty: ${item.quantity} × ₱${item.price.toLocaleString()}</p>
-                            <div class="flex items-center gap-2 mt-2">
-                                <button onclick="decrementItem('${item.id}')" class="px-2 py-1 text-xs rounded bg-gray-100 hover:bg-gray-200">-</button>
-                                <button onclick="incrementItem('${item.id}')" class="px-2 py-1 text-xs rounded bg-gray-100 hover:bg-gray-200">+</button>
-                                <button onclick="removeFromCart('${item.id}')" class="ml-auto inline-flex items-center gap-1 text-xs text-red-600 hover:text-red-700">
-                                    <i data-lucide="trash-2" class="w-3 h-3"></i> Remove
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                `).join('');
-            
-            const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-            
-            const cartContent = `
-                <div class="space-y-4">
-                    <h3 class="text-xl font-bold">Shopping Cart</h3>
-                    <div class="max-h-60 overflow-y-auto">
-                        ${cartItems}
-                    </div>
-                    <div class="pt-4 border-t">
-                        <div class="flex justify-between items-center mb-4">
-                            <span class="font-semibold">Total: ₱${total.toLocaleString()}</span>
-                        </div>
-                        <button onclick="proceedToCheckout()" class="w-full bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white font-semibold py-3 px-6 rounded-lg transition-all duration-200">
-                            Proceed to Checkout
-                        </button>
-                    </div>
-                </div>
-            `;
-            
-            document.getElementById('quick-view-content').innerHTML = cartContent;
-            document.getElementById('quick-view-drawer').classList.add('open');
-            document.getElementById('drawer-overlay').classList.add('open');
-            document.body.style.overflow = 'hidden';
-        }
-
-        // Scroll to products section
-        function scrollToProducts() {
-            document.getElementById('products-section').scrollIntoView({
-                behavior: 'smooth'
-            });
-        }
-
-        // Show notification
-        function showNotification(message, type = 'success') {
-            const notification = document.createElement('div');
-            notification.className = `fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg transform transition-all duration-300 translate-x-full ${
-                type === 'success' ? 'bg-green-500 text-white' : 
-                type === 'info' ? 'bg-blue-500 text-white' :
-                'bg-red-500 text-white'
-            }`;
-            notification.innerHTML = `
-                <div class="flex items-center gap-3">
-                    <i data-lucide="${type === 'success' ? 'check-circle' : type === 'info' ? 'info' : 'alert-circle'}" class="w-5 h-5"></i>
-                    <span>${message}</span>
-                </div>
-            `;
-            
-            document.body.appendChild(notification);
-            lucide.createIcons();
-            
-            // Slide in
-            setTimeout(() => {
-                notification.classList.remove('translate-x-full');
-            }, 100);
-            
-            // Slide out and remove
-            setTimeout(() => {
-                notification.classList.add('translate-x-full');
-                setTimeout(() => {
-                    document.body.removeChild(notification);
-                }, 300);
-            }, 3000);
-        }
-
-        // Parallax effect for floating elements
-        window.addEventListener('scroll', () => {
-            const scrolled = window.pageYOffset;
-            const parallaxElements = document.querySelectorAll('.floating-element');
-            
-            parallaxElements.forEach((element, index) => {
-                const speed = 0.05 + (index * 0.02);
-                const yPos = -(scrolled * speed);
-                element.style.transform = `translate3d(0, ${yPos}px, 0)`;
-            });
-        });
-
-        // Close quick view on escape key
-        document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape') {
-                closeQuickView();
-            }
-        });
-
-        // Proceed to checkout handler
-        function proceedToCheckout() {
-            window.location.href = 'login.php?redirect=shop.php';
-        }
-
-        // Cart item quantity helpers
-        function incrementItem(id) {
-            const item = cart.find(i => i.id == id);
-            if (item) { item.quantity += 1; updateCartUI(); toggleCart(); }
-        }
-        function decrementItem(id) {
-            const item = cart.find(i => i.id == id);
-            if (item) {
-                item.quantity -= 1;
-                if (item.quantity <= 0) {
-                    cart = cart.filter(i => i.id != id);
-                }
-                updateCartUI();
-                if (cart.length === 0) {
-                    closeQuickView();
-                } else {
-                    toggleCart();
-                }
-            }
-        }
-        function removeFromCart(id) {
-            cart = cart.filter(i => i.id != id);
-            updateCartUI();
-            if (cart.length === 0) {
-                closeQuickView();
-            } else {
-                toggleCart();
-            }
-            showNotification('Item removed from cart', 'info');
-        }
-                // Dropdown behavior (fix): open on hover, toggle on click
-                (function initDropdowns(){
-                    function initDropdown(wrapperId, buttonId, menuId){
-                        const wrapper = document.getElementById(wrapperId);
-                        const button = document.getElementById(buttonId);
-                        const menu = document.getElementById(menuId);
-                        const chevron = button && button.querySelector('i[data-lucide="chevron-down"]');
-                        if(!wrapper||!button||!menu) return; 
-                        let persist = false; let hideTimer;
-                        function setOpen(open){
-                            if(open){
-                                menu.classList.add('open');
-                                menu.setAttribute('aria-hidden','false');
-                                if(chevron) chevron.classList.add('rotate-180');
-                            } else {
-                                menu.classList.remove('open');
-                                menu.setAttribute('aria-hidden','true');
-                                if(chevron) chevron.classList.remove('rotate-180');
+        // Delegate removal inside drawer
+        document.addEventListener('submit', async (e)=>{
+            const form = e.target;
+            if(form.matches('form[action="shop/cart_remove.php"]')){
+                e.preventDefault();
+                const fd=new FormData(form); fd.append('ajax','1');
+                try{
+                    const res = await fetch(form.action,{method:'POST',body:fd,headers:{'Accept':'application/json'}});
+                    if(!res.ok) throw new Error();
+                    const data = await res.json();
+                    if(data.ok){
+                        // Remove from local cart memory
+                        const pid = form.querySelector('[name="product_id"]').value;
+                        delete serverCart[pid];
+                        updateCartCount(data.cartCount);
+                        if(Object.keys(serverCart).length===0){
+                            // Close drawer if last item removed
+                            closeQuickView();
+                            showNotification('Cart is now empty','info');
+                        } else {
+                            showNotification('Removed from cart','info');
+                            // Re-render drawer with remaining items
+                            if(document.getElementById('quick-view-drawer').classList.contains('open')){
+                                toggleCart();
                             }
                         }
-                        setOpen(false);
-                        wrapper.addEventListener('mouseenter',()=>{clearTimeout(hideTimer); setOpen(true);});
-                        wrapper.addEventListener('mouseleave',()=>{ if(!persist){ hideTimer=setTimeout(()=>setOpen(false),150);} });
-                        button.addEventListener('click',(e)=>{ e.stopPropagation(); persist=!persist; setOpen(persist); });
-                        document.addEventListener('click',(e)=>{ if(!wrapper.contains(e.target)){ persist=false; setOpen(false);} });
-                        document.addEventListener('keydown',(e)=>{ if(e.key==='Escape'){ persist=false; setOpen(false);} });
+                    } else {
+                        showNotification('Remove failed','error');
                     }
-                    initDropdown('petsitterWrapper','petsitterButton','petsitterMenu');
-                    initDropdown('appointmentsWrapper','appointmentsButton','appointmentsMenu');
-                })();
+                }catch(err){ showNotification('Remove failed','error'); }
+            }
+        });
+    }
+    function updateCartCount(n){ const el=document.getElementById('cart-count'); if(el) el.textContent=n; }
+    document.addEventListener('DOMContentLoaded',initAjaxCart);
+    // Delegate Quick View button clicks
+    document.addEventListener('click',e=>{
+        const btn = e.target.closest('.quick-view-btn');
+        if(btn){
+            const id = btn.getAttribute('data-qv');
+            if(id) openQuickViewDb(id);
+        }
+    });
+
+    // Client-side live filtering (enhances server-side rendered list; no reload needed)
+    (function initLiveFiltering(){
+        const searchInput = document.getElementById('search-input');
+        const categoryTabs = document.querySelectorAll('#categoryTabsRow .category-tab[data-cat]');
+        const originalActive = document.querySelector('#categoryTabsRow .category-tab.active');
+        let activeCategory = originalActive ? originalActive.getAttribute('data-cat') : 'all';
+
+        function applyFilter(){
+            const q = (searchInput ? searchInput.value.trim().toLowerCase() : '');
+            const cards = document.querySelectorAll('.product-card[data-name]');
+            let visibleCount = 0;
+            cards.forEach(card=>{
+                const name = card.getAttribute('data-name') || '';
+                const cat = card.getAttribute('data-category') || '';
+                const matchCat = (activeCategory==='all') || (cat===activeCategory);
+                const matchText = !q || name.indexOf(q) !== -1;
+                if(matchCat && matchText){
+                    card.style.display='';
+                    visibleCount++;
+                } else {
+                    card.style.display='none';
+                }
+            });
+            const emptyMsgId='no-client-filter-results';
+            let emptyEl=document.getElementById(emptyMsgId);
+            if(visibleCount===0){
+                if(!emptyEl){
+                    emptyEl=document.createElement('div');
+                    emptyEl.id=emptyMsgId;
+                    emptyEl.className='col-span-full text-center text-sm text-gray-500 mt-6';
+                    emptyEl.textContent='No products match your filters.';
+                    const grid=document.querySelector('.paw-grid');
+                    if(grid) grid.appendChild(emptyEl);
+                }
+            } else if(emptyEl){ emptyEl.remove(); }
+        }
+
+        if(searchInput){
+            searchInput.addEventListener('input',()=>{
+                applyFilter();
+            });
+        }
+
+        categoryTabs.forEach(tab=>{
+            tab.addEventListener('click', ()=>{
+                categoryTabs.forEach(t=>t.classList.remove('active'));
+                tab.classList.add('active');
+                activeCategory = tab.getAttribute('data-cat') || 'all';
+                applyFilter();
+                const params = new URLSearchParams(window.location.search);
+                if(activeCategory==='all') params.delete('cat'); else params.set('cat', activeCategory);
+                if(searchInput && searchInput.value.trim()) params.set('q', searchInput.value.trim()); else params.delete('q');
+                const newUrl = window.location.pathname + (params.toString()?('?'+params.toString()):'');
+                window.history.replaceState({}, '', newUrl);
+            });
+        });
+
+        // Normalize data-name to lower-case once (server already attempted lower-case but ensure)
+        document.querySelectorAll('.product-card[data-name]').forEach(c=>{
+            c.setAttribute('data-name', (c.getAttribute('data-name')||'').toLowerCase());
+        });
+        applyFilter();
+    })();
+
+    // Show notification (updated implementation)
+    function showNotification(message, type = 'success') {
+        const notification = document.createElement('div');
+        notification.className = `fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg transform transition-all duration-300 translate-x-full ${
+            type === 'success' ? 'bg-green-500 text-white' : 
+            type === 'info' ? 'bg-blue-500 text-white' :
+            'bg-red-500 text-white'
+        }`;
+        notification.innerHTML = `
+            <div class="flex items-center gap-3">
+                <i data-lucide="${type === 'success' ? 'check-circle' : type === 'info' ? 'info' : 'alert-circle'}" class="w-5 h-5"></i>
+                <span>${message}</span>
+            </div>
+        `;
+        document.body.appendChild(notification);
+        if(window.lucide) lucide.createIcons();
+        setTimeout(()=> notification.classList.remove('translate-x-full'), 80);
+        setTimeout(()=> { notification.classList.add('translate-x-full'); setTimeout(()=> notification.remove(), 300); }, 3000);
+    }
+
+    // Escape key closes drawer
+    document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeQuickView(); });
+
+    // Dropdown behavior
+    (function initDropdowns(){
+        function initDropdown(wrapperId, buttonId, menuId){
+            const wrapper=document.getElementById(wrapperId);
+            const button=document.getElementById(buttonId);
+            const menu=document.getElementById(menuId);
+            const chevron=button && button.querySelector('i[data-lucide="chevron-down"]');
+            if(!wrapper||!button||!menu) return; let persist=false; let hideTimer;
+            function setOpen(o){ if(o){menu.classList.add('open');menu.setAttribute('aria-hidden','false'); if(chevron) chevron.classList.add('rotate-180');} else {menu.classList.remove('open');menu.setAttribute('aria-hidden','true'); if(chevron) chevron.classList.remove('rotate-180');} }
+            setOpen(false);
+            wrapper.addEventListener('mouseenter',()=>{clearTimeout(hideTimer); setOpen(true);});
+            wrapper.addEventListener('mouseleave',()=>{ if(!persist){ hideTimer=setTimeout(()=>setOpen(false),150);} });
+            button.addEventListener('click',e=>{ e.stopPropagation(); persist=!persist; setOpen(persist); });
+            document.addEventListener('click',e=>{ if(!wrapper.contains(e.target)){ persist=false; setOpen(false);} });
+            document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ persist=false; setOpen(false);} });
+        }
+        initDropdown('petsitterWrapper','petsitterButton','petsitterMenu');
+        initDropdown('appointmentsWrapper','appointmentsButton','appointmentsMenu');
+    })();
     </script>
 </body>
 </html>

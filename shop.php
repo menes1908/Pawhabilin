@@ -930,109 +930,74 @@ if(($_GET['partial']??'')==='1'){
     const serverCart = <?php echo json_encode($_SESSION['cart'] ?? []); ?>;
     function toggleCart(){
         const items = Object.values(serverCart||{});
-        if(!items.length){ showNotification('Your cart is empty','info'); return; }
-        let total = 0;
-        const rows = items.map(it=>{
-            const line = (it.price*it.qty); total += line; return `<div class=\"flex items-center gap-3 p-3 border-b group\">
-                ${it.image?`<img src=\"${it.image}\" class=\"w-12 h-12 object-cover rounded\" alt=\"${escapeHtml(it.name)}\">`:`<div class=\\"w-12 h-12 flex items-center justify-center text-xs text-gray-400 bg-gray-100 rounded\\">No Img</div>`}
-                <div class=\"flex-1\">
-                    <h4 class=\"font-medium text-sm\">${escapeHtml(it.name)}</h4>
-                    <p class=\"text-xs text-gray-600\">₱${numberFormat(it.price)} × ${it.qty}</p>
+        let contentHtml = '';
+        if(!items.length){
+            // Inline empty-cart state inside the drawer (no global toast)
+            contentHtml = `
+                <div class="py-10 text-center text-gray-600">
+                    <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-100 flex items-center justify-center"><i data-lucide="shopping-cart" class="w-7 h-7 text-gray-400"></i></div>
+                    <h4 class="text-lg font-semibold mb-1">Your cart is empty</h4>
+                    <p class="text-sm text-gray-500 mb-6">Add items to get started.</p>
+                    <button type="button" onclick="closeQuickView()" class="inline-flex items-center gap-2 px-4 py-2 rounded-md border text-gray-700 hover:bg-gray-50">
+                        <i data-lucide="arrow-left" class="w-4 h-4"></i> Continue shopping
+                    </button>
                 </div>
-                <form method=\"post\" action=\"shop/cart_remove.php\" class=\"opacity-0 group-hover:opacity-100 transition-opacity\">
-                    <input type=\"hidden\" name=\"csrf\" value=\"<?= h($csrf) ?>\" />
-                    <input type=\"hidden\" name=\"product_id\" value=\"${it.id}\" />
-                    <button type=\"submit\" class=\"text-red-500 hover:text-red-600 text-xs font-semibold flex items-center gap-1\"><i data-lucide=\"trash-2\" class=\"w-4 h-4\"></i>Remove</button>
-                </form>
+            `;
+        } else {
+            let total = 0;
+            const rows = items.map(it=>{
+                const line = (it.price*it.qty); total += line; return `<div class="flex items-center gap-3 p-3 border-b group">
+                    ${it.image?`<img src="${it.image}" class="w-12 h-12 object-cover rounded" alt="${escapeHtml(it.name)}">`:`<div class=\"w-12 h-12 flex items-center justify-center text-xs text-gray-400 bg-gray-100 rounded\">No Img</div>`}
+                    <div class="flex-1">
+                        <h4 class="font-medium text-sm">${escapeHtml(it.name)}</h4>
+                        <p class="text-xs text-gray-600">₱${numberFormat(it.price)} × ${it.qty}</p>
+                    </div>
+                    <form method="post" action="shop/cart_remove.php" class="opacity-0 group-hover:opacity-100 transition-opacity">
+                        <input type="hidden" name="csrf" value="<?= h($csrf) ?>" />
+                        <input type="hidden" name="product_id" value="${it.id}" />
+                        <button type="submit" class="text-red-500 hover:text-red-600 text-xs font-semibold flex items-center gap-1"><i data-lucide="trash-2" class="w-4 h-4"></i>Remove</button>
+                    </form>
+                </div>`;
+            }).join('');
+            contentHtml = `<div class="space-y-4">
+                <h3 class="text-xl font-bold">Cart</h3>
+                <div class="max-h-64 overflow-y-auto">${rows}</div>
+                <div class="pt-2 flex justify-between font-semibold"><span>Total:</span><span>₱${numberFormat(total)}</span></div>
+                <button onclick="proceedToCheckout()" class="w-full bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white font-semibold py-3 px-6 rounded-lg transition-all">Checkout</button>
             </div>`;
-        }).join('');
-        const html = `<div class="space-y-4">
-            <h3 class="text-xl font-bold">Cart</h3>
-            <div class="max-h-64 overflow-y-auto">${rows}</div>
-            <div class="pt-2 flex justify-between font-semibold"><span>Total:</span><span>₱${numberFormat(total)}</span></div>
-            <button onclick="proceedToCheckout()" class="w-full bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white font-semibold py-3 px-6 rounded-lg transition-all">Checkout</button>
-        </div>`;
-        try{ setDrawerTitle('Cart'); }catch(_){}
-        document.getElementById('quick-view-content').innerHTML=html;
+        }
+        try{ setDrawerTitle('Cart'); }catch(_){ }
+        document.getElementById('quick-view-content').innerHTML = contentHtml;
         document.getElementById('quick-view-drawer').classList.add('open');
         document.getElementById('drawer-overlay').classList.add('open');
         document.body.style.overflow='hidden';
+        if(window.lucide) lucide.createIcons();
     }
-    function proceedToCheckout(){window.location.href='login.php?redirect=shop.php';}
-
-    // AJAX Cart Handling
-    function initAjaxCart(){
-        document.querySelectorAll('form.ajax-cart-add').forEach(f=>{
-            if(f.dataset.bound) return; f.dataset.bound='1';
-            f.addEventListener('submit', async (e)=>{
-                e.preventDefault();
-                const fd=new FormData(f); fd.append('ajax','1');
-                try{
-                    const res = await fetch(f.action,{method:'POST',body:fd,headers:{'Accept':'application/json'}});
-                    if(!res.ok) throw new Error();
-                    const data = await res.json();
-                    if(data.ok){
-                        updateCartCount(data.cartCount);
-                        showNotification('Added to cart','success');
-                        showDrawerNotification('Added to cart','success');
-                        // Update in-memory serverCart for drawer
-                        serverCart[data.item.id]=data.item;
-                    } else {
-                        showNotification('Add failed','error');
-                        showDrawerNotification('Add failed','error');
+    // Delegate removal inside drawer (only show in-drawer notifications; no global toasts)
+    document.addEventListener('submit', async (e)=>{
+        const form = e.target;
+        if(form.matches('form[action="shop/cart_remove.php"]')){
+            e.preventDefault();
+            const fd=new FormData(form); fd.append('ajax','1');
+            try{
+                const res = await fetch(form.action,{method:'POST',body:fd,headers:{'Accept':'application/json'}});
+                if(!res.ok) throw new Error();
+                const data = await res.json();
+                if(data.ok){
+                    const pid = form.querySelector('[name="product_id"]').value;
+                    delete serverCart[pid];
+                    updateCartCount(data.cartCount);
+                    showDrawerNotification('Removed from cart','info');
+                    // Re-render drawer; shows inline empty state if cart is empty
+                    if(document.getElementById('quick-view-drawer').classList.contains('open')){
+                        toggleCart();
                     }
-                }catch(err){ showNotification('Add failed','error'); }
-            });
-        });
-
-        // Delegate removal inside drawer
-        document.addEventListener('submit', async (e)=>{
-            const form = e.target;
-            if(form.matches('form[action="shop/cart_remove.php"]')){
-                e.preventDefault();
-                const fd=new FormData(form); fd.append('ajax','1');
-                try{
-                    const res = await fetch(form.action,{method:'POST',body:fd,headers:{'Accept':'application/json'}});
-                    if(!res.ok) throw new Error();
-                    const data = await res.json();
-                    if(data.ok){
-                        // Remove from local cart memory
-                        const pid = form.querySelector('[name="product_id"]').value;
-                        delete serverCart[pid];
-                        updateCartCount(data.cartCount);
-                        showDrawerNotification('Removed from cart','info');
-                        if(Object.keys(serverCart).length===0){
-                            // Close drawer if last item removed
-                            closeQuickView();
-                            showNotification('Cart is now empty','info');
-                        } else {
-                            showNotification('Removed from cart','info');
-                            // Re-render drawer with remaining items
-                            if(document.getElementById('quick-view-drawer').classList.contains('open')){
-                                toggleCart();
-                            }
-                        }
-                    } else {
-                        showNotification('Remove failed','error');
-                        showDrawerNotification('Remove failed','error');
-                    }
-                }catch(err){ showNotification('Remove failed','error'); }
-            }
-        });
-    }
-    function updateCartCount(n){ const el=document.getElementById('cart-count'); if(el) el.textContent=n; try{ syncDrawerCartCount(); }catch(_){} }
-    document.addEventListener('DOMContentLoaded',initAjaxCart);
-    // Rebind ajax cart after dynamic grid loads
-    document.addEventListener('ajax:products-updated',()=>{ initAjaxCart(); });
-    // Delegate Quick View button clicks
-    document.addEventListener('click',e=>{
-        const btn = e.target.closest('.quick-view-btn');
-        if(btn){
-            const id = btn.getAttribute('data-qv');
-            if(id) openQuickViewDb(id);
+                } else {
+                    showDrawerNotification('Remove failed','error');
+                }
+            }catch(err){ showDrawerNotification('Remove failed','error'); }
         }
     });
-
     // Debounced server-side search submit
     (function initDebouncedSearch(){
         const input=document.getElementById('search-input');
@@ -1077,10 +1042,58 @@ if(($_GET['partial']??'')==='1'){
         document.addEventListener('click',onPaginationClick);
     })();
 
+    // AJAX Cart Handling: bind add-to-cart forms; removal uses drawer-only notices above
+function initAjaxCart(){
+    document.querySelectorAll('form.ajax-cart-add').forEach(f=>{
+        if(f.dataset.bound) return; f.dataset.bound='1';
+        f.addEventListener('submit', async (e)=>{
+            e.preventDefault();
+            const fd=new FormData(f); fd.append('ajax','1');
+            try{
+                const res = await fetch(f.action,{method:'POST',body:fd,headers:{'Accept':'application/json'}});
+                if(!res.ok) throw new Error('Request failed');
+                const data = await res.json();
+                if(data.ok){
+                    updateCartCount(data.cartCount);
+                    // Global ladder toast + in-drawer banner
+                    showNotification('Added to cart','success');
+                    showDrawerNotification('Added to cart','success');
+                    // Sync in-memory cart for drawer rendering
+                    if(data.item && data.item.id!=null){ serverCart[data.item.id] = data.item; }
+                } else {
+                    showNotification('Add failed','error');
+                    showDrawerNotification('Add failed','error');
+                }
+            }catch(err){
+                showNotification('Add failed','error');
+                showDrawerNotification('Add failed','error');
+            }
+        });
+    });
+}
+
+function updateCartCount(n){
+    const el=document.getElementById('cart-count');
+    if(el) el.textContent = n;
+    try{ syncDrawerCartCount(); }catch(_){ }
+}
+
+// Bind on initial load and after AJAX fragment swaps
+document.addEventListener('DOMContentLoaded', initAjaxCart);
+document.addEventListener('ajax:products-updated', ()=>{ initAjaxCart(); });
+
     // Show notification (updated implementation)
     function showNotification(message, type = 'success') {
+        // Ladder (stacked) toasts container
+        let container = document.getElementById('toast-container');
+        if(!container){
+            container = document.createElement('div');
+            container.id = 'toast-container';
+            container.className = 'fixed top-4 right-4 z-[11000] flex flex-col gap-2 items-end pointer-events-none';
+            document.body.appendChild(container);
+        }
         const notification = document.createElement('div');
-        notification.className = `fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg transform transition-all duration-300 translate-x-full ${
+        notification.className = `p-4 rounded-lg shadow-lg transform transition-all duration-300 translate-x-full pointer-events-auto ${
             type === 'success' ? 'bg-green-500 text-white' : 
             type === 'info' ? 'bg-blue-500 text-white' :
             'bg-red-500 text-white'
@@ -1091,9 +1104,11 @@ if(($_GET['partial']??'')==='1'){
                 <span>${message}</span>
             </div>
         `;
-        document.body.appendChild(notification);
+        container.appendChild(notification);
         if(window.lucide) lucide.createIcons();
-        setTimeout(()=> notification.classList.remove('translate-x-full'), 80);
+        // Limit stacked toasts to 5
+        while(container.children.length > 5){ container.removeChild(container.firstElementChild); }
+        requestAnimationFrame(()=>{ notification.classList.remove('translate-x-full'); });
         setTimeout(()=> { notification.classList.add('translate-x-full'); setTimeout(()=> notification.remove(), 300); }, 3000);
     }
 

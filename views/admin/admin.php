@@ -586,6 +586,7 @@ function resolveImageUrl($path) {
                             <div id="productsPageInfo" class="text-sm text-gray-600"></div>
                             <div class="flex items-center gap-2">
                                 <button id="productsPrev" class="px-3 py-1.5 border border-gray-300 rounded-md text-sm text-gray-700 hover:bg-gray-50">Prev</button>
+                                <div id="productsPageNums" class="flex items-center gap-1"></div>
                                 <button id="productsNext" class="px-3 py-1.5 border border-gray-300 rounded-md text-sm text-gray-700 hover:bg-gray-50">Next</button>
                             </div>
                         </div>
@@ -1246,16 +1247,124 @@ function resolveImageUrl($path) {
                             <div class="flex items-center justify-between">
                                 <h3 class="text-lg font-semibold">Pet Owners Directory</h3>
                                 <div class="flex items-center gap-2">
-                                    <input type="text" placeholder="Search owners..." class="px-3 py-2 border border-gray-300 rounded-md w-64">
-                                    <button class="px-3 py-2 border border-gray-300 rounded-md hover:bg-gray-50">
+                                    <input id="petOwnersSearch" type="text" placeholder="Search owners..." class="px-3 py-2 border border-gray-300 rounded-md w-64">
+                                    <button class="px-3 py-2 border border-gray-300 rounded-md hover:bg-gray-50" title="No filters available yet">
                                         <i data-lucide="filter" class="w-4 h-4"></i>
                                     </button>
                                 </div>
                             </div>
                         </div>
-                        <div class="p-6">
-                            <div id="petOwnersContainer" class="space-y-4">
-                                <!-- Pet owners will be populated by JavaScript -->
+                        <div class="p-4">
+                            <?php
+                            // Build owners with nested pets
+                            $owners = [];
+                            if (isset($connections) && $connections) {
+                                $sqlOwners = "SELECT u.users_id, u.users_firstname, u.users_lastname, u.users_username, u.users_email, u.users_created_at,
+                                                  CASE WHEN EXISTS (
+                                                    SELECT 1 FROM user_subscriptions us
+                                                    WHERE us.users_id = u.users_id AND us.us_status='active' AND (us.us_end_date IS NULL OR us.us_end_date >= NOW())
+                                                  ) THEN 1 ELSE 0 END AS has_subscription
+                                              FROM users u
+                                              WHERE COALESCE(u.users_role,'0') <> '1'
+                                              ORDER BY u.users_created_at DESC, u.users_id DESC";
+                                $ownersById = [];
+                                if ($res = mysqli_query($connections, $sqlOwners)) {
+                                    while ($row = mysqli_fetch_assoc($res)) {
+                                        $row['pets'] = [];
+                                        $owners[] = $row;
+                                        $ownersById[(int)$row['users_id']] = &$owners[array_key_last($owners)];
+                                    }
+                                    mysqli_free_result($res);
+                                }
+                                if (!empty($ownersById)) {
+                                    $ids = implode(',', array_map('intval', array_keys($ownersById)));
+                                    $sqlPets = "SELECT users_id, pets_name, pets_species, COALESCE(pets_breed,'') AS pets_breed
+                                                FROM pets WHERE users_id IN ($ids) ORDER BY pets_name";
+                                    if ($rp = mysqli_query($connections, $sqlPets)) {
+                                        while ($p = mysqli_fetch_assoc($rp)) {
+                                            $uid = (int)$p['users_id'];
+                                            if (isset($ownersById[$uid])) { $ownersById[$uid]['pets'][] = $p; }
+                                        }
+                                        mysqli_free_result($rp);
+                                    }
+                                }
+                            }
+                            ?>
+
+                            <div id="petOwnersList" class="space-y-4">
+                                <?php if (!empty($owners)): foreach ($owners as $o): ?>
+                                    <?php
+                                        $fn = (string)($o['users_firstname'] ?? '');
+                                        $ln = (string)($o['users_lastname'] ?? '');
+                                        $full = trim($fn . ' ' . $ln);
+                                        if ($full === '') $full = (string)($o['users_username'] ?? '');
+                                        $memberSince = '';
+                                        $createdRaw = (string)($o['users_created_at'] ?? '');
+                                        if ($createdRaw !== '') { $memberSince = date('n/j/Y', strtotime($createdRaw)); }
+                                        $hasSub = intval($o['has_subscription'] ?? 0) === 1;
+                                        $initials = strtoupper(substr($full,0,1));
+                                        $searchHay = strtolower($full.' '.($o['users_username']??'').' '.($o['users_email']??''));
+                                        foreach (($o['pets'] ?? []) as $pp) { $searchHay .= ' '.strtolower(($pp['pets_name']??'').' '.($pp['pets_species']??'').' '.($pp['pets_breed']??'')); }
+                                        $searchHay .= ' '.($hasSub?'active':'none');
+                                    ?>
+                                    <div class="owner-card bg-white border border-gray-200 rounded-lg p-4" data-search="<?php echo htmlspecialchars($searchHay, ENT_QUOTES, 'UTF-8'); ?>">
+                                        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                                            <!-- Owner Info -->
+                                            <div class="space-y-2">
+                                                <div class="flex items-center gap-3">
+                                                    <div class="w-12 h-12 bg-gradient-to-br from-orange-400 to-amber-500 rounded-full flex items-center justify-center text-white font-semibold">
+                                                        <?php echo htmlspecialchars($initials, ENT_QUOTES, 'UTF-8'); ?>
+                                                    </div>
+                                                    <div class="min-w-0">
+                                                        <h4 class="font-semibold truncate"><?php echo htmlspecialchars($full, ENT_QUOTES, 'UTF-8'); ?></h4>
+                                                    </div>
+                                                </div>
+                                                <div class="text-sm text-gray-600">Member since <?php echo htmlspecialchars($memberSince, ENT_QUOTES, 'UTF-8'); ?></div>
+                                                <div class="text-sm text-gray-600 flex items-center gap-2"><i data-lucide="mail" class="w-4 h-4"></i><span class="truncate"><?php echo htmlspecialchars((string)($o['users_email'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></span></div>
+                                                <div>
+                                                    <?php if ($hasSub): ?>
+                                                        <span class="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full border border-green-200">Active</span>
+                                                    <?php else: ?>
+                                                        <span class="px-2 py-1 bg-gray-100 text-gray-800 text-xs rounded-full border border-gray-200">None</span>
+                                                    <?php endif; ?>
+                                                </div>
+                                            </div>
+
+                                            <!-- Pets -->
+                                            <div class="lg:col-span-2">
+                                                <div class="flex items-center gap-2 mb-2 text-sm text-gray-700">
+                                                    <i data-lucide="paw-print" class="w-4 h-4"></i>
+                                                    <span>Registered Pets (<?php echo count($o['pets'] ?? []); ?>)</span>
+                                                </div>
+                                                <?php if (!empty($o['pets'])): ?>
+                                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                                        <?php foreach ($o['pets'] as $pet): ?>
+                                                            <div class="border rounded-lg p-3 bg-gray-50">
+                                                                <div class="font-semibold"><?php echo htmlspecialchars((string)$pet['pets_name'], ENT_QUOTES, 'UTF-8'); ?></div>
+                                                                <div class="text-sm text-gray-600">Type: <?php echo htmlspecialchars((string)$pet['pets_species'], ENT_QUOTES, 'UTF-8'); ?></div>
+                                                                <div class="text-sm text-gray-600">Breed: <?php echo htmlspecialchars((string)$pet['pets_breed'], ENT_QUOTES, 'UTF-8'); ?></div>
+                                                            </div>
+                                                        <?php endforeach; ?>
+                                                    </div>
+                                                <?php else: ?>
+                                                    <div class="text-sm text-gray-500">No registered pets.</div>
+                                                <?php endif; ?>
+                                            </div>
+                                        </div>
+                                    </div>
+                                <?php endforeach; else: ?>
+                                    <div class="text-center text-gray-500 py-8">No pet owners found.</div>
+                                <?php endif; ?>
+                            </div>
+
+                            <!-- Pagination -->
+                            <div id="petOwnersPager" class="flex items-center justify-between mt-4">
+                                <div id="ownersPageInfo" class="text-sm text-gray-600"></div>
+                                <div class="flex items-center gap-2">
+                                    <button id="ownersPrev" class="px-3 py-1.5 border rounded-md text-sm disabled:opacity-50">Prev</button>
+                                    <div id="ownersPageNums" class="flex items-center gap-1"></div>
+                                    <button id="ownersNext" class="px-3 py-1.5 border rounded-md text-sm disabled:opacity-50">Next</button>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -1322,6 +1431,14 @@ function resolveImageUrl($path) {
                                     <!-- Subscribers will be populated by JavaScript -->
                                 </tbody>
                             </table>
+                        </div>
+                        <div id="sittersPagination" class="p-4 border-t border-gray-100 flex items-center justify-between hidden">
+                            <div id="sittersPageInfo" class="text-sm text-gray-600"></div>
+                            <div class="flex items-center gap-2">
+                                <button id="sittersPrev" class="px-3 py-1.5 border border-gray-300 rounded-md text-sm text-gray-700 hover:bg-gray-50">Prev</button>
+                                <div id="sittersPageNums" class="flex items-center gap-1"></div>
+                                <button id="sittersNext" class="px-3 py-1.5 border border-gray-300 rounded-md text-sm text-gray-700 hover:bg-gray-50">Next</button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1717,9 +1834,57 @@ function resolveImageUrl($path) {
             lucide.createIcons();
             updateChart();
             // populateAppointments(); // replaced by server-rendered table
-            populatePetOwners();
             populateSubscribers();
             initProductFilters();
+
+            // Pet Owners directory: search + pagination (10/page)
+            (function initOwnersDirectory(){
+                const list = document.getElementById('petOwnersList');
+                const search = document.getElementById('petOwnersSearch');
+                const prev = document.getElementById('ownersPrev');
+                const next = document.getElementById('ownersNext');
+                const pageInfo = document.getElementById('ownersPageInfo');
+                if (!list) return;
+                const allCards = Array.from(list.querySelectorAll('.owner-card'));
+                let filtered = allCards.slice();
+                const pageSizeOwners = 10;
+                let page = 1;
+
+                function render(){
+                    // hide all
+                    allCards.forEach(c => c.style.display = 'none');
+                    const total = filtered.length;
+                    const totalPages = Math.max(1, Math.ceil(total / pageSizeOwners));
+                    if (page > totalPages) page = totalPages;
+                    const start = (page - 1) * pageSizeOwners;
+                    const end = start + pageSizeOwners;
+                    filtered.slice(start, end).forEach(c => c.style.display = '');
+                    // controls
+                    if (pageInfo) pageInfo.textContent = total ? `Showing ${start+1}-${Math.min(end,total)} of ${total}` : 'No results';
+                    if (prev) prev.disabled = page <= 1;
+                    if (next) next.disabled = page >= totalPages;
+                    const numsWrap = document.getElementById('ownersPageNums');
+                    if (numsWrap) {
+                        numsWrap.innerHTML='';
+                        const pages = paginationRange(page,totalPages,5);
+                        pages.forEach(p=>{
+                            if(p==='...') { const span=document.createElement('span'); span.textContent='...'; span.className='px-1 text-gray-500'; numsWrap.appendChild(span); }
+                            else { const b=document.createElement('button'); b.textContent=p; b.className='px-2.5 py-1 border rounded text-sm '+(p===page?'bg-gray-900 text-white border-gray-900':'hover:bg-gray-100'); b.addEventListener('click',()=>{ page=p; render(); }); numsWrap.appendChild(b);} });
+                    }
+                }
+
+                function applyFilter(){
+                    const q = (search?.value || '').trim().toLowerCase();
+                    filtered = q ? allCards.filter(c => (c.getAttribute('data-search')||'').includes(q)) : allCards.slice();
+                    page = 1; render();
+                }
+
+                if (search) search.addEventListener('input', applyFilter);
+                if (prev) prev.addEventListener('click', ()=>{ if (page>1){ page--; render(); }});
+                if (next) next.addEventListener('click', ()=>{ page++; render(); });
+
+                applyFilter();
+            })();
 
             // Appointments filtering and actions (single All table)
             (function initAppointments(){
@@ -1757,13 +1922,24 @@ function resolveImageUrl($path) {
                     return true;
                 }
 
-                function applyFilters(){
-                    let anyVisible = false;
-                    allRows.forEach(tr => {
-                        const show = matchesFilters(tr);
-                        tr.style.display = show ? '' : 'none';
-                        if (show) anyVisible = true;
-                    });
+                // Appointments filtering + pagination (10/page)
+                const apptPageSize = 10;
+                let apptPage = 1;
+
+                function visibleRows(){ return allRows.filter(tr => tr.style.display !== 'none'); }
+
+                function paginateAppointments(){
+                    const rows = allRows.filter(tr => tr.__matches || false);
+                    const total = rows.length;
+                    const totalPages = Math.max(1, Math.ceil(total / apptPageSize));
+                    if (apptPage > totalPages) apptPage = totalPages;
+                    // hide all
+                    allRows.forEach(r => r.style.display = 'none');
+                    const start = (apptPage - 1) * apptPageSize;
+                    const end = start + apptPageSize;
+                    rows.slice(start, end).forEach(r => r.style.display = '');
+                    // Empty state row when no visible
+                    const anyVisible = rows.slice(start,end).length > 0;
                     const colSpan = table.querySelector('thead tr').children.length;
                     let emptyRow = table.querySelector('tbody tr[data-empty]');
                     if (!anyVisible) {
@@ -1776,6 +1952,54 @@ function resolveImageUrl($path) {
                     } else if (emptyRow) {
                         emptyRow.remove();
                     }
+                    updateApptPager(total, apptPage, totalPages, start, end);
+                }
+
+                function updateApptPager(total, page, totalPages, start, end){
+                    let pager = document.getElementById('appointmentsPager');
+                    if (!pager) return; // pager may be injected below
+                    const info = pager.querySelector('#appointmentsPageInfo');
+                    const prev = pager.querySelector('#appointmentsPrev');
+                    const next = pager.querySelector('#appointmentsNext');
+                    const numsWrap = pager.querySelector('#appointmentsPageNums');
+                    if (info) info.textContent = total ? `Showing ${start+1}-${Math.min(end,total)} of ${total}` : 'No results';
+                    if (prev) prev.disabled = page <= 1;
+                    if (next) next.disabled = page >= totalPages;
+                    if (numsWrap) {
+                        numsWrap.innerHTML='';
+                        const pages = paginationRange(page,totalPages,5);
+                        pages.forEach(p=>{ if(p==='...'){ const span=document.createElement('span'); span.textContent='...'; span.className='px-1 text-gray-500'; numsWrap.appendChild(span);} else { const b=document.createElement('button'); b.textContent=p; b.className='px-2.5 py-1 border rounded text-sm '+(p===page?'bg-gray-900 text-white border-gray-900':'hover:bg-gray-100'); b.addEventListener('click',()=>{ apptPage=p; paginateAppointments(); }); numsWrap.appendChild(b);} });
+                    }
+                }
+
+                function ensureApptPager(){
+                    if (document.getElementById('appointmentsPager')) return;
+                    const wrapper = table.parentElement?.parentElement; // card body -> table wrapper
+                    const pager = document.createElement('div');
+                    pager.id = 'appointmentsPager';
+                    pager.className = 'flex items-center justify-between px-4 py-3 border-t';
+                    pager.innerHTML = `
+                        <div id=\"appointmentsPageInfo\" class=\"text-sm text-gray-600\"></div>
+                        <div class=\"flex items-center gap-2\">
+                            <button id=\"appointmentsPrev\" class=\"px-3 py-1.5 border rounded-md text-sm disabled:opacity-50\">Prev</button>
+                            <div id=\"appointmentsPageNums\" class=\"flex items-center gap-1\"></div>
+                            <button id=\"appointmentsNext\" class=\"px-3 py-1.5 border rounded-md text-sm disabled:opacity-50\">Next</button>
+                        </div>`;
+                    wrapper.appendChild(pager);
+                    pager.querySelector('#appointmentsPrev').addEventListener('click', ()=>{ if (apptPage>1){ apptPage--; paginateAppointments(); } });
+                    pager.querySelector('#appointmentsNext').addEventListener('click', ()=>{ apptPage++; paginateAppointments(); });
+                }
+
+                function applyFilters(){
+                    let anyVisible = false;
+                    allRows.forEach(tr => {
+                        const show = matchesFilters(tr);
+                        tr.__matches = !!show;
+                        if (show) anyVisible = true;
+                    });
+                    ensureApptPager();
+                    apptPage = 1;
+                    paginateAppointments();
                 }
 
                 tabs.forEach(btn => btn.addEventListener('click', () => {
@@ -1878,6 +2102,7 @@ function resolveImageUrl($path) {
                             const data = await res.json();
                             if (!data.success) { alert(data.error||'Delete failed'); return; }
                             tr.remove();
+                            allRows.splice(allRows.indexOf(tr),1);
                             applyFilters();
                         } catch(err){ alert('Network error deleting'); }
                     }
@@ -2112,71 +2337,7 @@ function resolveImageUrl($path) {
             lucide.createIcons();
         }
 
-        function populatePetOwners() {
-            const container = document.getElementById('petOwnersContainer');
-            container.innerHTML = mockPetOwners.map(owner => `
-                <div class="bg-white border border-gray-200 rounded-lg p-4">
-                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                        <!-- Owner Info -->
-                        <div class="space-y-2">
-                            <div class="flex items-center gap-3">
-                                <div class="w-12 h-12 bg-gradient-to-br from-orange-400 to-amber-500 rounded-full flex items-center justify-center text-white font-semibold">
-                                    ${owner.name.split(' ').map(n => n[0]).join('')}
-                                </div>
-                                <div>
-                                    <h4 class="font-semibold">${owner.name}</h4>
-                                    <p class="text-sm text-gray-600">
-                                        Member since ${new Date(owner.joinDate).toLocaleDateString()}
-                                    </p>
-                                </div>
-                            </div>
-                            <div class="space-y-1 text-sm">
-                                <div class="flex items-center gap-2">
-                                    <i data-lucide="mail" class="w-4 h-4 text-gray-600"></i>
-                                    <span>${owner.email}</span>
-                                </div>
-                                <div class="flex items-center gap-2">
-                                    <i data-lucide="phone" class="w-4 h-4 text-gray-600"></i>
-                                    <span>${owner.phone}</span>
-                                </div>
-                            </div>
-                            <div class="flex items-center gap-4 text-sm">
-                                <div>
-                                    <span class="font-medium">${owner.totalBookings}</span>
-                                    <span class="text-gray-600"> bookings</span>
-                                </div>
-                                <span class="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">Active</span>
-                            </div>
-                        </div>
-
-                        <!-- Pets Info -->
-                        <div class="lg:col-span-2">
-                            <h5 class="font-medium mb-3 flex items-center gap-2">
-                                <i data-lucide="paw-print" class="w-4 h-4"></i>
-                                Registered Pets (${owner.pets.length})
-                            </h5>
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                ${owner.pets.map(pet => `
-                                    <div class="bg-gray-50 rounded-lg p-3 space-y-2">
-                                        <div class="flex items-center justify-between">
-                                            <h6 class="font-medium">${pet.name}</h6>
-                                            <span class="px-2 py-1 bg-gray-200 text-gray-800 text-xs rounded-full">
-                                                ${pet.age} years old
-                                            </span>
-                                        </div>
-                                        <div class="text-sm text-gray-600 space-y-1">
-                                            <p><strong>Type:</strong> ${pet.type}</p>
-                                            <p><strong>Breed:</strong> ${pet.breed}</p>
-                                        </div>
-                                    </div>
-                                `).join('')}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `).join('');
-            lucide.createIcons();
-        }
+        // removed legacy populatePetOwners(); owners are server-rendered and paginated
 
         function populateSubscribers() {
             const tbody = document.getElementById('subscribersTableBody');
@@ -2608,16 +2769,32 @@ function resolveImageUrl($path) {
             const pageRows = matches.slice(start, end);
             pageRows.forEach(r => { r.style.display = ''; });
 
+            const numsWrap = document.getElementById('productsPageNums');
+            if (numsWrap) numsWrap.innerHTML = '';
             if (total > pageSize) {
                 pagination.classList.remove('hidden');
                 pageInfo.textContent = `Page ${currentProductsPage} of ${totalPages} • ${total} item${total === 1 ? '' : 's'}`;
+                // numeric buttons range
+                const pages = paginationRange(currentProductsPage, totalPages, 5);
+                pages.forEach(p => {
+                    if (p === '...') {
+                        const span = document.createElement('span');
+                        span.textContent = '...';
+                        span.className = 'px-1 text-gray-500';
+                        numsWrap.appendChild(span);
+                    } else {
+                        const btn = document.createElement('button');
+                        btn.textContent = p;
+                        btn.className = 'px-2.5 py-1 border rounded text-sm ' + (p === currentProductsPage ? 'bg-gray-900 text-white border-gray-900' : 'hover:bg-gray-100');
+                        btn.addEventListener('click', () => { currentProductsPage = p; applyProductFilters(); });
+                        numsWrap.appendChild(btn);
+                    }
+                });
                 prevBtn.disabled = currentProductsPage === 1;
                 nextBtn.disabled = currentProductsPage === totalPages;
                 prevBtn.classList.toggle('opacity-50', prevBtn.disabled);
                 nextBtn.classList.toggle('opacity-50', nextBtn.disabled);
-            } else {
-                pagination.classList.add('hidden');
-            }
+            } else { pagination.classList.add('hidden'); }
         }
 
         // Pagination controls
@@ -2627,6 +2804,10 @@ function resolveImageUrl($path) {
             if (prev) { if (currentProductsPage > 1) { currentProductsPage--; applyProductFilters(); } }
             if (next) { currentProductsPage++; applyProductFilters(); }
         });
+        function paginationRange(current,total,maxButtons){
+            const range=[]; if(total<=maxButtons){ for(let i=1;i<=total;i++) range.push(i); return range; }
+            const half=Math.floor(maxButtons/2); let start=Math.max(1,current-half); let end=start+maxButtons-1; if(end>total){end=total; start=end-maxButtons+1;} if(start>1){ range.push(1); if(start>2) range.push('...'); } for(let i=start;i<=end;i++) range.push(i); if(end<total){ if(end<total-1) range.push('...'); range.push(total);} return range;
+        }
     </script>
 </body>
 </html>

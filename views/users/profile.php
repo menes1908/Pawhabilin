@@ -267,6 +267,8 @@ $username = (string)($sessionUser['users_username'] ?? '');
 $email = (string)($sessionUser['users_email'] ?? '');
 
 $memberSince = '';
+$subscriptionStatus = 'None';
+$subscriptionDate = '';
 if (isset($connections) && $connections && $usersId > 0) {
     if ($stmt = mysqli_prepare($connections, 'SELECT users_created_at FROM users WHERE users_id = ? LIMIT 1')) {
         mysqli_stmt_bind_param($stmt, 'i', $usersId);
@@ -277,6 +279,21 @@ if (isset($connections) && $connections && $usersId > 0) {
             if ($createdAt !== '') {
                 $memberSince = substr($createdAt, 0, 10);
             }
+        }
+        mysqli_stmt_close($stmt);
+    }
+}
+
+// Determine subscription (active) and its start date
+if (isset($connections) && $connections && $usersId > 0) {
+    $sqlSub = "SELECT us.us_status, us.us_start_date FROM user_subscriptions us WHERE us.users_id = ? AND us.us_status = 'active' AND (us.us_end_date IS NULL OR us.us_end_date >= NOW()) ORDER BY us.us_start_date DESC LIMIT 1";
+    if ($stmt = mysqli_prepare($connections, $sqlSub)) {
+        mysqli_stmt_bind_param($stmt, 'i', $usersId);
+        mysqli_stmt_execute($stmt);
+        $res = mysqli_stmt_get_result($stmt);
+        if ($row = mysqli_fetch_assoc($res)) {
+            $subscriptionStatus = 'Active';
+            $subscriptionDate = date('M d, Y', strtotime((string)$row['us_start_date']));
         }
         mysqli_stmt_close($stmt);
     }
@@ -905,10 +922,15 @@ $bookedCount = count($bookedAppointments);
                             
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-2">
-                                    <i data-lucide="phone" class="w-4 h-4 inline mr-2"></i>
-                                    Phone Number
+                                    <i data-lucide="star" class="w-4 h-4 inline mr-2"></i>
+                                    Subscription
                                 </label>
-                                <input type="tel" id="phone" name="phone" value="+63 912 345 6789" class="input-field w-full px-4 py-3 rounded-lg outline-none" readonly>
+                                <div class="w-full px-4 py-3 rounded-lg bg-white/70 border border-orange-200 text-sm flex items-center justify-between">
+                                    <span><?php echo htmlspecialchars($subscriptionStatus, ENT_QUOTES, 'UTF-8'); ?><?php if($subscriptionStatus==='Active' && $subscriptionDate!==''): ?> — since <?php echo htmlspecialchars($subscriptionDate, ENT_QUOTES, 'UTF-8'); ?><?php endif; ?></span>
+                                    <?php if($subscriptionStatus==='None'): ?>
+                                        <a href="subscriptions.php" class="text-orange-600 hover:underline text-xs font-medium">Upgrade</a>
+                                    <?php endif; ?>
+                                </div>
                             </div>
                             
                             <div>
@@ -1205,7 +1227,7 @@ $bookedCount = count($bookedAppointments);
 
         // Profile editing functions
         function editProfile() {
-            const inputs = ['firstName', 'lastName', 'username', 'email', 'phone'];
+            const inputs = ['firstName', 'lastName', 'username', 'email'];
             const editBtn = document.getElementById('editProfileBtn');
             
             if (!isEditingProfile) {

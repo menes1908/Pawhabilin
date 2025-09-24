@@ -28,8 +28,17 @@ if(($_GET['partial']??'')==='1'){
                     <div>
                         <h3 class="text-lg font-bold text-gray-800 mb-1"><?= h($p['products_name']) ?></h3>
                         <div class="flex items-center gap-2 mb-2">
-                            <div class="text-xs font-medium uppercase tracking-wide text-gray-500"><?= h(product_category_label($p['products_category'])) ?></div>
-                            <span class="text-xs text-gray-400">Stock: <?= $stock ?></span>
+                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-orange-50 text-orange-700 border border-orange-200 text-[10px]">
+                                <i data-lucide="tags" class="w-3 h-3"></i>
+                                <?= h(product_category_label($p['products_category'])) ?>
+                            </span>
+                            <?php if(!empty($p['products_pet_type'])): ?>
+                                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200 text-[10px]">
+                                    <i data-lucide="paw-print" class="w-3 h-3"></i>
+                                    <?= h($p['products_pet_type']) ?>
+                                </span>
+                            <?php endif; ?>
+                            <span class="text-[10px] text-gray-400">Stock: <?= $stock ?></span>
                         </div>
                     </div>
                     <div class="flex items-center justify-between">
@@ -148,6 +157,16 @@ if(($_GET['partial']??'')==='1'){
         @keyframes gradient-shift {
             0%, 100% { background-position: 0% 50%; }
             50% { background-position: 100% 50%; }
+        }
+        .animated-gradient {
+            background-size: 200% 200%;
+            animation: gradient-shift 14s ease infinite;
+        }
+        /* Guided hero background per provided snippet */
+        .gradient-bg {
+            background: linear-gradient(-45deg, #f97316, #fb923c, #fbbf24, #f59e0b);
+            background-size: 400% 400%;
+            animation: gradient-shift 6s ease infinite;
         }
         
         @keyframes wiggle {
@@ -275,14 +294,20 @@ if(($_GET['partial']??'')==='1'){
             visibility: visible;
         }
         
-    .category-tabs { display:flex; gap:10px; margin:20px 0 32px; flex-wrap:nowrap; justify-content:center; overflow:hidden; padding-bottom:4px; width:100%; }
+    .category-tabs { display:flex; gap:14px; margin:20px 0 32px; flex-wrap:wrap; justify-content:center; overflow:visible; padding-bottom:6px; width:100%; }
     .category-tabs::-webkit-scrollbar { height:8px; }
     .category-tabs::-webkit-scrollbar-track { background:transparent; }
     .category-tabs::-webkit-scrollbar-thumb { background:linear-gradient(45deg,#f97316,#fb923c); border-radius:4px; }
-        .category-tab { padding:12px 16px; border-radius:25px; background:#fff; border:2px solid #e5e7eb; cursor:pointer; transition:all .3s ease; font-weight:500; position:relative; overflow:hidden; display:inline-flex; align-items:center; line-height:1.15; justify-content:center; flex:1 1 0; min-width:0; font-size:14px; }
-        .category-tab i { margin-right:6px; }
+        .category-tab { padding:14px 32px; border-radius:25px; background:#fff; border:2px solid #e5e7eb; cursor:pointer; transition:all .3s ease; font-weight:500; position:relative; overflow:hidden; display:inline-flex; align-items:center; line-height:1.15; justify-content:center; flex:1 1 220px; min-width:220px; font-size:15px; }
+        @media (min-width: 768px){
+            .category-tabs{ flex-wrap:nowrap; }
+            .category-tab{ flex:1 1 0; min-width:180px; }
+        }
+        @media (min-width: 1280px){
+            .category-tab{ min-width:220px; }
+        }
         @media (max-width:640px){
-            .category-tab { padding:10px 10px; font-size:12px; }
+            .category-tab { padding:12px 20px; font-size:13px; }
         }
     .category-tab i { margin-right:8px; }
         .category-tab::before { content:''; position:absolute; top:0; left:-100%; width:100%; height:100%; background:linear-gradient(90deg,transparent,rgba(249,115,22,.1),transparent); transition:left .5s ease; }
@@ -329,7 +354,8 @@ if(($_GET['partial']??'')==='1'){
         /* Search and Filter */
         .search-container {
             position: relative;
-            max-width: 400px;
+            width: 100%;
+            max-width: 1000px;
             margin: 0 auto 32px;
         }
         
@@ -489,21 +515,26 @@ if(($_GET['partial']??'')==='1'){
         </div>
     </header>
 
-    <!-- Floating background elements -->
-    <div class="fixed inset-0 overflow-hidden pointer-events-none z-0">
-        <div class="floating-element absolute top-20 left-10 opacity-20">
-            <i data-lucide="paw-print" class="w-16 h-16 text-orange-300 transform rotate-12"></i>
+    <!-- Hero Section (updated per provided guide) -->
+    <section id="shop-hero" class="relative py-16 overflow-hidden gradient-bg">
+        <!-- Floating background elements (scoped to hero) -->
+        <div class="absolute inset-0 overflow-hidden pointer-events-none z-0">
+            <div class="absolute top-20 left-10 opacity-20" data-parallax="0.18">
+                <div class="floating-element">
+                    <i data-lucide="paw-print" class="w-16 h-16 text-orange-200 rotate-12"></i>
+                </div>
+            </div>
+            <div class="absolute top-40 right-20 opacity-20" data-parallax="0.12">
+                <div class="floating-element">
+                    <i data-lucide="gift" class="w-12 h-12 text-amber-200 -rotate-12"></i>
+                </div>
+            </div>
+            <div class="absolute bottom-20 left-16 opacity-20" data-parallax="0.15">
+                <div class="floating-element">
+                    <i data-lucide="heart" class="w-14 h-14 text-orange-100 rotate-45"></i>
+                </div>
+            </div>
         </div>
-        <div class="floating-element absolute top-40 right-20 opacity-20">
-            <i data-lucide="gift" class="w-12 h-12 text-amber-300 transform -rotate-12"></i>
-        </div>
-        <div class="floating-element absolute bottom-40 left-16 opacity-20">
-            <i data-lucide="heart" class="w-14 h-14 text-orange-200 transform rotate-45"></i>
-        </div>
-    </div>
-
-    <!-- Hero Section -->
-    <section class="relative py-16 overflow-hidden gradient-bg">
         <div class="container mx-auto px-4 relative z-10">
             <div class="max-w-4xl mx-auto text-center text-white">
                 <div class="space-y-8 slide-in-up">
@@ -662,16 +693,20 @@ if(($_GET['partial']??'')==='1'){
                                 </div>
                                 <div class="category-tabs" id="category-tabs">
                                     <?php
-                                        $catLabels=[''=>'All Products','food'=>'Feeding & Water','accessory'=>'Collars & Leashes','toy'=>'Toys & Entertainment','necessity'=>'Grooming Tools'];
-                                        $catIcons=[''=>'grid-3x3','food'=>'bowl','accessory'=>'circle','toy'=>'gamepad-2','necessity'=>'scissors'];
-                                        $activeCat = $cat === '' ? 'all' : $cat;
-                                        foreach($catLabels as $k=>$label){
-                                            $icon=$catIcons[$k] ?? 'paw-print';
-                                            $dataCat = $k==='' ? 'all' : $k;
-                                            $activeClass = $activeCat === $dataCat ? 'active' : '';
-                                            echo '<button type="button" data-cat="'.h($dataCat).'" class="category-tab '.h($activeClass).'">'
-                                                .'<i data-lucide="'.h($icon).'" class="w-4 h-4"></i>'
-                                                .h($label).'</button>';
+                                        // Using the requested design/order; mapped to existing backend categories
+                                        $tabs = [
+                                            ['key'=>'',          'data'=>'all',       'label'=>'All Products',        'icon'=>'grid-3x3'],
+                                            ['key'=>'accessory', 'data'=>'accessory', 'label'=>'Collars & Leashes',   'icon'=>'circle'],
+                                            ['key'=>'toy',       'data'=>'toy',       'label'=>'Toys & Entertainment','icon'=>'gamepad-2'],
+                                            ['key'=>'necessity', 'data'=>'necessity', 'label'=>'Grooming Tools',      'icon'=>'scissors'],
+                                            ['key'=>'food',      'data'=>'food',      'label'=>'Feeding & Water',     'icon'=>'bowl'],
+                                        ];
+                                        $activeData = $cat === '' ? 'all' : $cat;
+                                        foreach($tabs as $t){
+                                            $isActive = ($activeData === $t['data']) ? 'active' : '';
+                                            echo '<button type="button" data-cat="'.h($t['data']).'" class="category-tab '.h($isActive).'">'
+                                                .'<i data-lucide="'.h($t['icon']).'" class="w-4 h-4 mr-2 inline"></i>'
+                                                .h($t['label']).'</button>';
                                         }
                                     ?>
                                 </div>
@@ -694,8 +729,17 @@ if(($_GET['partial']??'')==='1'){
                                         <div>
                                             <h3 class="text-lg font-bold text-gray-800 mb-1"><?= h($p['products_name']) ?></h3>
                                             <div class="flex items-center gap-2 mb-2">
-                                                <div class="text-xs font-medium uppercase tracking-wide text-gray-500"><?= h(product_category_label($p['products_category'])) ?></div>
-                                                <span class="text-xs text-gray-400">Stock: <?= $stock ?></span>
+                                                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-orange-50 text-orange-700 border border-orange-200 text-[10px]">
+                                                    <i data-lucide="tags" class="w-3 h-3"></i>
+                                                    <?= h(product_category_label($p['products_category'])) ?>
+                                                </span>
+                                                <?php if(!empty($p['products_pet_type'])): ?>
+                                                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200 text-[10px]">
+                                                        <i data-lucide="paw-print" class="w-3 h-3"></i>
+                                                        <?= h($p['products_pet_type']) ?>
+                                                    </span>
+                                                <?php endif; ?>
+                                                <span class="text-[10px] text-gray-400">Stock: <?= $stock ?></span>
                                             </div>
                                         </div>
                                         <div class="flex items-center justify-between">
@@ -751,9 +795,11 @@ if(($_GET['partial']??'')==='1'){
             <div class="h-12 bg-gray-200 rounded-lg"></div>
         </div>`;
     ensureDrawerRoot();
+    try{ setDrawerTitle('Quick View'); }catch(_){}
     drawer.classList.add('open'); overlay.classList.add('open'); document.body.style.overflow='hidden';
         try {
-            const res = await fetch('product_view.php?id='+encodeURIComponent(id), {headers:{'Accept':'application/json'}});
+            // Fetch product JSON details from server endpoint
+            const res = await fetch('shop/product_view.php?id='+encodeURIComponent(id), {headers:{'Accept':'application/json'}});
             if(!res.ok) throw new Error('Not found');
             const p = await res.json();
             renderQuickView(p);
@@ -762,15 +808,30 @@ if(($_GET['partial']??'')==='1'){
         }
     }
     function renderQuickView(p){
+        // Map backend categories to display labels (client-side)
+        const catLabelMap={
+            'accessory':'Collars & Leashes',
+            'toy':'Toys & Entertainment',
+            'necessity':'Grooming Tools',
+            'food':'Feeding & Water'
+        };
+        const catLabel = catLabelMap[p.category] || (p.category || '').toString();
         // Rating, badge, and variant options removed (columns dropped from DB)
-        const discount=(p.originalPrice&&p.originalPrice>p.price)?Math.round(((p.originalPrice-p.price)/p.originalPrice)*100):0;
+        const discount=(typeof p.discountPercent==='number')?p.discountPercent:((p.originalPrice&&p.originalPrice>p.price)?Math.round(((p.originalPrice-p.price)/p.originalPrice)*100):0);
+        const outOfStock = !p.stock || p.stock<=0;
         const content=`<div class="space-y-6">
             <div class=\"aspect-square w-full rounded-lg overflow-hidden bg-gray-100 flex items-center justify-center\">${p.image?`<img src=\"${p.image}\" alt=\"${escapeHtml(p.name)}\" class=\"w-full h-full object-cover\">`:'<div class=\"text-xs text-gray-400\">No Image</div>'}</div>
             <div>
                 <h3 class=\"text-2xl font-bold text-gray-800 mb-2\">${escapeHtml(p.name)}</h3>
+                <div class=\"flex flex-wrap items-center gap-2 mb-3 text-xs\">
+                    ${catLabel?`<span class=\"inline-flex items-center gap-1 px-2 py-1 rounded-full bg-orange-50 text-orange-700 border border-orange-200\"><i data-lucide=\"tags\" class=\"w-3 h-3\"></i>${escapeHtml(catLabel)}</span>`:''}
+                    ${p.pet_type?`<span class=\"inline-flex items-center gap-1 px-2 py-1 rounded-full bg-amber-50 text-amber-700 border border-amber-200\"><i data-lucide=\"paw-print\" class=\"w-3 h-3\"></i>${escapeHtml(p.pet_type)}</span>`:''}
+                    ${typeof p.stock!=='undefined'?`<span class=\"inline-flex items-center gap-1 px-2 py-1 rounded-full bg-gray-50 text-gray-700 border border-gray-200\"><i data-lucide=\"boxes\" class=\"w-3 h-3\"></i>Stock: ${p.stock}</span>`:''}
+                    ${discount>0?`<span class=\"inline-flex items-center gap-1 px-2 py-1 rounded-full bg-red-50 text-red-700 border border-red-200\"><i data-lucide=\"badge-percent\" class=\"w-3 h-3\"></i>${discount}% OFF</span>`:''}
+                </div>
                 <p class=\"text-gray-600 mb-4 whitespace-pre-line\">${escapeHtml(p.description||'No description.')}</p>
                 <div class=\"flex items-center gap-4 mb-6\">\n                    <span class=\"text-2xl font-bold text-orange-600\">₱${numberFormat(p.price)}</span>\n                    ${p.originalPrice&&p.originalPrice>p.price?`<span class=\\"text-lg text-gray-500 line-through\\">₱${numberFormat(p.originalPrice)}</span>`:''}\n                    ${discount>0?`<span class=\\"text-xs bg-red-100 text-red-600 px-2 py-1 rounded-full font-semibold\\">${discount}% OFF</span>`:''}\n                </div>
-                <form method=\"post\" action=\"shop/cart_add.php\" class=\"space-y-4 ajax-cart-add\" data-product-id=\"${p.id}\">\n                    <input type=\"hidden\" name=\"csrf\" value=\"<?= h($csrf) ?>\" />\n                    <input type=\"hidden\" name=\"product_id\" value=\"${p.id}\" />\n                    <div class=\"flex items-center gap-3\">\n                        <span class=\"text-xs font-medium text-gray-500\">Quantity</span>\n                        <div class=\"inline-flex items-center rounded-full border border-gray-300 overflow-hidden bg-white shadow-sm\">\n                            <button type=\"button\" class=\"qty-btn px-3 py-1 text-gray-600 hover:bg-gray-100 focus:outline-none focus:bg-gray-100 text-sm\" data-delta=\"-1\" aria-label=\"Decrease quantity\">-</button>\n                            <input name=\"qty\" value=\"1\" min=\"1\" max=\"${p.stock||99}\" type=\"number\" class=\"w-12 text-center text-sm border-0 focus:ring-0 focus:outline-none hide-number-spinner\" />\n                            <button type=\"button\" class=\"qty-btn px-3 py-1 text-gray-600 hover:bg-gray-100 focus:outline-none focus:bg-gray-100 text-sm\" data-delta=\"1\" aria-label=\"Increase quantity\">+</button>\n                        </div>\n                        ${p.stock?`<span class=\\"text-[10px] text-gray-400\\">Stock: ${p.stock}</span>`:''}\n                    </div>\n                    <button type=\"submit\" class=\"w-full bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white font-semibold py-3 px-6 rounded-lg transition-all duration-200 flex items-center justify-center gap-2\">\n                        <i data-lucide=\"shopping-cart\" class=\"w-5 h-5\"></i> Add to Cart\n                    </button>\n                </form>
+                <form method=\"post\" action=\"shop/cart_add.php\" class=\"space-y-4 ajax-cart-add\" data-product-id=\"${p.id}\">\n                    <input type=\"hidden\" name=\"csrf\" value=\"<?= h($csrf) ?>\" />\n                    <input type=\"hidden\" name=\"product_id\" value=\"${p.id}\" />\n                    <div class=\"flex items-center gap-3\">\n                        <span class=\"text-xs font-medium text-gray-500\">Quantity</span>\n                        <div class=\"inline-flex items-center rounded-full border border-gray-300 overflow-hidden bg-white shadow-sm\">\n                            <button type=\"button\" class=\"qty-btn px-3 py-1 text-gray-600 hover:bg-gray-100 focus:outline-none focus:bg-gray-100 text-sm\" data-delta=\"-1\" aria-label=\"Decrease quantity\" ${outOfStock?'disabled':''}>-</button>\n                            <input name=\"qty\" value=\"1\" min=\"1\" max=\"${p.stock||0}\" type=\"number\" class=\"w-12 text-center text-sm border-0 focus:ring-0 focus:outline-none hide-number-spinner\" ${outOfStock?'disabled':''} />\n                            <button type=\"button\" class=\"qty-btn px-3 py-1 text-gray-600 hover:bg-gray-100 focus:outline-none focus:bg-gray-100 text-sm\" data-delta=\"1\" aria-label=\"Increase quantity\" ${outOfStock?'disabled':''}>+</button>\n                        </div>\n                        ${p.stock?`<span class=\\"text-[10px] text-gray-400\\">Stock: ${p.stock}</span>`:'<span class=\\"text-[10px] text-red-500\\">Out of stock</span>'}\n                    </div>\n                    <button type=\"submit\" class=\"w-full ${outOfStock?'bg-gray-300 cursor-not-allowed':'bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700'} text-white font-semibold py-3 px-6 rounded-lg transition-all duration-200 flex items-center justify-center gap-2\" ${outOfStock?'disabled':''}>\n                        <i data-lucide=\"shopping-cart\" class=\"w-5 h-5\"></i> ${outOfStock?'Unavailable':'Add to Cart'}\n                    </button>\n                </form>
             </div>
         </div>`;
         document.getElementById('quick-view-content').innerHTML=content;
@@ -778,6 +839,8 @@ if(($_GET['partial']??'')==='1'){
         document.getElementById('drawer-overlay').classList.add('open');
         document.body.style.overflow='hidden';
         if(window.lucide) lucide.createIcons();
+    // Bind AJAX cart handlers for newly injected form
+    try{ initAjaxCart(); }catch(_){}
         // Quantity pill handlers
         const qtyInput = document.querySelector('#quick-view-content input[name="qty"]');
         document.querySelectorAll('#quick-view-content .qty-btn').forEach(qb=>{
@@ -804,22 +867,62 @@ if(($_GET['partial']??'')==='1'){
             drawer.id='quick-view-drawer';
             drawer.className='quick-view-drawer';
             drawer.innerHTML=`<div class="p-6 border-b border-gray-200 flex items-center justify-between sticky top-0 bg-white z-10">
-                <h3 class="text-xl font-bold flex items-center gap-2"><i data-lucide="eye" class="w-5 h-5"></i> Quick View</h3>
-                <button type="button" class="p-2 rounded-full hover:bg-gray-100 transition-colors" aria-label="Close Quick View" onclick="closeQuickView()"><i data-lucide="x" class="w-5 h-5"></i></button>
-            </div><div id="quick-view-content" class="p-6"></div>`;
+                <h3 id="drawer-title" class="text-xl font-bold flex items-center gap-2"><i data-lucide="eye" class="w-5 h-5"></i> Quick View</h3>
+                <div class="flex items-center gap-2">
+                    <button type="button" id="drawer-cart-btn" class="relative p-2 rounded-full hover:bg-gray-100 transition-colors" aria-label="Open Cart" onclick="openCartFromHeader()">
+                        <i data-lucide="shopping-cart" class="w-5 h-5"></i>
+                        <span id="drawer-cart-count" class="absolute -top-1 -right-1 min-w-[18px] h-4 px-1 bg-red-500 text-[10px] leading-4 font-semibold rounded-full text-white text-center">0</span>
+                    </button>
+                    <button type="button" class="p-2 rounded-full hover:bg-gray-100 transition-colors" aria-label="Close Quick View" onclick="closeQuickView()"><i data-lucide="x" class="w-5 h-5"></i></button>
+                </div>
+            </div>
+            <div id="drawer-notification-slot" class="px-6 py-3 hidden"></div>
+            <div id="quick-view-content" class="p-6"></div>`;
             document.body.appendChild(drawer);
         } else {
             // Ensure header bar exists (in case of earlier markup changes)
             if(!drawer.querySelector('#quick-view-content')){
                 drawer.innerHTML=`<div class="p-6 border-b border-gray-200 flex items-center justify-between sticky top-0 bg-white z-10">
-                    <h3 class="text-xl font-bold flex items-center gap-2"><i data-lucide="eye" class="w-5 h-5"></i> Quick View</h3>
-                    <button type="button" class="p-2 rounded-full hover:bg-gray-100 transition-colors" aria-label="Close Quick View" onclick="closeQuickView()"><i data-lucide="x" class="w-5 h-5"></i></button>
-                </div><div id="quick-view-content" class="p-6"></div>`;
+                    <h3 id="drawer-title" class="text-xl font-bold flex items-center gap-2"><i data-lucide="eye" class="w-5 h-5"></i> Quick View</h3>
+                    <div class="flex items-center gap-2">
+                        <button type="button" id="drawer-cart-btn" class="relative p-2 rounded-full hover:bg-gray-100 transition-colors" aria-label="Open Cart" onclick="openCartFromHeader()">
+                            <i data-lucide="shopping-cart" class="w-5 h-5"></i>
+                            <span id="drawer-cart-count" class="absolute -top-1 -right-1 min-w-[18px] h-4 px-1 bg-red-500 text-[10px] leading-4 font-semibold rounded-full text-white text-center">0</span>
+                        </button>
+                        <button type="button" class="p-2 rounded-full hover:bg-gray-100 transition-colors" aria-label="Close Quick View" onclick="closeQuickView()"><i data-lucide="x" class="w-5 h-5"></i></button>
+                    </div>
+                </div>
+                <div id="drawer-notification-slot" class="px-6 py-3 hidden"></div>
+                <div id="quick-view-content" class="p-6"></div>`;
             }
         }
         // Boost z-index directly to avoid any stacking context issues
         drawer.style.zIndex='10050';
         overlay.style.zIndex='10040';
+        if(window.lucide) lucide.createIcons();
+        try{ syncDrawerCartCount(); }catch(_){}
+    }
+
+    function setDrawerTitle(t){ const el=document.getElementById('drawer-title'); if(el) el.textContent=t; }
+    function openCartFromHeader(){ toggleCart(); }
+    function syncDrawerCartCount(){
+        const main=document.getElementById('cart-count');
+        const v = main ? (main.textContent||'0') : '0';
+        const el = document.getElementById('drawer-cart-count');
+        if(el) el.textContent = v;
+    }
+    function showDrawerNotification(message, type='success'){
+        const drawer=document.getElementById('quick-view-drawer');
+        if(!drawer || !drawer.classList.contains('open')) return;
+        const slot = document.getElementById('drawer-notification-slot');
+        if(!slot) return;
+        const color = type==='success' ? 'bg-green-100 text-green-800 border-green-200' : (type==='info' ? 'bg-blue-100 text-blue-800 border-blue-200' : 'bg-red-100 text-red-800 border-red-200');
+        const icon = type==='success' ? 'check-circle' : (type==='info' ? 'info' : 'alert-circle');
+        slot.innerHTML = `<div class="flex items-center gap-2 px-3 py-2 border rounded-md ${color}"><i data-lucide="${icon}" class="w-4 h-4"></i><span class="text-sm">${message}</span></div>`;
+        slot.classList.remove('hidden');
+        if(window.lucide) lucide.createIcons();
+        clearTimeout(slot._timer);
+        slot._timer = setTimeout(()=>{ slot.classList.add('hidden'); slot.innerHTML=''; }, 2200);
     }
 
     // Minimal cart stub (legacy JS cart removed)
@@ -849,6 +952,7 @@ if(($_GET['partial']??'')==='1'){
             <div class="pt-2 flex justify-between font-semibold"><span>Total:</span><span>₱${numberFormat(total)}</span></div>
             <button onclick="proceedToCheckout()" class="w-full bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white font-semibold py-3 px-6 rounded-lg transition-all">Checkout</button>
         </div>`;
+        try{ setDrawerTitle('Cart'); }catch(_){}
         document.getElementById('quick-view-content').innerHTML=html;
         document.getElementById('quick-view-drawer').classList.add('open');
         document.getElementById('drawer-overlay').classList.add('open');
@@ -870,10 +974,12 @@ if(($_GET['partial']??'')==='1'){
                     if(data.ok){
                         updateCartCount(data.cartCount);
                         showNotification('Added to cart','success');
+                        showDrawerNotification('Added to cart','success');
                         // Update in-memory serverCart for drawer
                         serverCart[data.item.id]=data.item;
                     } else {
                         showNotification('Add failed','error');
+                        showDrawerNotification('Add failed','error');
                     }
                 }catch(err){ showNotification('Add failed','error'); }
             });
@@ -894,6 +1000,7 @@ if(($_GET['partial']??'')==='1'){
                         const pid = form.querySelector('[name="product_id"]').value;
                         delete serverCart[pid];
                         updateCartCount(data.cartCount);
+                        showDrawerNotification('Removed from cart','info');
                         if(Object.keys(serverCart).length===0){
                             // Close drawer if last item removed
                             closeQuickView();
@@ -907,12 +1014,13 @@ if(($_GET['partial']??'')==='1'){
                         }
                     } else {
                         showNotification('Remove failed','error');
+                        showDrawerNotification('Remove failed','error');
                     }
                 }catch(err){ showNotification('Remove failed','error'); }
             }
         });
     }
-    function updateCartCount(n){ const el=document.getElementById('cart-count'); if(el) el.textContent=n; }
+    function updateCartCount(n){ const el=document.getElementById('cart-count'); if(el) el.textContent=n; try{ syncDrawerCartCount(); }catch(_){} }
     document.addEventListener('DOMContentLoaded',initAjaxCart);
     // Rebind ajax cart after dynamic grid loads
     document.addEventListener('ajax:products-updated',()=>{ initAjaxCart(); });
@@ -991,6 +1099,33 @@ if(($_GET['partial']??'')==='1'){
 
     // Escape key closes drawer
     document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeQuickView(); });
+
+    // Lightweight parallax for hero floating elements
+    (function initHeroParallax(){
+        const hero = document.getElementById('shop-hero');
+        if(!hero) return;
+        const elems = hero.querySelectorAll('[data-parallax]');
+        let ticking = false;
+        function onScroll(){
+            if(ticking) return; ticking = true;
+            requestAnimationFrame(()=>{
+                const rect = hero.getBoundingClientRect();
+                const viewport = window.innerHeight || document.documentElement.clientHeight;
+                // Only compute when hero is on screen
+                if(rect.bottom >= 0 && rect.top <= viewport){
+                    const progress = 1 - Math.min(Math.max((rect.top + rect.height/2) / (viewport + rect.height/2), 0), 1);
+                    elems.forEach(el=>{
+                        const factor = parseFloat(el.getAttribute('data-parallax')||'0.1');
+                        const y = (progress - 0.5) * 40 * factor; // max ~±20px scaled
+                        el.style.transform = `translate3d(0, ${y.toFixed(2)}px, 0)`;
+                    });
+                }
+                ticking = false;
+            });
+        }
+        document.addEventListener('scroll', onScroll, { passive: true });
+        onScroll();
+    })();
 
     // Dropdown behavior
     (function initDropdowns(){

@@ -598,33 +598,35 @@ function resolveImageUrl($path) {
                 </div>
 
                 <!-- Orders Section -->
-                <div id="orders-section" class="space-y-6 hidden">
+                <div id="orders-section" class="space-y-8 hidden">
                     <?php
-                    $orders = [];
+                    // Build unified orders dataset then split into pickup / delivery arrays.
+                    $allOrders = [];
                     $itemsByTxn = [];
-                    $hasStatus = false;
                     if (isset($connections) && $connections) {
-                        if ($res = mysqli_query($connections, "SHOW COLUMNS FROM transactions LIKE 'transactions_status'")) {
-                            if (mysqli_num_rows($res) > 0) { $hasStatus = true; }
-                            mysqli_free_result($res);
-                        }
-                        $statusSelect = $hasStatus ? "t.transactions_status" : "'ongoing' AS transactions_status";
-                        $sql = "SELECT t.transactions_id, t.users_id, u.users_firstname, u.users_lastname, t.transactions_amount, t.transactions_fulfillment_type, t.transactions_payment_method, $statusSelect, t.transactions_created_at,
+                        $sql = "SELECT t.transactions_id, t.users_id, u.users_firstname, u.users_lastname, t.transactions_amount,
+                                        t.transactions_payment_method, t.transactions_fulfillment_type,
                                         p.pickups_pickup_date, p.pickups_pickup_time, p.pickups_pickup_status,
-                                        d.deliveries_address, d.deliveries_city, d.deliveries_postal_code, d.deliveries_delivery_status,
-                                        d.deliveries_estimated_delivery_date, d.deliveries_actual_delivery_date, d.deliveries_recipient_signature
+                                        d.deliveries_delivery_status, d.deliveries_estimated_delivery_date, d.deliveries_actual_delivery_date,
+                                        d.deliveries_recipient_signature, d.location_id,
+                                        COALESCE(l.address_line1, d.deliveries_address) AS full_address_line1,
+                                        COALESCE(l.city, d.deliveries_city) AS full_address_city,
+                                        COALESCE(l.province, '') AS full_address_province,
+                                        COALESCE(l.postal_code, d.deliveries_postal_code) AS full_address_postal,
+                                        COALESCE(l.address_line1, d.deliveries_address, '') AS addr_line1
                                 FROM transactions t
                                 JOIN users u ON u.users_id = t.users_id
                                 LEFT JOIN pickups p ON p.transactions_id = t.transactions_id
                                 LEFT JOIN deliveries d ON d.transactions_id = t.transactions_id
-                                WHERE t.transactions_type = 'product'
+                                LEFT JOIN locations l ON l.location_id = d.location_id
+                                WHERE t.transactions_type='product'
                                 ORDER BY t.transactions_created_at DESC, t.transactions_id DESC";
                         if ($res = mysqli_query($connections, $sql)) {
-                            while ($row = mysqli_fetch_assoc($res)) { $orders[] = $row; }
+                            while ($r = mysqli_fetch_assoc($res)) { $allOrders[] = $r; }
                             mysqli_free_result($res);
                         }
-                        if (!empty($orders)) {
-                            $ids = array_column($orders, 'transactions_id');
+                        if (!empty($allOrders)) {
+                            $ids = array_column($allOrders, 'transactions_id');
                             $idList = implode(',', array_map('intval', $ids));
                             if ($idList !== '') {
                                 $lineSql = "SELECT tp.transactions_id, tp.products_id, tp.tp_quantity, pr.products_name, pr.products_image_url
@@ -642,137 +644,254 @@ function resolveImageUrl($path) {
                             }
                         }
                     }
-                    function o_e($v){ return htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8'); }
+                    if (!function_exists('o_e')) { function o_e($v){ return htmlspecialchars((string)$v, ENT_QUOTES,'UTF-8'); } }
+                    $pickupOrders = array_filter($allOrders, fn($o)=>($o['transactions_fulfillment_type']??'')==='pickup');
+                    $deliveryOrders = array_filter($allOrders, fn($o)=>($o['transactions_fulfillment_type']??'')==='delivery');
                     ?>
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <h2 class="text-xl font-semibold text-gray-800 flex items-center gap-2"><i data-lucide="shopping-bag" class="w-5 h-5 text-orange-500"></i> Orders Management</h2>
-                            <p class="text-sm text-gray-500">View and monitor product orders (pickup & delivery)</p>
-                        </div>
-                        <div class="flex items-center gap-2">
-                            <input id="ordersSearch" type="text" placeholder="Search buyer or product..." class="w-64 px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500">
-                            <select id="ordersFulfillmentFilter" class="px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500">
-                                <option value="">All Fulfillment</option>
-                                <option value="pickup">Pickup</option>
-                                <option value="delivery">Delivery</option>
-                            </select>
-                            <select id="ordersStatusFilter" class="px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500">
-                                <option value="">All Order Status</option>
-                                <option value="ongoing">Ongoing</option>
-                                <option value="paid">Paid</option>
-                            </select>
-                            <select id="ordersPaymentFilter" class="px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500">
-                                <option value="">All Payments</option>
-                                <option value="cod">Cash on Delivery</option>
-                                <option value="online">Online</option>
-                            </select>
-                        </div>
+                    <div>
+                        <h2 class="text-xl font-semibold text-gray-800 flex items-center gap-2"><i data-lucide="shopping-bag" class="w-5 h-5 text-orange-500"></i> Orders Management</h2>
+                        <p class="text-sm text-gray-500">Separate views for Pickup and Delivery orders</p>
                     </div>
 
-                    <div class="bg-white rounded-lg border border-gray-200">
-                        <div class="p-4 border-b border-gray-200 flex items-center justify-between">
-                            <h3 class="font-medium text-gray-700">Orders (<?php echo count($orders); ?>)</h3>
-                            <div id="ordersPagination" class="flex items-center gap-2 hidden">
-                                <button id="ordersPrev" class="px-2 py-1 text-sm rounded-md border border-gray-300 bg-white hover:bg-gray-50">Prev</button>
-                                <div id="ordersPageNums" class="flex items-center gap-1"></div>
-                                <button id="ordersNext" class="px-2 py-1 text-sm rounded-md border border-gray-300 bg-white hover:bg-gray-50">Next</button>
-                                <span id="ordersPageInfo" class="ml-2 text-xs text-gray-500"></span>
+                    <!-- Pickup Orders -->
+                    <div class="bg-white rounded-lg border border-gray-200 shadow-sm">
+                        <div class="p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-gray-200">
+                            <div class="flex items-center gap-2">
+                                <h3 class="font-medium text-gray-700 flex items-center gap-1"><i data-lucide="truck" class="w-4 h-4 text-emerald-500"></i> Pickup Orders (<?php echo count($pickupOrders); ?>)</h3>
+                            </div>
+                            <div class="flex flex-wrap items-center gap-3">
+                                <input id="pickupOrdersSearch" type="text" placeholder="Search buyer or item..." class="px-3 py-2 text-sm border border-gray-300 rounded-md w-64 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                                <select id="pickupStatusFilter" class="px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                                    <option value="">All Status</option>
+                                    <option value="scheduled">Scheduled</option>
+                                    <option value="picked_up">Picked Up</option>
+                                    <option value="cancelled">Cancelled</option>
+                                </select>
                             </div>
                         </div>
                         <div class="overflow-x-auto">
-                            <table class="min-w-full text-sm" id="ordersTable">
-                                <thead class="bg-gray-50 text-xs uppercase text-gray-600">
+                            <table class="min-w-full text-sm" id="pickupOrdersTable">
+                                <thead class="bg-gray-50 text-[11px] uppercase text-gray-600">
                                     <tr>
                                         <th class="px-4 py-3 text-left font-medium">Buyer</th>
-                                        <th class="px-4 py-3 text-left font-medium">Order Items</th>
-                                        <th class="px-4 py-3 text-left font-medium">Fulfillment</th>
+                                        <th class="px-4 py-3 text-left font-medium">Order List</th>
                                         <th class="px-4 py-3 text-left font-medium">Pickup Date</th>
                                         <th class="px-4 py-3 text-left font-medium">Pickup Time</th>
-                                        <th class="px-4 py-3 text-left font-medium">Pickup Status</th>
-                                        <th class="px-4 py-3 text-left font-medium">Address</th>
-                                        <th class="px-4 py-3 text-left font-medium">Delivery Status</th>
-                                        <th class="px-4 py-3 text-left font-medium">ETA</th>
-                                        <th class="px-4 py-3 text-left font-medium">Actual Arrival</th>
-                                        <th class="px-4 py-3 text-left font-medium">Signature</th>
-                                        <th class="px-4 py-3 text-left font-medium">Payment</th>
                                         <th class="px-4 py-3 text-left font-medium">Status</th>
+                                        <th class="px-4 py-3 text-left font-medium">Actions</th>
                                     </tr>
                                 </thead>
-                                <tbody id="ordersTableBody" class="divide-y divide-gray-100">
-                                <?php if (empty($orders)): ?>
-                                    <tr><td colspan="13" class="px-4 py-6 text-center text-gray-500">No orders found.</td></tr>
-                                <?php else: ?>
-                                <?php foreach ($orders as $ord): 
-                                    $tid = (int)$ord['transactions_id'];
-                                    $buyer = trim(($ord['users_firstname'] ?? '') . ' ' . ($ord['users_lastname'] ?? ''));
-                                    $items = $itemsByTxn[$tid] ?? [];
-                                    $fulfillment = $ord['transactions_fulfillment_type'];
-                                    $status = $ord['transactions_status'];
-                                    $pay = $ord['transactions_payment_method'];
-                                    $pickupDate = $ord['pickups_pickup_date'] ?? '';
-                                    $pickupTime = $ord['pickups_pickup_time'] ?? '';
-                                    $pickupStatus = $ord['pickups_pickup_status'] ?? '';
-                                    $addrParts = array_filter([ $ord['deliveries_address'] ?? '', $ord['deliveries_city'] ?? '', $ord['deliveries_postal_code'] ?? '' ]);
-                                    $address = implode(', ', $addrParts);
-                                    $deliveryStatus = $ord['deliveries_delivery_status'] ?? '';
-                                    $eta = $ord['deliveries_estimated_delivery_date'] ?? '';
-                                    $arr = $ord['deliveries_actual_delivery_date'] ?? '';
-                                    $sig = $ord['deliveries_recipient_signature'] ?? '';
-                                ?>
-                                    <tr data-buyer="<?php echo o_e(strtolower($buyer)); ?>" data-payment="<?php echo o_e($pay); ?>" data-status="<?php echo o_e($status); ?>" data-fulfillment="<?php echo o_e($fulfillment); ?>">
-                                        <td class="px-4 py-3 whitespace-nowrap">
+                                <tbody id="pickupOrdersTableBody" class="divide-y divide-gray-100">
+                                <?php if (empty($pickupOrders)): ?>
+                                    <tr><td colspan="6" class="px-4 py-6 text-center text-gray-500">No pickup orders.</td></tr>
+                                <?php else: foreach ($pickupOrders as $ord): $tid=(int)$ord['transactions_id']; $buyer=trim(($ord['users_firstname']??'').' '.($ord['users_lastname']??'')); $items=$itemsByTxn[$tid]??[]; $status=$ord['pickups_pickup_status']??''; ?>
+                                    <tr data-buyer="<?php echo o_e(strtolower($buyer)); ?>" data-status="<?php echo o_e($status); ?>">
+                                        <td class="px-4 py-3 align-top">
                                             <div class="font-medium text-gray-800"><?php echo o_e($buyer ?: 'User #'.$ord['users_id']); ?></div>
-                                            <div class="text-xs text-gray-500">#<?php echo $tid; ?> • ₱<?php echo number_format((float)$ord['transactions_amount'],2); ?></div>
+                                            <div class="text-[11px] text-gray-500">#<?php echo $tid; ?> • ₱<?php echo number_format((float)$ord['transactions_amount'],2); ?></div>
                                         </td>
-                                        <td class="px-4 py-3">
-                                            <div class="flex flex-wrap gap-2">
-                                                <?php foreach ($items as $it): 
-                                                    $img = $it['products_image_url'] ? '../../'.ltrim($it['products_image_url'],'/') : '';
-                                                ?>
-                                                <div class="flex items-center gap-2 border border-gray-200 rounded-md px-2 py-1 bg-gray-50">
-                                                    <?php if ($img): ?>
-                                                        <img src="<?php echo o_e($img); ?>" class="w-8 h-8 object-cover rounded" alt="prod">
-                                                    <?php else: ?>
-                                                        <div class="w-8 h-8 flex items-center justify-center bg-orange-100 text-orange-600 text-xs rounded">IMG</div>
-                                                    <?php endif; ?>
-                                                    <div>
-                                                        <div class="text-xs font-medium text-gray-700 max-w-[110px] truncate" title="<?php echo o_e($it['products_name']); ?>"><?php echo o_e($it['products_name']); ?></div>
-                                                        <div class="text-[10px] text-gray-500">x<?php echo o_e($it['tp_quantity']); ?></div>
-                                                    </div>
-                                                </div>
+                                        <td class="px-4 py-3 align-top">
+                                            <ul class="space-y-1">
+                                                <?php foreach ($items as $it): ?>
+                                                    <li class="flex items-center gap-2 text-xs">
+                                                        <span class="text-gray-700 truncate max-w-[130px]" title="<?php echo o_e($it['products_name']); ?>"><?php echo o_e($it['products_name']); ?></span>
+                                                        <span class="text-gray-400">x<?php echo (int)$it['tp_quantity']; ?></span>
+                                                    </li>
                                                 <?php endforeach; ?>
+                                            </ul>
+                                        </td>
+                                        <td class="px-4 py-3 text-xs text-gray-700"><?php echo o_e($ord['pickups_pickup_date'] ?? ''); ?></td>
+                                        <td class="px-4 py-3 text-xs text-gray-700"><?php echo o_e($ord['pickups_pickup_time'] ?? ''); ?></td>
+                                        <td class="px-4 py-3 text-xs">
+                                            <?php if($status): ?><span class="px-2 py-1 rounded-full bg-gray-100 text-gray-700"><?php echo o_e(ucwords(str_replace('_',' ',$status))); ?></span><?php endif; ?>
+                                        </td>
+                                        <td class="px-4 py-3 text-xs">
+                                            <div class="flex items-center gap-2">
+                                                <button type="button" class="text-emerald-600 hover:text-emerald-700" data-edit-pickup data-id="<?php echo $tid; ?>" title="Edit"><i data-lucide="edit" class="w-4 h-4"></i></button>
+                                                <form method="post" action="../../controllers/admin/ordercontroller.php" onsubmit="return confirm('Delete this order?');">
+                                                    <input type="hidden" name="action" value="delete">
+                                                    <input type="hidden" name="transactions_id" value="<?php echo $tid; ?>">
+                                                    <button class="text-red-600 hover:text-red-700" title="Delete"><i data-lucide="trash" class="w-4 h-4"></i></button>
+                                                </form>
                                             </div>
                                         </td>
-                                        <td class="px-4 py-3 whitespace-nowrap">
-                                            <span class="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full <?php echo $fulfillment==='delivery' ? 'bg-blue-50 text-blue-600' : 'bg-emerald-50 text-emerald-600'; ?>"><?php echo o_e(ucfirst($fulfillment)); ?></span>
-                                        </td>
-                                        <td class="px-4 py-3 text-xs text-gray-700"><?php echo $fulfillment==='pickup'? o_e($pickupDate):'<span class="text-gray-300">—</span>'; ?></td>
-                                        <td class="px-4 py-3 text-xs text-gray-700"><?php echo $fulfillment==='pickup'? o_e($pickupTime):'<span class="text-gray-300">—</span>'; ?></td>
-                                        <td class="px-4 py-3 text-xs">
-                                            <?php if ($fulfillment==='pickup' && $pickupStatus): ?>
-                                                <span class="px-2 py-1 rounded-full bg-gray-100 text-gray-700"><?php echo o_e(ucwords(str_replace('_',' ',$pickupStatus))); ?></span>
-                                            <?php else: ?><span class="text-gray-300">—</span><?php endif; ?>
-                                        </td>
-                                        <td class="px-4 py-3 text-xs max-w-[160px] truncate" title="<?php echo o_e($address); ?>"><?php echo $fulfillment==='delivery'? o_e($address):'<span class="text-gray-300">—</span>'; ?></td>
-                                        <td class="px-4 py-3 text-xs">
-                                            <?php if ($fulfillment==='delivery' && $deliveryStatus): ?>
-                                                <span class="px-2 py-1 rounded-full bg-gray-100 text-gray-700"><?php echo o_e(ucwords(str_replace('_',' ',$deliveryStatus))); ?></span>
-                                            <?php else: ?><span class="text-gray-300">—</span><?php endif; ?>
-                                        </td>
-                                        <td class="px-4 py-3 text-xs text-gray-700"><?php echo $fulfillment==='delivery'? o_e($eta ?: ''):'<span class="text-gray-300">—</span>'; ?></td>
-                                        <td class="px-4 py-3 text-xs text-gray-700"><?php echo $fulfillment==='delivery'? o_e($arr ?: ''):'<span class="text-gray-300">—</span>'; ?></td>
-                                        <td class="px-4 py-3 text-xs text-gray-700"><?php echo $fulfillment==='delivery'? ($sig? o_e($sig):'<span class="italic text-gray-400">Pending</span>'):'<span class="text-gray-300">—</span>'; ?></td>
-                                        <td class="px-4 py-3 text-xs">
-                                            <span class="px-2 py-1 rounded-full bg-orange-50 text-orange-600"><?php echo o_e(strtoupper($pay)); ?></span>
-                                        </td>
-                                        <td class="px-4 py-3 text-xs">
-                                            <span class="px-2 py-1 rounded-full <?php echo $status==='paid' ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'; ?>"><?php echo o_e(ucfirst($status)); ?></span>
-                                        </td>
                                     </tr>
-                                <?php endforeach; ?>
-                                <?php endif; ?>
+                                <?php endforeach; endif; ?>
                                 </tbody>
                             </table>
+                        </div>
+                        <div id="pickupOrdersPagination" class="p-3 border-t border-gray-100 flex items-center justify-between hidden">
+                            <div id="pickupOrdersPageInfo" class="text-xs text-gray-600"></div>
+                            <div class="flex items-center gap-1">
+                                <button id="pickupOrdersPrev" class="px-2 py-1.5 border border-gray-300 rounded-md text-xs text-gray-700 hover:bg-gray-50">Prev</button>
+                                <div id="pickupOrdersPageNums" class="flex items-center gap-1"></div>
+                                <button id="pickupOrdersNext" class="px-2 py-1.5 border border-gray-300 rounded-md text-xs text-gray-700 hover:bg-gray-50">Next</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Delivery Orders -->
+                    <div class="bg-white rounded-lg border border-gray-200 shadow-sm">
+                        <div class="p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-gray-200">
+                            <div class="flex items-center gap-2">
+                                <h3 class="font-medium text-gray-700 flex items-center gap-1"><i data-lucide="package" class="w-4 h-4 text-blue-500"></i> Delivery Orders (<?php echo count($deliveryOrders); ?>)</h3>
+                            </div>
+                            <div class="flex flex-wrap items-center gap-3">
+                                <input id="deliveryOrdersSearch" type="text" placeholder="Search buyer, item, or address..." class="px-3 py-2 text-sm border border-gray-300 rounded-md w-64 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <select id="deliveryStatusFilter" class="px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                    <option value="">All Status</option>
+                                    <option value="processing">Processing</option>
+                                    <option value="out_for_delivery">Out for Delivery</option>
+                                    <option value="delivered">Delivered</option>
+                                    <option value="cancelled">Cancelled</option>
+                                </select>
+                                <select id="deliveryPaymentFilter" class="px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                    <option value="">All Payments</option>
+                                    <option value="cod">Cash on Delivery</option>
+                                    <option value="online">Online</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full text-sm" id="deliveryOrdersTable">
+                                <thead class="bg-gray-50 text-[11px] uppercase text-gray-600">
+                                    <tr>
+                                        <th class="px-4 py-3 text-left font-medium">Buyer</th>
+                                        <th class="px-4 py-3 text-left font-medium">Order List</th>
+                                        <th class="px-4 py-3 text-left font-medium">Address</th>
+                                        <th class="px-4 py-3 text-left font-medium">Status</th>
+                                        <th class="px-4 py-3 text-left font-medium">ETA</th>
+                                        <th class="px-4 py-3 text-left font-medium">Actual</th>
+                                        <th class="px-4 py-3 text-left font-medium">Signature</th>
+                                        <th class="px-4 py-3 text-left font-medium">Payment</th>
+                                        <th class="px-4 py-3 text-left font-medium">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="deliveryOrdersTableBody" class="divide-y divide-gray-100">
+                                <?php if (empty($deliveryOrders)): ?>
+                                    <tr><td colspan="9" class="px-4 py-6 text-center text-gray-500">No delivery orders.</td></tr>
+                                <?php else: foreach ($deliveryOrders as $ord): $tid=(int)$ord['transactions_id']; $buyer=trim(($ord['users_firstname']??'').' '.($ord['users_lastname']??'')); $items=$itemsByTxn[$tid]??[]; $status=$ord['deliveries_delivery_status']??''; $addressParts=array_filter([$ord['full_address_line1']??'', $ord['full_address_city']??'', $ord['full_address_province']??'', $ord['full_address_postal']??'']); $address=implode(', ',$addressParts); ?>
+                                    <tr data-buyer="<?php echo o_e(strtolower($buyer)); ?>" data-status="<?php echo o_e($status); ?>" data-payment="<?php echo o_e($ord['transactions_payment_method']??''); ?>" data-address="<?php echo o_e(strtolower($address)); ?>">
+                                        <td class="px-4 py-3 align-top">
+                                            <div class="font-medium text-gray-800"><?php echo o_e($buyer ?: 'User #'.$ord['users_id']); ?></div>
+                                            <div class="text-[11px] text-gray-500">#<?php echo $tid; ?> • ₱<?php echo number_format((float)$ord['transactions_amount'],2); ?></div>
+                                        </td>
+                                        <td class="px-4 py-3 align-top">
+                                            <ul class="space-y-1">
+                                                <?php foreach ($items as $it): ?>
+                                                    <li class="flex items-center gap-2 text-xs">
+                                                        <span class="text-gray-700 truncate max-w-[150px]" title="<?php echo o_e($it['products_name']); ?>"><?php echo o_e($it['products_name']); ?></span>
+                                                        <span class="text-gray-400">x<?php echo (int)$it['tp_quantity']; ?></span>
+                                                    </li>
+                                                <?php endforeach; ?>
+                                            </ul>
+                                        </td>
+                                        <td class="px-4 py-3 text-xs max-w-[200px] truncate" title="<?php echo o_e($address); ?>"><?php echo o_e($address); ?></td>
+                                        <td class="px-4 py-3 text-xs"><?php if($status): ?><span class="px-2 py-1 rounded-full bg-gray-100 text-gray-700"><?php echo o_e(ucwords(str_replace('_',' ',$status))); ?></span><?php endif; ?></td>
+                                        <td class="px-4 py-3 text-xs text-gray-700"><?php echo o_e($ord['deliveries_estimated_delivery_date'] ?? ''); ?></td>
+                                        <td class="px-4 py-3 text-xs text-gray-700"><?php echo o_e($ord['deliveries_actual_delivery_date'] ?? ''); ?></td>
+                                        <td class="px-4 py-3 text-xs text-gray-700"><?php echo ($ord['deliveries_recipient_signature']??'')? '<span class=\'text-emerald-600 font-semibold\'>Received</span>' : '<span class=\'text-gray-400\'>Pending</span>'; ?></td>
+                                        <td class="px-4 py-3 text-xs"><span class="px-2 py-1 rounded-full bg-orange-50 text-orange-600"><?php echo o_e(strtoupper($ord['transactions_payment_method']??'')); ?></span></td>
+                                        <td class="px-4 py-3 text-xs">
+                                            <div class="flex items-center gap-2">
+                                                <button type="button" class="text-blue-600 hover:text-blue-700" data-edit-delivery data-id="<?php echo $tid; ?>" title="Edit"><i data-lucide="edit" class="w-4 h-4"></i></button>
+                                                <form method="post" action="../../controllers/admin/ordercontroller.php" onsubmit="return confirm('Delete this order?');">
+                                                    <input type="hidden" name="action" value="delete">
+                                                    <input type="hidden" name="transactions_id" value="<?php echo $tid; ?>">
+                                                    <button class="text-red-600 hover:text-red-700" title="Delete"><i data-lucide="trash" class="w-4 h-4"></i></button>
+                                                </form>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                <?php endforeach; endif; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div id="deliveryOrdersPagination" class="p-3 border-t border-gray-100 flex items-center justify-between hidden">
+                            <div id="deliveryOrdersPageInfo" class="text-xs text-gray-600"></div>
+                            <div class="flex items-center gap-1">
+                                <button id="deliveryOrdersPrev" class="px-2 py-1.5 border border-gray-300 rounded-md text-xs text-gray-700 hover:bg-gray-50">Prev</button>
+                                <div id="deliveryOrdersPageNums" class="flex items-center gap-1"></div>
+                                <button id="deliveryOrdersNext" class="px-2 py-1.5 border border-gray-300 rounded-md text-xs text-gray-700 hover:bg-gray-50">Next</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Pickup Edit Modal -->
+                    <div id="pickupEditModal" class="fixed inset-0 bg-black bg-opacity-30 hidden items-center justify-center z-50">
+                        <div class="bg-white rounded-lg shadow-lg w-full max-w-md p-5">
+                            <div class="flex items-center justify-between mb-4">
+                                <h3 class="text-lg font-semibold">Edit Pickup Order</h3>
+                                <button type="button" data-close-pickup class="text-gray-400 hover:text-gray-600"><i data-lucide="x" class="w-5 h-5"></i></button>
+                            </div>
+                            <form method="post" action="../../controllers/admin/ordercontroller.php" class="space-y-4">
+                                <input type="hidden" name="action" value="update_pickup">
+                                <input type="hidden" name="transactions_id" id="pickup_edit_tid">
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="text-xs font-medium text-gray-600">Pickup Date</label>
+                                        <input type="date" name="pickups_pickup_date" id="pickup_edit_date" class="mt-1 w-full border border-gray-300 rounded-md px-2 py-1 text-sm" required>
+                                    </div>
+                                    <div>
+                                        <label class="text-xs font-medium text-gray-600">Pickup Time</label>
+                                        <input type="time" name="pickups_pickup_time" id="pickup_edit_time" class="mt-1 w-full border border-gray-300 rounded-md px-2 py-1 text-sm" required>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="text-xs font-medium text-gray-600">Status</label>
+                                    <select name="pickups_pickup_status" id="pickup_edit_status" class="mt-1 w-full border border-gray-300 rounded-md px-2 py-1 text-sm" required>
+                                        <option value="scheduled">Scheduled</option>
+                                        <option value="picked_up">Picked Up</option>
+                                        <option value="cancelled">Cancelled</option>
+                                    </select>
+                                </div>
+                                <div class="flex justify-end gap-2 pt-2">
+                                    <button type="button" data-close-pickup class="px-3 py-1.5 text-sm border rounded-md">Cancel</button>
+                                    <button type="submit" class="px-4 py-1.5 text-sm rounded-md bg-emerald-600 text-white hover:bg-emerald-700">Save</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- Delivery Edit Modal -->
+                    <div id="deliveryEditModal" class="fixed inset-0 bg-black bg-opacity-30 hidden items-center justify-center z-50">
+                        <div class="bg-white rounded-lg shadow-lg w-full max-w-md p-5">
+                            <div class="flex items-center justify-between mb-4">
+                                <h3 class="text-lg font-semibold">Edit Delivery Order</h3>
+                                <button type="button" data-close-delivery class="text-gray-400 hover:text-gray-600"><i data-lucide="x" class="w-5 h-5"></i></button>
+                            </div>
+                            <form method="post" action="../../controllers/admin/ordercontroller.php" class="space-y-4">
+                                <input type="hidden" name="action" value="update_delivery">
+                                <input type="hidden" name="transactions_id" id="delivery_edit_tid">
+                                <div>
+                                    <label class="text-xs font-medium text-gray-600">Status</label>
+                                    <select name="deliveries_delivery_status" id="delivery_edit_status" class="mt-1 w-full border border-gray-300 rounded-md px-2 py-1 text-sm" required>
+                                        <option value="processing">Processing</option>
+                                        <option value="out_for_delivery">Out for Delivery</option>
+                                        <option value="delivered">Delivered</option>
+                                        <option value="cancelled">Cancelled</option>
+                                    </select>
+                                </div>
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="text-xs font-medium text-gray-600">ETA</label>
+                                        <input type="date" name="deliveries_estimated_delivery_date" id="delivery_edit_eta" class="mt-1 w-full border border-gray-300 rounded-md px-2 py-1 text-sm">
+                                    </div>
+                                    <div>
+                                        <label class="text-xs font-medium text-gray-600">Actual</label>
+                                        <input type="date" name="deliveries_actual_delivery_date" id="delivery_edit_actual" class="mt-1 w-full border border-gray-300 rounded-md px-2 py-1 text-sm">
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="inline-flex items-center gap-2 text-xs text-gray-600">
+                                        <input type="checkbox" name="signature_received" id="delivery_edit_signature" value="1" class="rounded"> Mark as Received (Signature)
+                                    </label>
+                                </div>
+                                <div class="flex justify-end gap-2 pt-2">
+                                    <button type="button" data-close-delivery class="px-3 py-1.5 text-sm border rounded-md">Cancel</button>
+                                    <button type="submit" class="px-4 py-1.5 text-sm rounded-md bg-blue-600 text-white hover:bg-blue-700">Save</button>
+                                </div>
+                            </form>
                         </div>
                     </div>
                 </div>
@@ -2327,6 +2446,142 @@ function resolveImageUrl($path) {
 
                 // Initial apply
                 applyFilters();
+            })();
+
+            // ===== Split Orders (Pickup & Delivery) Filtering / Pagination / Modals =====
+            (function initSplitOrders(){
+                // Pickup elements
+                const pSearch = document.getElementById('pickupOrdersSearch');
+                const pStatus = document.getElementById('pickupStatusFilter');
+                const pBody = document.getElementById('pickupOrdersTableBody');
+                const pRows = Array.from(pBody ? pBody.querySelectorAll('tr[data-buyer]') : []);
+                const pPagWrap = document.getElementById('pickupOrdersPagination');
+                const pPrev = document.getElementById('pickupOrdersPrev');
+                const pNext = document.getElementById('pickupOrdersNext');
+                const pNums = document.getElementById('pickupOrdersPageNums');
+                const pInfo = document.getElementById('pickupOrdersPageInfo');
+                let pPage = 1; const pPageSize = 10; let pFiltered = pRows.slice();
+
+                function filterPickup(){
+                    const q = (pSearch?.value||'').trim().toLowerCase();
+                    const st = pStatus?.value || '';
+                    pFiltered = pRows.filter(r=>{
+                        if(!q && !st) return true;
+                        const buyer = r.dataset.buyer||'';
+                        const status = r.dataset.status||'';
+                        const itemsTxt = r.querySelector('td:nth-child(2)')?.innerText.toLowerCase()||'';
+                        if(q && !(buyer.includes(q) || itemsTxt.includes(q))) return false;
+                        if(st && status !== st) return false;
+                        return true;
+                    });
+                    pPage=1; renderPickup();
+                }
+                function renderPickup(){
+                    pRows.forEach(r=>r.classList.add('hidden'));
+                    const total = pFiltered.length;
+                    const pages = Math.max(1, Math.ceil(total / pPageSize));
+                    if(pPage>pages) pPage=pages;
+                    const start=(pPage-1)*pPageSize; const slice=pFiltered.slice(start,start+pPageSize);
+                    slice.forEach(r=>r.classList.remove('hidden'));
+                    if(total>pPageSize){
+                        pPagWrap?.classList.remove('hidden');
+                        if(pNums) pNums.innerHTML='';
+                        for(let i=1;i<=pages;i++){
+                            const b=document.createElement('button');
+                            b.textContent=i; b.className='px-2 py-1 text-xs rounded-md '+(i===pPage?'bg-emerald-600 text-white':'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50');
+                            b.addEventListener('click',()=>{pPage=i; renderPickup();});
+                            pNums.appendChild(b);
+                        }
+                        if(pPrev) pPrev.onclick=()=>{ if(pPage>1){pPage--; renderPickup();} };
+                        if(pNext) pNext.onclick=()=>{ if(pPage<pages){pPage++; renderPickup();} };
+                        if(pInfo) pInfo.textContent = `Showing ${start+1}-${start+slice.length} of ${total}`;
+                    } else { pPagWrap?.classList.add('hidden'); }
+                }
+                pSearch?.addEventListener('input', filterPickup);
+                pStatus?.addEventListener('change', filterPickup);
+                renderPickup();
+
+                // Delivery elements
+                const dSearch = document.getElementById('deliveryOrdersSearch');
+                const dStatus = document.getElementById('deliveryStatusFilter');
+                const dPayment = document.getElementById('deliveryPaymentFilter');
+                const dBody = document.getElementById('deliveryOrdersTableBody');
+                const dRows = Array.from(dBody ? dBody.querySelectorAll('tr[data-buyer]') : []);
+                const dPagWrap = document.getElementById('deliveryOrdersPagination');
+                const dPrev = document.getElementById('deliveryOrdersPrev');
+                const dNext = document.getElementById('deliveryOrdersNext');
+                const dNums = document.getElementById('deliveryOrdersPageNums');
+                const dInfo = document.getElementById('deliveryOrdersPageInfo');
+                let dPage = 1; const dPageSize = 10; let dFiltered = dRows.slice();
+                function filterDelivery(){
+                    const q=(dSearch?.value||'').trim().toLowerCase();
+                    const st=dStatus?.value||''; const pay=dPayment?.value||'';
+                    dFiltered = dRows.filter(r=>{
+                        const buyer=r.dataset.buyer||''; const status=r.dataset.status||''; const payment=r.dataset.payment||''; const addr=r.dataset.address||''; const items=r.querySelector('td:nth-child(2)')?.innerText.toLowerCase()||'';
+                        if(q && !(buyer.includes(q)||addr.includes(q)||items.includes(q))) return false;
+                        if(st && status!==st) return false;
+                        if(pay && payment!==pay) return false;
+                        return true;
+                    });
+                    dPage=1; renderDelivery();
+                }
+                function renderDelivery(){
+                    dRows.forEach(r=>r.classList.add('hidden'));
+                    const total=dFiltered.length; const pages=Math.max(1, Math.ceil(total/dPageSize)); if(dPage>pages) dPage=pages;
+                    const start=(dPage-1)*dPageSize; const slice=dFiltered.slice(start,start+dPageSize);
+                    slice.forEach(r=>r.classList.remove('hidden'));
+                    if(total>dPageSize){
+                        dPagWrap?.classList.remove('hidden');
+                        if(dNums) dNums.innerHTML='';
+                        for(let i=1;i<=pages;i++){
+                            const b=document.createElement('button'); b.textContent=i; b.className='px-2 py-1 text-xs rounded-md '+(i===dPage?'bg-blue-600 text-white':'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'); b.addEventListener('click',()=>{dPage=i; renderDelivery();}); dNums.appendChild(b);
+                        }
+                        if(dPrev) dPrev.onclick=()=>{ if(dPage>1){dPage--; renderDelivery();} };
+                        if(dNext) dNext.onclick=()=>{ if(dPage<pages){dPage++; renderDelivery();} };
+                        if(dInfo) dInfo.textContent=`Showing ${start+1}-${start+slice.length} of ${total}`;
+                    } else { dPagWrap?.classList.add('hidden'); }
+                }
+                dSearch?.addEventListener('input', filterDelivery);
+                dStatus?.addEventListener('change', filterDelivery);
+                dPayment?.addEventListener('change', filterDelivery);
+                renderDelivery();
+
+                // Modals
+                const pickupModal = document.getElementById('pickupEditModal');
+                const pickupCloseBtns = pickupModal? pickupModal.querySelectorAll('[data-close-pickup]'):[];
+                const deliveryModal = document.getElementById('deliveryEditModal');
+                const deliveryCloseBtns = deliveryModal? deliveryModal.querySelectorAll('[data-close-delivery]'):[];
+                function openModal(m){ m?.classList.remove('hidden'); m?.classList.add('flex'); }
+                function closeModal(m){ m?.classList.add('hidden'); m?.classList.remove('flex'); }
+                pickupCloseBtns.forEach(b=>b.addEventListener('click', ()=>closeModal(pickupModal)));
+                deliveryCloseBtns.forEach(b=>b.addEventListener('click', ()=>closeModal(deliveryModal)));
+                [pickupModal, deliveryModal].forEach(m=> m?.addEventListener('click', e=>{ if(e.target===m) closeModal(m); }));
+                window.addEventListener('keydown', e=>{ if(e.key==='Escape'){ closeModal(pickupModal); closeModal(deliveryModal);} });
+                document.addEventListener('click', e=>{
+                    const pBtn = e.target.closest('[data-edit-pickup]');
+                    if(pBtn){
+                        const tr = pBtn.closest('tr');
+                        const tid = pBtn.getAttribute('data-id');
+                        document.getElementById('pickup_edit_tid').value=tid;
+                        document.getElementById('pickup_edit_date').value = tr.querySelector('td:nth-child(3)')?.innerText.trim()||'';
+                        document.getElementById('pickup_edit_time').value = tr.querySelector('td:nth-child(4)')?.innerText.trim()||'';
+                        const st = tr.querySelector('td:nth-child(5) span')?.innerText.trim().toLowerCase().replace(/ /g,'_')||'scheduled';
+                        document.getElementById('pickup_edit_status').value = st;
+                        openModal(pickupModal);
+                    }
+                    const dBtn = e.target.closest('[data-edit-delivery]');
+                    if(dBtn){
+                        const tr = dBtn.closest('tr');
+                        const tid = dBtn.getAttribute('data-id');
+                        document.getElementById('delivery_edit_tid').value=tid;
+                        document.getElementById('delivery_edit_status').value = (tr.querySelector('td:nth-child(4) span')?.innerText.trim().toLowerCase().replace(/ /g,'_'))||'processing';
+                        document.getElementById('delivery_edit_eta').value = tr.querySelector('td:nth-child(5)')?.innerText.trim()||'';
+                        document.getElementById('delivery_edit_actual').value = tr.querySelector('td:nth-child(6)')?.innerText.trim()||'';
+                        const rec = tr.querySelector('td:nth-child(7)')?.innerText.includes('Received');
+                        document.getElementById('delivery_edit_signature').checked = !!rec;
+                        openModal(deliveryModal);
+                    }
+                });
             })();
         });
 

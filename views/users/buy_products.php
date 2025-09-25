@@ -980,23 +980,33 @@ if(($_GET['partial']??'')==='1'){
         } else {
             let total = 0;
             const rows = items.map(it=>{
-                const line = (it.price*it.qty); total += line; return `<div class="flex items-center gap-3 p-3 border-b group">
+                const line = (it.price*it.qty); total += line; return `<div class="flex items-center gap-3 p-3 border-b group" data-cart-line="${it.id}">
                     ${it.image?`<img src="${it.image}" class="w-12 h-12 object-cover rounded" alt="${escapeHtml(it.name)}">`:`<div class=\"w-12 h-12 flex items-center justify-center text-xs text-gray-400 bg-gray-100 rounded\">No Img</div>`}
-                    <div class="flex-1">
-                        <h4 class="font-medium text-sm">${escapeHtml(it.name)}</h4>
-                        <p class="text-xs text-gray-600">₱${numberFormat(it.price)} × ${it.qty}</p>
+                    <div class="flex-1 min-w-0">
+                        <h4 class="font-medium text-sm truncate">${escapeHtml(it.name)}</h4>
+                        <div class="mt-1 flex items-center gap-2">
+                            <div class="inline-flex items-center rounded-full border border-gray-300 bg-white overflow-hidden shadow-sm">
+                                <button type="button" class="qty-cart-btn px-2 text-gray-600 hover:bg-gray-100" data-delta="-1" data-pid="${it.id}">-</button>
+                                <input type="number" class="w-10 text-center text-xs border-0 focus:ring-0 focus:outline-none cart-line-qty" value="${it.qty}" min="1" data-pid="${it.id}" />
+                                <button type="button" class="qty-cart-btn px-2 text-gray-600 hover:bg-gray-100" data-delta="1" data-pid="${it.id}">+</button>
+                            </div>
+                            <span class="text-[11px] text-gray-500">₱${numberFormat(it.price)}</span>
+                        </div>
                     </div>
-                    <form method="post" action="../../shop/cart_remove.php" class="opacity-0 group-hover:opacity-100 transition-opacity"> 
-                        <input type="hidden" name="csrf" value="<?= h($csrf) ?>" />
-                        <input type="hidden" name="product_id" value="${it.id}" />
-                        <button type="submit" class="text-red-500 hover:text-red-600 text-xs font-semibold flex items-center gap-1"><i data-lucide="trash-2" class="w-4 h-4"></i>Remove</button>
-                    </form>
+                    <div class="flex flex-col items-end gap-2">
+                        <span class="text-xs font-semibold">₱${numberFormat(line)}</span>
+                        <form method="post" action="../../shop/cart_remove.php" class="opacity-0 group-hover:opacity-100 transition-opacity"> 
+                            <input type="hidden" name="csrf" value="<?= h($csrf) ?>" />
+                            <input type="hidden" name="product_id" value="${it.id}" />
+                            <button type="submit" class="text-red-500 hover:text-red-600 text-[10px] font-semibold flex items-center gap-1"><i data-lucide="trash-2" class="w-3 h-3"></i>Remove</button>
+                        </form>
+                    </div>
                 </div>`;
             }).join('');
             contentHtml = `<div class="space-y-4">
                 <h3 class="text-xl font-bold">Cart</h3>
                 <div class="max-h-64 overflow-y-auto">${rows}</div>
-                <div class="pt-2 flex justify-between font-semibold"><span>Total:</span><span>₱${numberFormat(total)}</span></div>
+                <div class="pt-2 flex justify-between font-semibold"><span>Total:</span><span id="drawer-cart-total">₱${numberFormat(total)}</span></div>
                 <button onclick="proceedToCheckout()" class="w-full bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white font-semibold py-3 px-6 rounded-lg transition-all">Checkout</button>
             </div>`;
         }
@@ -1006,6 +1016,7 @@ if(($_GET['partial']??'')==='1'){
         document.getElementById('drawer-overlay').classList.add('open');
         document.body.style.overflow='hidden';
         if(window.lucide) lucide.createIcons();
+        bindCartQtyControls();
     }
     // Limit removal notifications to the drawer; re-render drawer (with inline empty state)
     document.addEventListener('submit', async (e)=>{
@@ -1058,7 +1069,36 @@ if(($_GET['partial']??'')==='1'){
         });
     }
     function updateCartCount(n){ const el=document.getElementById('cart-count'); if(el) el.textContent=n; try{ syncDrawerCartCount(); }catch(_){} }
-    function proceedToCheckout(){ showNotification('Checkout coming soon','info'); }
+    function proceedToCheckout(){ window.location.href='checkout.php'; }
+    async function cartUpdateQty(productId, newQty){
+        const fd=new FormData(); fd.append('csrf','<?= h($csrf) ?>'); fd.append('product_id',productId); fd.append('qty',newQty);
+        try{
+            const res = await fetch('../../shop/cart_update.php',{method:'POST',body:fd});
+            const data = await res.json();
+            if(!data.ok) throw new Error(data.error||'fail');
+            if(newQty===0){ delete serverCart[productId]; }
+            else if(data.item){ serverCart[productId]=data.item; }
+            updateCartCount(data.cartCount);
+            // Recompute totals quickly without full rebuild (or rebuild for simplicity)
+            toggleCart();
+        }catch(err){ showNotification('Update failed','error'); }
+    }
+    function bindCartQtyControls(){
+        document.querySelectorAll('.qty-cart-btn').forEach(btn=>{
+            btn.addEventListener('click',()=>{
+                const pid=btn.getAttribute('data-pid');
+                const delta=parseInt(btn.getAttribute('data-delta'),10)||0;
+                const input=document.querySelector(`input.cart-line-qty[data-pid="${pid}"]`);
+                if(!input) return; let v=parseInt(input.value||'1',10); v+=delta; if(v<1) v=0; // zero removes
+                cartUpdateQty(pid,v);
+            });
+        });
+        document.querySelectorAll('input.cart-line-qty').forEach(inp=>{
+            inp.addEventListener('change',()=>{
+                const pid=inp.getAttribute('data-pid'); let v=parseInt(inp.value||'1',10); if(isNaN(v)||v<1) v=1; cartUpdateQty(pid,v);
+            });
+        });
+    }
     document.addEventListener('DOMContentLoaded',initAjaxCart);
     // Rebind ajax cart after dynamic grid loads
     document.addEventListener('ajax:products-updated',()=>{ initAjaxCart(); });

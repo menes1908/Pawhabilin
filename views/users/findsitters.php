@@ -8,104 +8,9 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=La+Belle+Aurore&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
-    <style>
-        .brand-font {
-            font-family: 'La Belle Aurore', cursive;
-        }
-        
-        /* Filter Panel Styles */
-        .filter-panel {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(0, 0, 0, 0.1);
-            border-radius: 12px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-        }
-        
-        .filter-section {
-            border-bottom: 1px solid rgba(0, 0, 0, 0.1);
-            padding: 20px;
-        }
-        
-        .filter-section:last-child {
-            border-bottom: none;
-        }
-        
-        /* Experience Slider */
-        .experience-slider {
-            -webkit-appearance: none;
-            appearance: none;
-            width: 100%;
-            height: 6px;
-            border-radius: 3px;
-            background: linear-gradient(to right, #f97316, #d97706);
-            outline: none;
-        }
-        
-        .experience-slider::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            appearance: none;
-            width: 20px;
-            height: 20px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #f97316, #d97706);
-            cursor: pointer;
-            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
-        }
-        
-        .experience-slider::-moz-range-thumb {
-            width: 20px;
-            height: 20px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #f97316, #d97706);
-            cursor: pointer;
-            border: none;
-            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
-        }
-        
-        /* Age Range Slider */
-        .age-slider {
-            -webkit-appearance: none;
-            appearance: none;
-            width: 100%;
-            height: 6px;
-            border-radius: 3px;
-            background: #e5e7eb;
-            outline: none;
-        }
-        
-        .age-slider::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            appearance: none;
-            width: 18px;
-            height: 18px;
-            border-radius: 50%;
-            background: #6b7280;
-            cursor: pointer;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        }
-        
-        .age-slider::-moz-range-thumb {
-            width: 18px;
-            height: 18px;
-            border-radius: 50%;
-            background: #6b7280;
-            cursor: pointer;
-            border: none;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        }
-        
-        /* Availability Grid */
-        .availability-grid {
-            display: grid;
-            grid-template-columns: auto repeat(7, 1fr);
-            gap: 8px;
-            font-size: 12px;
-        }
-        
-        .availability-cell {
-            display: flex;
-            align-items: center;
+    <body class="bg-gray-50 min-h-screen">
+        <!-- Header (shared include) -->
+        <?php $basePrefix = '../..'; include __DIR__ . '/../../utils/header-users.php'; ?>
             justify-content: center;
             padding: 8px 4px;
             text-align: center;
@@ -254,7 +159,7 @@
                         <div id="petsitterMenu" class="absolute left-0 mt-2 w-56 origin-top-left rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 nav-dropdown transition-all duration-200 opacity-0 translate-y-2" role="menu" aria-hidden="true">
                             <div class="py-1">
                                 <a href="find-sitters" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">Find a Pet Sitter</a>
-                                <a href="views/users/become_sitter.php" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">Become a Sitter</a>
+                                <a href="book_appointment.php" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">Become a Sitter</a>
                             </div>
                         </div>
                     </div>

@@ -198,6 +198,10 @@ function resolveImageUrl($path) {
                     <i data-lucide="package" class="w-5 h-5 flex-shrink-0"></i>
                     <span class="sidebar-label font-medium hidden">Products</span>
                 </button>
+                <button onclick="setActiveSection('orders')" class="sidebar-item w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-200 text-gray-700 hover:bg-gray-100" data-section="orders">
+                    <i data-lucide="shopping-bag" class="w-5 h-5 flex-shrink-0"></i>
+                    <span class="sidebar-label font-medium hidden">Orders</span>
+                </button>
                 <button onclick="setActiveSection('sitters')" class="sidebar-item w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-200 text-gray-700 hover:bg-gray-100" data-section="sitters">
                     <i data-lucide="users" class="w-5 h-5 flex-shrink-0"></i>
                     <span class="sidebar-label font-medium hidden">Pet Sitters</span>
@@ -589,6 +593,186 @@ function resolveImageUrl($path) {
                                 <div id="productsPageNums" class="flex items-center gap-1"></div>
                                 <button id="productsNext" class="px-3 py-1.5 border border-gray-300 rounded-md text-sm text-gray-700 hover:bg-gray-50">Next</button>
                             </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Orders Section -->
+                <div id="orders-section" class="space-y-6 hidden">
+                    <?php
+                    $orders = [];
+                    $itemsByTxn = [];
+                    $hasStatus = false;
+                    if (isset($connections) && $connections) {
+                        if ($res = mysqli_query($connections, "SHOW COLUMNS FROM transactions LIKE 'transactions_status'")) {
+                            if (mysqli_num_rows($res) > 0) { $hasStatus = true; }
+                            mysqli_free_result($res);
+                        }
+                        $statusSelect = $hasStatus ? "t.transactions_status" : "'ongoing' AS transactions_status";
+                        $sql = "SELECT t.transactions_id, t.users_id, u.users_firstname, u.users_lastname, t.transactions_amount, t.transactions_fulfillment_type, t.transactions_payment_method, $statusSelect, t.transactions_created_at,
+                                        p.pickups_pickup_date, p.pickups_pickup_time, p.pickups_pickup_status,
+                                        d.deliveries_address, d.deliveries_city, d.deliveries_postal_code, d.deliveries_delivery_status,
+                                        d.deliveries_estimated_delivery_date, d.deliveries_actual_delivery_date, d.deliveries_recipient_signature
+                                FROM transactions t
+                                JOIN users u ON u.users_id = t.users_id
+                                LEFT JOIN pickups p ON p.transactions_id = t.transactions_id
+                                LEFT JOIN deliveries d ON d.transactions_id = t.transactions_id
+                                WHERE t.transactions_type = 'product'
+                                ORDER BY t.transactions_created_at DESC, t.transactions_id DESC";
+                        if ($res = mysqli_query($connections, $sql)) {
+                            while ($row = mysqli_fetch_assoc($res)) { $orders[] = $row; }
+                            mysqli_free_result($res);
+                        }
+                        if (!empty($orders)) {
+                            $ids = array_column($orders, 'transactions_id');
+                            $idList = implode(',', array_map('intval', $ids));
+                            if ($idList !== '') {
+                                $lineSql = "SELECT tp.transactions_id, tp.products_id, tp.tp_quantity, pr.products_name, pr.products_image_url
+                                            FROM transaction_products tp
+                                            JOIN products pr ON pr.products_id = tp.products_id
+                                            WHERE tp.transactions_id IN ($idList)";
+                                if ($res2 = mysqli_query($connections, $lineSql)) {
+                                    while ($r2 = mysqli_fetch_assoc($res2)) {
+                                        $tid = (int)$r2['transactions_id'];
+                                        if (!isset($itemsByTxn[$tid])) $itemsByTxn[$tid] = [];
+                                        $itemsByTxn[$tid][] = $r2;
+                                    }
+                                    mysqli_free_result($res2);
+                                }
+                            }
+                        }
+                    }
+                    function o_e($v){ return htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8'); }
+                    ?>
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h2 class="text-xl font-semibold text-gray-800 flex items-center gap-2"><i data-lucide="shopping-bag" class="w-5 h-5 text-orange-500"></i> Orders Management</h2>
+                            <p class="text-sm text-gray-500">View and monitor product orders (pickup & delivery)</p>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <input id="ordersSearch" type="text" placeholder="Search buyer or product..." class="w-64 px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500">
+                            <select id="ordersFulfillmentFilter" class="px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500">
+                                <option value="">All Fulfillment</option>
+                                <option value="pickup">Pickup</option>
+                                <option value="delivery">Delivery</option>
+                            </select>
+                            <select id="ordersStatusFilter" class="px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500">
+                                <option value="">All Order Status</option>
+                                <option value="ongoing">Ongoing</option>
+                                <option value="paid">Paid</option>
+                            </select>
+                            <select id="ordersPaymentFilter" class="px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500">
+                                <option value="">All Payments</option>
+                                <option value="cod">Cash on Delivery</option>
+                                <option value="online">Online</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-lg border border-gray-200">
+                        <div class="p-4 border-b border-gray-200 flex items-center justify-between">
+                            <h3 class="font-medium text-gray-700">Orders (<?php echo count($orders); ?>)</h3>
+                            <div id="ordersPagination" class="flex items-center gap-2 hidden">
+                                <button id="ordersPrev" class="px-2 py-1 text-sm rounded-md border border-gray-300 bg-white hover:bg-gray-50">Prev</button>
+                                <div id="ordersPageNums" class="flex items-center gap-1"></div>
+                                <button id="ordersNext" class="px-2 py-1 text-sm rounded-md border border-gray-300 bg-white hover:bg-gray-50">Next</button>
+                                <span id="ordersPageInfo" class="ml-2 text-xs text-gray-500"></span>
+                            </div>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full text-sm" id="ordersTable">
+                                <thead class="bg-gray-50 text-xs uppercase text-gray-600">
+                                    <tr>
+                                        <th class="px-4 py-3 text-left font-medium">Buyer</th>
+                                        <th class="px-4 py-3 text-left font-medium">Order Items</th>
+                                        <th class="px-4 py-3 text-left font-medium">Fulfillment</th>
+                                        <th class="px-4 py-3 text-left font-medium">Pickup Date</th>
+                                        <th class="px-4 py-3 text-left font-medium">Pickup Time</th>
+                                        <th class="px-4 py-3 text-left font-medium">Pickup Status</th>
+                                        <th class="px-4 py-3 text-left font-medium">Address</th>
+                                        <th class="px-4 py-3 text-left font-medium">Delivery Status</th>
+                                        <th class="px-4 py-3 text-left font-medium">ETA</th>
+                                        <th class="px-4 py-3 text-left font-medium">Actual Arrival</th>
+                                        <th class="px-4 py-3 text-left font-medium">Signature</th>
+                                        <th class="px-4 py-3 text-left font-medium">Payment</th>
+                                        <th class="px-4 py-3 text-left font-medium">Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="ordersTableBody" class="divide-y divide-gray-100">
+                                <?php if (empty($orders)): ?>
+                                    <tr><td colspan="13" class="px-4 py-6 text-center text-gray-500">No orders found.</td></tr>
+                                <?php else: ?>
+                                <?php foreach ($orders as $ord): 
+                                    $tid = (int)$ord['transactions_id'];
+                                    $buyer = trim(($ord['users_firstname'] ?? '') . ' ' . ($ord['users_lastname'] ?? ''));
+                                    $items = $itemsByTxn[$tid] ?? [];
+                                    $fulfillment = $ord['transactions_fulfillment_type'];
+                                    $status = $ord['transactions_status'];
+                                    $pay = $ord['transactions_payment_method'];
+                                    $pickupDate = $ord['pickups_pickup_date'] ?? '';
+                                    $pickupTime = $ord['pickups_pickup_time'] ?? '';
+                                    $pickupStatus = $ord['pickups_pickup_status'] ?? '';
+                                    $addrParts = array_filter([ $ord['deliveries_address'] ?? '', $ord['deliveries_city'] ?? '', $ord['deliveries_postal_code'] ?? '' ]);
+                                    $address = implode(', ', $addrParts);
+                                    $deliveryStatus = $ord['deliveries_delivery_status'] ?? '';
+                                    $eta = $ord['deliveries_estimated_delivery_date'] ?? '';
+                                    $arr = $ord['deliveries_actual_delivery_date'] ?? '';
+                                    $sig = $ord['deliveries_recipient_signature'] ?? '';
+                                ?>
+                                    <tr data-buyer="<?php echo o_e(strtolower($buyer)); ?>" data-payment="<?php echo o_e($pay); ?>" data-status="<?php echo o_e($status); ?>" data-fulfillment="<?php echo o_e($fulfillment); ?>">
+                                        <td class="px-4 py-3 whitespace-nowrap">
+                                            <div class="font-medium text-gray-800"><?php echo o_e($buyer ?: 'User #'.$ord['users_id']); ?></div>
+                                            <div class="text-xs text-gray-500">#<?php echo $tid; ?> • ₱<?php echo number_format((float)$ord['transactions_amount'],2); ?></div>
+                                        </td>
+                                        <td class="px-4 py-3">
+                                            <div class="flex flex-wrap gap-2">
+                                                <?php foreach ($items as $it): 
+                                                    $img = $it['products_image_url'] ? '../../'.ltrim($it['products_image_url'],'/') : '';
+                                                ?>
+                                                <div class="flex items-center gap-2 border border-gray-200 rounded-md px-2 py-1 bg-gray-50">
+                                                    <?php if ($img): ?>
+                                                        <img src="<?php echo o_e($img); ?>" class="w-8 h-8 object-cover rounded" alt="prod">
+                                                    <?php else: ?>
+                                                        <div class="w-8 h-8 flex items-center justify-center bg-orange-100 text-orange-600 text-xs rounded">IMG</div>
+                                                    <?php endif; ?>
+                                                    <div>
+                                                        <div class="text-xs font-medium text-gray-700 max-w-[110px] truncate" title="<?php echo o_e($it['products_name']); ?>"><?php echo o_e($it['products_name']); ?></div>
+                                                        <div class="text-[10px] text-gray-500">x<?php echo o_e($it['tp_quantity']); ?></div>
+                                                    </div>
+                                                </div>
+                                                <?php endforeach; ?>
+                                            </div>
+                                        </td>
+                                        <td class="px-4 py-3 whitespace-nowrap">
+                                            <span class="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full <?php echo $fulfillment==='delivery' ? 'bg-blue-50 text-blue-600' : 'bg-emerald-50 text-emerald-600'; ?>"><?php echo o_e(ucfirst($fulfillment)); ?></span>
+                                        </td>
+                                        <td class="px-4 py-3 text-xs text-gray-700"><?php echo $fulfillment==='pickup'? o_e($pickupDate):'<span class="text-gray-300">—</span>'; ?></td>
+                                        <td class="px-4 py-3 text-xs text-gray-700"><?php echo $fulfillment==='pickup'? o_e($pickupTime):'<span class="text-gray-300">—</span>'; ?></td>
+                                        <td class="px-4 py-3 text-xs">
+                                            <?php if ($fulfillment==='pickup' && $pickupStatus): ?>
+                                                <span class="px-2 py-1 rounded-full bg-gray-100 text-gray-700"><?php echo o_e(ucwords(str_replace('_',' ',$pickupStatus))); ?></span>
+                                            <?php else: ?><span class="text-gray-300">—</span><?php endif; ?>
+                                        </td>
+                                        <td class="px-4 py-3 text-xs max-w-[160px] truncate" title="<?php echo o_e($address); ?>"><?php echo $fulfillment==='delivery'? o_e($address):'<span class="text-gray-300">—</span>'; ?></td>
+                                        <td class="px-4 py-3 text-xs">
+                                            <?php if ($fulfillment==='delivery' && $deliveryStatus): ?>
+                                                <span class="px-2 py-1 rounded-full bg-gray-100 text-gray-700"><?php echo o_e(ucwords(str_replace('_',' ',$deliveryStatus))); ?></span>
+                                            <?php else: ?><span class="text-gray-300">—</span><?php endif; ?>
+                                        </td>
+                                        <td class="px-4 py-3 text-xs text-gray-700"><?php echo $fulfillment==='delivery'? o_e($eta ?: ''):'<span class="text-gray-300">—</span>'; ?></td>
+                                        <td class="px-4 py-3 text-xs text-gray-700"><?php echo $fulfillment==='delivery'? o_e($arr ?: ''):'<span class="text-gray-300">—</span>'; ?></td>
+                                        <td class="px-4 py-3 text-xs text-gray-700"><?php echo $fulfillment==='delivery'? ($sig? o_e($sig):'<span class="italic text-gray-400">Pending</span>'):'<span class="text-gray-300">—</span>'; ?></td>
+                                        <td class="px-4 py-3 text-xs">
+                                            <span class="px-2 py-1 rounded-full bg-orange-50 text-orange-600"><?php echo o_e(strtoupper($pay)); ?></span>
+                                        </td>
+                                        <td class="px-4 py-3 text-xs">
+                                            <span class="px-2 py-1 rounded-full <?php echo $status==='paid' ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'; ?>"><?php echo o_e(ucfirst($status)); ?></span>
+                                        </td>
+                                    </tr>
+                                <?php endforeach; ?>
+                                <?php endif; ?>
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 </div>
@@ -2204,7 +2388,8 @@ function resolveImageUrl($path) {
         // Section navigation
         function setActiveSection(section) {
             // Hide all sections
-            const sections = ['dashboard', 'products', 'sitters', 'appointments', 'pets', 'subscribers'];
+            // Include 'orders' so it hides when navigating to other sections
+            const sections = ['dashboard', 'products', 'orders', 'sitters', 'appointments', 'pets', 'subscribers'];
             sections.forEach(s => {
                 document.getElementById(`${s}-section`).classList.add('hidden');
             });

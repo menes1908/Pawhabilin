@@ -66,22 +66,31 @@ function h($v){return htmlspecialchars($v??'',ENT_QUOTES,'UTF-8');}
 <header class="bg-white border-b border-gray-200 sticky top-0 z-40">
  <div class="max-w-7xl mx-auto px-4">
     <div class="flex h-16 items-center justify-between">
-        <div class="flex items-center gap-2">
-            <div class="w-10 h-10 rounded-lg overflow-hidden">
-                <div class="w-full h-full bg-gradient-to-br from-orange-400 to-amber-500 flex items-center justify-center"><i data-lucide="paw-print" class="w-6 h-6 text-white"></i></div>
-            </div>
-            <span class="text-xl font-semibold">pawhabilin</span>
-        </div>
-        <div class="flex items-center gap-4">
-            <div class="relative">
-                <i data-lucide="shopping-cart" class="w-6 h-6 text-gray-600"></i>
-                <div class="absolute -top-2 -right-2 w-5 h-5 bg-orange-500 rounded-full flex items-center justify-center text-xs text-white font-bold"><?php echo $itemCount; ?></div>
-            </div>
-            <div class="flex items-center gap-2">
-                <div class="w-8 h-8 bg-gradient-to-br from-orange-400 to-amber-500 rounded-full flex items-center justify-center text-white font-semibold text-sm"><?php echo strtoupper(substr($user['users_name']??$user['users_email'],0,1)); ?></div>
-                <span class="font-medium text-gray-700">Hi, <?php echo h(explode(' ',$user['users_name']??$user['users_email'])[0]); ?>!</span>
-            </div>
-        </div>
+                <div class="flex items-center gap-3">
+                        <?php
+                            $logoPath='../../pictures/Pawhabilin logo.png';
+                            if(!file_exists(str_replace('..','',__DIR__).'/../../pictures/Pawhabilin logo.png')){ $logoPath='../../pictures/logo web.png'; }
+                        ?>
+                        <img src="<?php echo h($logoPath); ?>" alt="Pawhabilin Logo" class="h-10 w-10 object-contain select-none" draggable="false" />
+                        <span class="text-2xl font-bold tracking-tight bg-gradient-to-r from-orange-600 to-amber-600 bg-clip-text text-transparent" style="font-family: 'La Lou Big', cursive;">Pawhabilin</span>
+                </div>
+                <div class="flex items-center gap-3">
+                        <?php
+                            $profileImg = $user['users_avatar'] ?? ($user['users_image'] ?? null);
+                            if($profileImg && !preg_match('/^https?:/i',$profileImg)) $profileImg='../../'.ltrim($profileImg,'/');
+                            // Display name intentionally limited to username only (no email fallback for privacy)
+                            $displayName = $user['users_name'] ?? ($user['users_email'] ?? 'User');
+                        ?>
+                        <!-- Profile made non-clickable to keep user focused on completing the transaction -->
+                        <div class="flex items-center gap-2 cursor-default select-none" aria-label="User profile" role="presentation">
+                                <?php if(!empty($profileImg)): ?>
+                                    <img src="<?php echo h($profileImg); ?>" alt="Profile" class="w-10 h-10 rounded-full object-cover ring-2 ring-orange-200" draggable="false" />
+                                <?php else: ?>
+                                    <div class="w-10 h-10 rounded-full bg-gradient-to-br from-orange-400 to-amber-500 flex items-center justify-center text-white font-semibold text-base ring-2 ring-orange-200" draggable="false"><?php echo strtoupper(substr($displayName,0,1)); ?></div>
+                                <?php endif; ?>
+                                <span class="font-medium text-gray-800 select-none max-w-[140px] truncate" title="<?php echo h($displayName); ?>"><?php echo h($displayName); ?></span>
+                        </div>
+                </div>
     </div>
  </div>
 </header>

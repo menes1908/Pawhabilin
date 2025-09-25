@@ -176,60 +176,8 @@
     </style>
 </head>
 <body class="min-h-screen bg-background">
-    <!-- Header -->
-   <header class="sticky top-0 z-50 border-b bg-background/80 backdrop-blur-sm">
-        <div class="container mx-auto px-4">
-            <div class="flex h-16 items-center justify-between">
-                <div class="flex items-center space-x-2">
-                    <div class="w-24 h-24 rounded-lg overflow-hidden flex items-center justify-center" style="width:77px; height:77px;">
-                        <img src="../../pictures/Pawhabilin logo.png" alt="Pawhabilin Logo" class="w-full h-full object-contain" />
-                    </div>
-                    <span class="text-xl font-semibold bg-gradient-to-r from-orange-600 to-amber-600 bg-clip-text text-transparent" style="font-family: 'La Lou Big', cursive;">
-                        Pawhabilin
-                    </span>
-                </div>
-                
-                <nav class="hidden md:flex items-center space-x-8">
-                    <a href="index.php" class="text-muted-foreground hover:text-foreground transition-colors">About</a>
-                    <!-- Pet Sitter Dropdown -->
-                    <div class="relative" id="petsitterWrapper">
-                        <a id="petsitterButton" href="/Pawhabilin/views/users/findsitters.php" class="text-muted-foreground hover:text-foreground transition-colors inline-flex items-center gap-2">
-                            Find a Sitter
-                         </a>
-                    </div>
-
-                    <a href="/Pawhabilin/views/users/buy_products.php" class="text-muted-foreground hover:text-foreground transition-colors">Shop</a>
-                    
-                    
-                    <div class="relative" id="appointmentsWrapper">
-                        <button id="appointmentsButton" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="appointmentsMenu" class="text-muted-foreground hover:text-foreground transition-colors inline-flex items-center gap-2">
-                            Appointments
-                            <i data-lucide="chevron-down" class="w-4 h-4 transition-transform duration-200"></i>
-                        </button>
-
-                        <div id="appointmentsMenu" class="absolute right-0 mt-2 w-48 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 nav-dropdown transition-all duration-200 hidden" role="menu" aria-hidden="true">
-                            <div class="py-1">
-                                <a href="models/appointment.php" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">Grooming Appointment</a>
-                                <a href="views/users/book_appointment.php" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">Vet Appointment</a>
-                            </div>
-                        </div>
-                    </div>
-
-                    <a href="subscriptions.php" class="text-muted-foreground hover:text-foreground transition-colors">Subscription</a>
-
-                    
-                    <a href="#support" class="text-muted-foreground hover:text-foreground transition-colors">Support</a>
-                </nav>
-                    <button onclick="window.location.href='../user-profile.php'" class="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-100 transition-colors duration-200">
-                        <div class="w-8 h-8 bg-gradient-to-br from-orange-400 to-amber-500 rounded-full flex items-center justify-center text-white font-semibold text-sm">
-                            J
-                        </div>
-                        <span class="text-sm font-medium text-gray-700 hidden sm:block">John Doe</span>
-                    </button>
-                </div>
-            </div>
-        </div>
-    </header>
+    <!-- Header (shared include) -->
+    <?php $basePrefix = '../..'; include __DIR__ . '/../../utils/header-users.php'; ?>
 
     <!-- Pricing Plans -->
     <section class="py-20 bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-50">

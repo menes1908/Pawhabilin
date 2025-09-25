@@ -206,6 +206,7 @@ CREATE TABLE `sitters` (
   `sitters_contact` varchar(255) DEFAULT NULL,
   `sitter_specialty` varchar(255) NOT NULL,
   `sitter_experience` varchar(255) NOT NULL,
+  `years_experience` int(11) DEFAULT NULL,
   `sitters_image_url` varchar(255) DEFAULT NULL,
   `sitters_active` tinyint(1) DEFAULT 1,
   `sitters_created_at` datetime DEFAULT current_timestamp()
@@ -215,8 +216,8 @@ CREATE TABLE `sitters` (
 -- Dumping data for table `sitters`
 --
 
-INSERT INTO `sitters` (`sitters_id`, `sitters_name`, `sitters_bio`, `sitter_email`, `sitters_contact`, `sitter_specialty`, `sitter_experience`, `sitters_image_url`, `sitters_active`, `sitters_created_at`) VALUES
-(1, 'John Ricardo', 'qw3aed', 'jr@gmail.com', '0956 789 0999', 'Dog, Cat, Fish', '4 years', 'pictures/sitters/images-1758347866-6335.jpg', 1, '2025-09-20 13:57:46');
+INSERT INTO `sitters` (`sitters_id`, `sitters_name`, `sitters_bio`, `sitter_email`, `sitters_contact`, `sitter_specialty`, `sitter_experience`, `years_experience`, `sitters_image_url`, `sitters_active`, `sitters_created_at`) VALUES
+(1, 'John Ricardo', 'qw3aed', 'jr@gmail.com', '0956 789 0999', 'Dog, Cat, Fish', '4 years', 4, 'pictures/sitters/images-1758347866-6335.jpg', 1, '2025-09-20 13:57:46');
 
 -- --------------------------------------------------------
 

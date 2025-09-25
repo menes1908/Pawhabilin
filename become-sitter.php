@@ -283,23 +283,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['sitter_register'])) {
             transition: width 0.5s ease;
         }
         
-        /* Earnings calculator */
-        .earnings-card {
-            background: linear-gradient(135deg, #10b981, #059669);
-            position: relative;
-            overflow: hidden;
-        }
         
-        .earnings-card::before {
-            content: '';
-            position: absolute;
-            top: -50%;
-            right: -50%;
-            width: 100%;
-            height: 100%;
-            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
-            animation: float 8s ease-in-out infinite;
-        }
         
         /* Custom scrollbar */
         ::-webkit-scrollbar {
@@ -387,10 +371,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['sitter_register'])) {
             .step-indicator::after {
                 display: none;
             }
-            
-            .earnings-card {
-                margin: 0 16px;
-            }
         }
         
         html {
@@ -434,16 +414,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['sitter_register'])) {
                         platform and start earning while caring for adorable pets in your community.
                     </p>
                     
-                    <div class="flex flex-col sm:flex-row gap-6 justify-center items-center pt-8">
+                    <div class="flex justify-center items-center pt-8">
                         <a href="#application-form" class="group inline-flex items-center justify-center gap-3 whitespace-nowrap rounded-full text-lg font-semibold transition-all duration-300 bg-white text-orange-600 hover:bg-orange-50 h-14 px-8 transform hover:scale-105 hover:shadow-2xl">
                             <i data-lucide="user-check" class="w-6 h-6 group-hover:rotate-12 transition-transform duration-300"></i>
                             Start Your Application
                             <i data-lucide="arrow-right" class="w-5 h-5 group-hover:translate-x-1 transition-transform duration-300"></i>
-                        </a>
-                        
-                        <a href="#earnings-calculator" class="group inline-flex items-center justify-center gap-3 whitespace-nowrap rounded-full text-lg font-medium transition-all duration-300 border-2 border-white text-white hover:bg-white hover:text-orange-600 h-14 px-8 transform hover:scale-105">
-                            <i data-lucide="calculator" class="w-5 h-5 group-hover:scale-110 transition-transform duration-300"></i>
-                            Calculate Earnings
                         </a>
                     </div>
                 </div>
@@ -840,127 +815,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['sitter_register'])) {
         </div>
     </section>
 
-    <!-- Earnings Calculator -->
-    <section id="earnings-calculator" class="py-20 bg-gradient-to-br from-gray-900 via-green-900 to-emerald-900 relative overflow-hidden">
-        <div class="absolute inset-0 opacity-10">
-            <div class="absolute inset-0" style="background-image: url('data:image/svg+xml,%3Csvg width=\"60\" height=\"60\" viewBox=\"0 0 60 60\" xmlns=\"http://www.w3.org/2000/svg\" fill=\"%23ffffff\">&3Cg fill-opacity=\"0.3\">&3Cpath d=\"M54.627 0l.83.828-1.415 1.415L51.8 0h2.827zM5.373 0l-.83.828L5.96 2.243 8.2 0H5.373zM48.97 0l3.657 3.657-1.414 1.414L46.143 0h2.828zM11.03 0L7.372 3.657 8.787 5.07 13.857 0H11.03zm32.284 0L49.8 6.485 48.384 7.9l-7.9-7.9h2.83zM16.686 0L10.2 6.485 11.616 7.9l7.9-7.9h-2.83z\"/%3E&3C/g>&3C/svg>');"></div>
-        </div>
-        
-        <div class="container mx-auto px-4 relative z-10">
-            <div class="text-center mb-16">
-                <div class="inline-flex items-center rounded-full border border-white/20 px-6 py-2 text-sm font-medium glass-effect text-white mb-6">
-                    <i data-lucide="calculator" class="w-4 h-4 mr-2"></i>
-                    Earnings Potential
-                </div>
-                
-                <h2 class="text-4xl md:text-6xl font-bold text-white mb-6 text-shadow">
-                    See How Much You Can
-                    <span class="block brand-font text-5xl md:text-7xl text-green-300">Earn</span>
-                </h2>
-                
-                <p class="text-xl text-white/90 max-w-3xl mx-auto">
-                    Calculate your potential earnings based on the services you want to offer and your availability.
-                    Reference: PH minimum wage (example NCR ₱610/day ≈ ₱13,420/month). Use this as a benchmark for possible income.
-                </p>
-
-                <div class="mt-6 inline-flex items-center gap-3 rounded-xl bg-white/10 border border-white/20 px-4 py-2 text-white/90">
-                    <i data-lucide="info" class="w-4 h-4"></i>
-                    <div class="text-sm">
-                        <div class="font-semibold text-green-200">Philippine Minimum Wage Reference</div>
-                        <div class="text-white/80">Daily: ₱610 (NCR) • Monthly (approx): ₱13,420</div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="max-w-4xl mx-auto">
-                <div class="earnings-card glass-effect rounded-3xl p-8 md:p-12">
-                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-12">
-                        <!-- Calculator Inputs -->
-                        <div class="space-y-6">
-                            <h3 class="text-2xl font-bold text-white mb-6">Earnings Calculator</h3>
-                            
-                            <div>
-                                <label class="block text-white font-medium mb-3">Services you'll offer:</label>
-                                <div class="space-y-3">
-                                    <label class="flex items-center gap-3 cursor-pointer">
-                                        <input type="checkbox" id="pet-sitting" class="w-5 h-5 text-green-500 bg-white/20 border-white/30 rounded focus:ring-green-500" checked>
-                                        <span class="text-white">Pet Sitting (₱200-400/hour)</span>
-                                    </label>
-                                    <label class="flex items-center gap-3 cursor-pointer">
-                                        <input type="checkbox" id="dog-walking" class="w-5 h-5 text-green-500 bg-white/20 border-white/30 rounded focus:ring-green-500" checked>
-                                        <span class="text-white">Dog Walking (₱300-500/hour)</span>
-                                    </label>
-                                    <label class="flex items-center gap-3 cursor-pointer">
-                                        <input type="checkbox" id="grooming" class="w-5 h-5 text-green-500 bg-white/20 border-white/30 rounded focus:ring-green-500">
-                                        <span class="text-white">Grooming (₱600-1200/session)</span>
-                                    </label>
-                                    <label class="flex items-center gap-3 cursor-pointer">
-                                        <input type="checkbox" id="overnight" class="w-5 h-5 text-green-500 bg-white/20 border-white/30 rounded focus:ring-green-500">
-                                        <span class="text-white">Overnight Care (₱1500-3000/night)</span>
-                                    </label>
-                                </div>
-                            </div>
-                            
-                            <div>
-                                <label class="block text-white font-medium mb-3">Hours per week:</label>
-                                <input type="range" id="hours-slider" min="5" max="40" value="20" class="w-full h-2 bg-white/20 rounded-lg appearance-none cursor-pointer">
-                                <div class="flex justify-between text-sm text-white/70 mt-1">
-                                    <span>5 hours</span>
-                                    <span id="hours-display" class="font-bold text-green-300">20 hours</span>
-                                    <span>40+ hours</span>
-                                </div>
-                            </div>
-                            
-                            <div>
-                                <label class="block text-white font-medium mb-3">Average rate per hour:</label>
-                                <select id="rate-select" class="w-full px-4 py-3 rounded-lg bg-white/20 border border-white/30 text-white focus:bg-white/30 focus:border-green-400 focus:outline-none transition-all duration-300">
-                                    <option value="250" class="text-gray-800">₱250 - Beginner</option>
-                                    <option value="350" class="text-gray-800" selected>₱350 - Experienced</option>
-                                    <option value="500" class="text-gray-800">₱500 - Expert</option>
-                                    <option value="650" class="text-gray-800">₱650 - Premium</option>
-                                </select>
-                            </div>
-                        </div>
-                        
-                        <!-- Earnings Display -->
-                        <div class="space-y-6">
-                            <h3 class="text-2xl font-bold text-white mb-6">Your Potential Earnings</h3>
-                            
-                            <div class="space-y-4">
-                                <div class="bg-white/10 rounded-xl p-6">
-                                    <div class="text-center">
-                                        <div class="text-4xl font-bold text-green-300 mb-2" id="weekly-earnings">₱7,000</div>
-                                        <div class="text-white/80">Per Week</div>
-                                    </div>
-                                </div>
-                                
-                                <div class="bg-white/10 rounded-xl p-6">
-                                    <div class="text-center">
-                                        <div class="text-5xl font-bold text-green-200 mb-2" id="monthly-earnings">₱30,333</div>
-                                        <div class="text-white/80">Per Month</div>
-                                    </div>
-                                </div>
-                                
-                                <div class="bg-white/10 rounded-xl p-6">
-                                    <div class="text-center">
-                                        <div class="text-3xl font-bold text-green-400 mb-2" id="yearly-earnings">₱364,000</div>
-                                        <div class="text-white/80">Per Year</div>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <div class="bg-white/10 rounded-xl p-4">
-                                <p class="text-sm text-white/80 text-center">
-                                    * Earnings are estimates based on average rates and availability. 
-                                    Actual earnings may vary based on demand, location, and service quality.
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
+    
 
     <!-- Success Stories (temporarily hidden) -->
     <!--
@@ -1399,33 +1254,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['sitter_register'])) {
             element.classList.toggle('selected', checkbox.checked);
         }
 
-        // Earnings calculator
-        const hoursSlider = document.getElementById('hours-slider');
-        const hoursDisplay = document.getElementById('hours-display');
-        const rateSelect = document.getElementById('rate-select');
-        const weeklyEarnings = document.getElementById('weekly-earnings');
-        const monthlyEarnings = document.getElementById('monthly-earnings');
-        const yearlyEarnings = document.getElementById('yearly-earnings');
-
-        function updateEarnings() {
-            const hours = parseInt(hoursSlider.value);
-            const rate = parseInt(rateSelect.value);
-            
-            const weekly = hours * rate;
-            const monthly = Math.round(weekly * 4.33);
-            const yearly = Math.round(weekly * 52);
-            
-            hoursDisplay.textContent = hours + ' hours';
-            weeklyEarnings.textContent = '₱' + weekly.toLocaleString();
-            monthlyEarnings.textContent = '₱' + monthly.toLocaleString();
-            yearlyEarnings.textContent = '₱' + yearly.toLocaleString();
-        }
-
-        if (hoursSlider && rateSelect) {
-            hoursSlider.addEventListener('input', updateEarnings);
-            rateSelect.addEventListener('change', updateEarnings);
-            updateEarnings(); // Initial calculation
-        }
+        // Removed earnings calculator
 
         // AJAX form submit: no page refresh on validation errors
         const appForm = document.querySelector('#application-form form');

@@ -65,7 +65,16 @@ if (!isset($currentUserName) && !isset($currentUserInitial)) { http_response_cod
           <button id="userMenuButton" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="userMenu" class="inline-flex items-center gap-2">
             <span class="inline-flex items-center justify-center w-9 h-9 rounded-full bg-orange-100 text-orange-700 border border-orange-200 overflow-hidden">
               <?php if ($currentUserImg): ?>
-                <img src="<?= htmlspecialchars($currentUserImg) ?>" alt="<?= htmlspecialchars($currentUserName) ?>" class="w-full h-full object-cover" />
+                <?php
+                  $imgSrc = $currentUserImg;
+                  if (strpos($imgSrc, 'http://') !== 0 && strpos($imgSrc, 'https://') !== 0) {
+                      // treat as relative asset path
+                      $imgSrc = htmlspecialchars($asset($imgSrc));
+                  } else {
+                      $imgSrc = htmlspecialchars($imgSrc);
+                  }
+                ?>
+                <img src="<?= $imgSrc ?>" alt="<?= htmlspecialchars($currentUserName) ?>" class="w-full h-full object-cover" />
               <?php else: ?>
                 <span class="text-sm font-semibold"><?= htmlspecialchars($currentUserInitial) ?></span>
               <?php endif; ?>

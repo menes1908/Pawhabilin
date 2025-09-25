@@ -22,7 +22,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     
     <!-- Tailwind CSS v4.0 -->
     <script src="https://cdn.tailwindcss.com"></script>
-	<link rel="stylesheet" href="../globals.css">
+	<link rel="stylesheet" href="globals.css">
     
     <!-- Google Fonts - La Belle Aurore -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -290,70 +290,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </style>
 </head>
 <body class="min-h-screen bg-gray-50">
-    <!-- Header -->
-    <header class="sticky top-0 z-50 border-b bg-white/80 backdrop-blur-sm">
-        <div class="container mx-auto px-4">
-            <div class="flex h-16 items-center justify-between">
-                <a href="index.php" class="flex items-center space-x-2 group">
-                    <div class="w-10 h-10 rounded-lg overflow-hidden transform group-hover:rotate-12 transition-transform duration-300">
-                        <img src="https://images.unsplash.com/photo-1601758228041-f3b2795255f1?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxwdXBweSUyMGtpdCUyMGFjY2Vzc29yaWVzfGVufDF8fHx8MTc1NjU0MzcxNXww&ixlib=rb-4.1.0&q=80&w=1080" alt="pawhabilin Logo" class="w-full h-full object-contain">
-                    </div>
-                    <span class="text-xl font-semibold brand-font">pawhabilin</span>
-                </a>
-                
-                <nav class="hidden md:flex items-center space-x-8">
-                    <!-- Pet Sitter Dropdown -->
-                     <a href="index.php" class="text-muted-foreground hover:text-foreground transition-colors">About</a>
-                    <div class="relative" id="petsitterWrapper">
-                        <button id="petsitterButton" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="petsitterMenu" class="text-muted-foreground hover:text-foreground transition-colors inline-flex items-center gap-2">
-                            Pet Sitter
-                            <i data-lucide="chevron-down" class="w-4 h-4 transition-transform duration-200"></i>
-                        </button>
-
-                        <div id="petsitterMenu" class="absolute left-0 mt-2 w-56 origin-top-left rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 nav-dropdown transition-all duration-200" role="menu" aria-hidden="true">
-                            <div class="py-1">
-                                <a href="find-sitters" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">Find a Pet Sitter</a>
-                                <a href="views/users/become_sitter.php" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">Become a Sitter</a>
-                            </div>
-                        </div>
-                    </div>
-
-                    <a href="shop" class="text-muted-foreground hover:text-foreground transition-colors">Shop</a>
-                    
-                    
-                    <div class="relative" id="appointmentsWrapper">
-                        <button id="appointmentsButton" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="appointmentsMenu" class="text-muted-foreground hover:text-foreground transition-colors inline-flex items-center gap-2">
-                            Appointments
-                            <i data-lucide="chevron-down" class="w-4 h-4 transition-transform duration-200"></i>
-                        </button>
-
-                        <div id="appointmentsMenu" class="absolute right-0 mt-2 w-48 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 nav-dropdown transition-all duration-200" role="menu" aria-hidden="true">
-                            <div class="py-1">
-                                <a href="views/users/book_grooming.php" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">Grooming Appointment</a>
-                                <a href="appointments.php" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">Vet Appointment</a>
-                            </div>
-                        </div>
-                    </div>
-
-                    <a href="views/users/subscriptions.php" class="text-muted-foreground hover:text-foreground transition-colors">Subscription</a>
-
-                    
-                    <a href="#support" class="text-muted-foreground hover:text-foreground transition-colors">Support</a>
-                </nav>
-
-                <div class="flex items-center gap-3">
-                    <a href="login.php" class="hidden sm:inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 hover:bg-accent hover:text-accent-foreground h-9 px-3">
-                        <i data-lucide="user" class="w-4 h-4"></i>
-                        Sign In
-                    </a>
-                    <button onclick="scrollToBooking()" class="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white h-9 px-4 pulse-glow">
-                        <i data-lucide="calendar" class="w-4 h-4"></i>
-                        Book Appointment
-                    </button>
-                </div>
-            </div>
-        </div>
-    </header>
+    <?php include __DIR__ . '/utils/header.php'; ?>
 
     <!-- Hero Section -->
     <section class="relative py-20 overflow-hidden gradient-bg">

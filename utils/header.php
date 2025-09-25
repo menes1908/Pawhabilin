@@ -59,9 +59,8 @@ if (!isset($cartCount)) {
 
 					<div id="petsitterMenu" class="absolute left-0 mt-2 w-56 origin-top-left rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 nav-dropdown opacity-0 translate-y-2 transition-all duration-200" role="menu" aria-hidden="true">
 						<div class="py-1">
-							<a href="<?= htmlspecialchars($asset('find-sitters.php')) ?>" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50" role="menuitem">Find Sitters</a>
-							<a href="#how-it-works" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50" role="menuitem">How it Works</a>
-							<a href="#safety" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50" role="menuitem">Safety</a>
+							<a href="<?= htmlspecialchars($asset('find-sitters.php')) ?>" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50" role="menuitem">Find a Pet Sitter</a>
+							<a href="<?= htmlspecialchars($asset('become-sitter.php')) ?>" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50" role="menuitem">Become a Sitter</a>
 						</div>
 					</div>
 				</div>
@@ -77,8 +76,8 @@ if (!isset($cartCount)) {
 
 					<div id="appointmentsMenu" class="absolute right-0 mt-2 w-48 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 nav-dropdown opacity-0 translate-y-2 transition-all duration-200" role="menu" aria-hidden="true">
 						<div class="py-1">
-							<a href="#book" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50" role="menuitem">Book</a>
-							<a href="#manage" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50" role="menuitem">Manage</a>
+							<a href="<?= htmlspecialchars($asset('models/appointment.php')) ?>" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50" role="menuitem">Grooming Appointment</a>
+							<a href="<?= htmlspecialchars($asset('appointments.php')) ?>" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50" role="menuitem">Vet Appointment</a>
 						</div>
 					</div>
 				</div>
@@ -151,22 +150,24 @@ if (!isset($cartCount)) {
 		}, { once: true });
 	} catch(e) {}
 
-	// Dropdown helper
-	function initDropdown(wrapperId, buttonId, menuId){
-		var wrapper = document.getElementById(wrapperId);
-		var btn = document.getElementById(buttonId);
-		var menu = document.getElementById(menuId);
+	// Dropdown helper (aligned with index.php)
+	function initDropdown(opts){
+		var wrapper = document.getElementById(opts.wrapperId);
+		var btn = document.getElementById(opts.buttonId);
+		var menu = document.getElementById(opts.menuId);
 		if(!wrapper || !btn || !menu) return;
 		var chevron = btn.querySelector('i[data-lucide="chevron-down"]');
 		var persist = false; var hoverTimeout = null;
 		function setOpen(open){
 			if(open){
+				menu.classList.add('open');
 				menu.classList.remove('opacity-0');
 				menu.classList.remove('translate-y-2');
 				menu.setAttribute('aria-hidden','false');
 				btn.setAttribute('aria-expanded','true');
 				if(chevron) chevron.style.transform='rotate(180deg)';
 			} else {
+				menu.classList.remove('open');
 				menu.classList.add('opacity-0');
 				menu.classList.add('translate-y-2');
 				menu.setAttribute('aria-hidden','true');
@@ -181,8 +182,8 @@ if (!isset($cartCount)) {
 		document.addEventListener('keydown', function(e){ if(e.key==='Escape'){ persist=false; setOpen(false); }});
 		setOpen(false);
 	}
-	initDropdown('petsitterWrapper','petsitterButton','petsitterMenu');
-	initDropdown('appointmentsWrapper','appointmentsButton','appointmentsMenu');
+	initDropdown({ wrapperId: 'appointmentsWrapper', buttonId: 'appointmentsButton', menuId: 'appointmentsMenu' });
+	initDropdown({ wrapperId: 'petsitterWrapper', buttonId: 'petsitterButton', menuId: 'petsitterMenu' });
 
 	// Cart button behavior: open drawer if available, else navigate to Shop
 	var cartBtn = document.getElementById('header-cart-button');

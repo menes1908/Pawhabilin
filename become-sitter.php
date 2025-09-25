@@ -1436,11 +1436,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['sitter_register'])) {
             errorBanner.textContent = 'Please fix the errors below and submit again.';
             appForm.parentElement.insertBefore(errorBanner, appForm);
 
-            const successBanner = document.createElement('div');
-            successBanner.className = 'mb-6 hidden rounded-xl border border-green-200 bg-green-50 text-green-700 p-4';
-            successBanner.textContent = 'Account created! Redirecting to login...';
-            appForm.parentElement.insertBefore(successBanner, appForm);
-
             function setFieldError(name, message) {
                 const input = appForm.querySelector(`[name="${name}"]`);
                 if (!input) return;
@@ -1482,17 +1477,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['sitter_register'])) {
                         const errs = (data && data.errors) ? data.errors : {};
                         Object.entries(errs).forEach(([k,v]) => { if (v) setFieldError(k, v); });
                         errorBanner.classList.remove('hidden');
-                        successBanner.classList.add('hidden');
                     } else if (data.redirect) {
-                        // Show success and delay redirect briefly so user can see it
-                        errorBanner.classList.add('hidden');
-                        successBanner.classList.remove('hidden');
-                        setTimeout(() => { window.location.href = data.redirect; }, 1200);
+                        window.location.href = data.redirect;
                     }
                 } catch (err) {
                     errorBanner.textContent = 'Something went wrong. Please try again.';
                     errorBanner.classList.remove('hidden');
-                    successBanner.classList.add('hidden');
                 } finally {
                     if (submitBtn) {
                         submitBtn.disabled = false;

@@ -1,10 +1,12 @@
 <?php
-// Reusable Header Wrapper (shared)
-// Decides which header to render based on auth state. Keeps guest and user markup fully separate.
+// Reusable Header Wrapper
+// - Decides which header to render based on session state
+// - Provides shared helpers and a single JS initializer to avoid duplication
 
 require_once __DIR__ . '/session.php';
 session_start_if_needed();
 
+// Resolve paths depending on where this partial is included
 if (!isset($basePrefix)) { $basePrefix = ''; }
 $asset = function (string $path) use ($basePrefix): string {
 	$path = ltrim($path, '/');
@@ -12,11 +14,13 @@ $asset = function (string $path) use ($basePrefix): string {
 	return ($prefix === '' ? '' : $prefix . '/') . $path;
 };
 
+// User context
 $currentUser = get_current_user_session();
 $currentUserName = user_display_name($currentUser);
 $currentUserInitial = user_initial($currentUser);
 $currentUserImg = user_image_url($currentUser);
 
+// Cart count
 if (!isset($cartCount)) {
 	$cartCount = 0;
 	if (!empty($_SESSION['cart']) && is_array($_SESSION['cart'])) {
@@ -24,6 +28,7 @@ if (!isset($cartCount)) {
 	}
 }
 
+// Render specific header based on auth state (prevents guest from ever seeing user menu markup)
 if ($currentUser) {
 	include __DIR__ . '/header-auth.php';
 } else {
@@ -32,9 +37,12 @@ if ($currentUser) {
 ?>
 
 <script>
+// Initialize header behaviors once per page (shared for both guest/auth variants)
 (function(){
-    if (window.__pawHeaderInit) return;
+    if (window.__pawHeaderInit) return; // prevent duplicate init
     window.__pawHeaderInit = true;
+
+    // Lucide icons refresh
     try { if (window.lucide && typeof window.lucide.createIcons === 'function') window.lucide.createIcons(); } catch(e) {}
     try { document.addEventListener('DOMContentLoaded', function(){ if (window.lucide && typeof window.lucide.createIcons === 'function') window.lucide.createIcons(); }, { once: true }); } catch(e) {}
 
@@ -73,6 +81,7 @@ if ($currentUser) {
     initDropdown({ wrapperId: 'petsitterWrapper', buttonId: 'petsitterButton', menuId: 'petsitterMenu' });
     initDropdown({ wrapperId: 'userMenuWrapper', buttonId: 'userMenuButton', menuId: 'userMenu' });
 
+    // Cart button behavior: open drawer if available, else navigate appropriately
     var cartBtn = document.getElementById('header-cart-button');
     if (cartBtn) {
         cartBtn.addEventListener('click', function(){
@@ -82,4 +91,3 @@ if ($currentUser) {
     }
 })();
 </script>
-

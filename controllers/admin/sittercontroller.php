@@ -36,6 +36,14 @@ function delete_local_image_if_applicable($dbPath) {
     if (strpos($full, $picturesDir) === 0 && file_exists($full)) @unlink($full);
 }
 
+// Ensure new sitter columns exist (idempotent)
+function ensure_sitter_columns_admin(mysqli $conn) {
+    @mysqli_query($conn, "ALTER TABLE sitters ADD COLUMN IF NOT EXISTS years_experience INT NULL");
+    if (mysqli_errno($conn) === 1064) {
+        @mysqli_query($conn, "ALTER TABLE sitters ADD COLUMN years_experience INT NULL");
+    }
+}
+
 $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 $action = $_REQUEST['action'] ?? '';
 
@@ -45,7 +53,8 @@ if ($method === 'GET' && $action === 'get') {
     if ($id <= 0) json_response(['success' => false, 'error' => 'Invalid sitter id'], 400);
     global $connections;
     if (!$connections) json_response(['success' => false, 'error' => 'Database connection error.'], 500);
-    $sql = "SELECT sitters_id, sitters_name, sitters_bio, sitter_email, sitters_contact, sitter_specialty, sitter_experience, sitters_image_url, sitters_active FROM sitters WHERE sitters_id = ? LIMIT 1";
+    ensure_sitter_columns_admin($connections);
+    $sql = "SELECT sitters_id, sitters_name, sitters_bio, sitter_email, sitters_contact, sitter_specialty, sitter_experience, sitters_image_url, sitters_active, years_experience FROM sitters WHERE sitters_id = ? LIMIT 1";
     if (!$stmt = mysqli_prepare($connections, $sql)) json_response(['success' => false, 'error' => 'Failed to prepare select.'], 500);
     mysqli_stmt_bind_param($stmt, 'i', $id);
     mysqli_stmt_execute($stmt);
@@ -64,6 +73,7 @@ if ($method === 'GET' && $action === 'get') {
             'email' => $row['sitter_email'],
             'phone' => $row['sitters_contact'],
             'experience' => $row['sitter_experience'],
+            'years_experience' => isset($row['years_experience']) ? (int)$row['years_experience'] : 0,
             'specialties' => $specs,
             'specialties_str' => $specStr,
             'active' => (int)$row['sitters_active'],
@@ -79,6 +89,7 @@ if ($method === 'POST' && $action === 'add') {
     $email = trim($_POST['sitters_email'] ?? '');
     $phone = trim($_POST['sitters_phone'] ?? '');
     $experience = trim($_POST['sitter_experience'] ?? '');
+    $years = isset($_POST['years_experience']) ? intval($_POST['years_experience']) : 0;
     $specialties = $_POST['sitters_specialty'] ?? ($_POST['sitters_specialties'] ?? []);
     if (!is_array($specialties)) $specialties = [];
     $extrasRaw = trim($_POST['sitters_specialties_extra'] ?? '');
@@ -117,10 +128,13 @@ if ($method === 'POST' && $action === 'add') {
 
     global $connections;
     if (!$connections) json_response(['success' => false, 'error' => 'Database connection error.'], 500);
+    ensure_sitter_columns_admin($connections);
 
-    $sql = "INSERT INTO sitters (sitters_name, sitters_bio, sitter_email, sitters_contact, sitter_specialty, sitter_experience, sitters_image_url, sitters_active) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+    // Keep sitter_experience populated for compatibility with older views
+    $experienceToStore = $experience;
+    $sql = "INSERT INTO sitters (years_experience, sitters_name, sitters_bio, sitter_email, sitters_contact, sitter_specialty, sitter_experience, sitters_image_url, sitters_active) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
     if (!$stmt = mysqli_prepare($connections, $sql)) json_response(['success' => false, 'error' => 'Failed to prepare insert.'], 500);
-    mysqli_stmt_bind_param($stmt, 'sssssssi', $name, $bio, $email, $phone, $specStr, $experience, $dbImagePath, $active);
+    mysqli_stmt_bind_param($stmt, 'isssssssi', $years, $name, $bio, $email, $phone, $specStr, $experienceToStore, $dbImagePath, $active);
     $ok = mysqli_stmt_execute($stmt);
     if (!$ok) {
         $err = mysqli_error($connections);
@@ -138,7 +152,8 @@ if ($method === 'POST' && $action === 'add') {
             'bio' => $bio,
             'email' => $email,
             'phone' => $phone,
-            'experience' => $experience,
+            'experience' => $experienceToStore,
+            'years_experience' => $years,
             'specialties' => $allSpecs,
             'specialties_str' => $specStr,
             'active' => $active,
@@ -159,6 +174,7 @@ if ($method === 'POST' && $action === 'update') {
     $email = trim($_POST['sitters_email'] ?? '');
     $phone = trim($_POST['sitters_phone'] ?? '');
     $experience = trim($_POST['sitter_experience'] ?? '');
+    $years = isset($_POST['years_experience']) ? intval($_POST['years_experience']) : 0;
     $specialties = $_POST['sitters_specialty'] ?? ($_POST['sitters_specialties'] ?? []);
     if (!is_array($specialties)) $specialties = [];
     $extrasRaw = trim($_POST['sitters_specialties_extra'] ?? '');
@@ -173,6 +189,7 @@ if ($method === 'POST' && $action === 'update') {
 
     global $connections;
     if (!$connections) json_response(['success' => false, 'error' => 'Database connection error.'], 500);
+    ensure_sitter_columns_admin($connections);
 
     // Get current image
     $cur = null; $curImg = null;
@@ -211,9 +228,10 @@ if ($method === 'POST' && $action === 'update') {
         $dbImagePath = null; $webImagePath = null;
     }
 
-    $sql = "UPDATE sitters SET sitters_name = ?, sitters_bio = ?, sitter_email = ?, sitters_contact = ?, sitter_specialty = ?, sitter_experience = ?, sitters_image_url = ?, sitters_active = ? WHERE sitters_id = ?";
+    $experienceToStore = $experience;
+    $sql = "UPDATE sitters SET years_experience = ?, sitters_name = ?, sitters_bio = ?, sitter_email = ?, sitters_contact = ?, sitter_specialty = ?, sitter_experience = ?, sitters_image_url = ?, sitters_active = ? WHERE sitters_id = ?";
     if (!$stmt = mysqli_prepare($connections, $sql)) json_response(['success' => false, 'error' => 'Failed to prepare update.'], 500);
-    mysqli_stmt_bind_param($stmt, 'sssssssii', $name, $bio, $email, $phone, $specStr, $experience, $dbImagePath, $active, $id);
+    mysqli_stmt_bind_param($stmt, 'isssssssii', $years, $name, $bio, $email, $phone, $specStr, $experienceToStore, $dbImagePath, $active, $id);
     $ok = mysqli_stmt_execute($stmt);
     if (!$ok) { $err = mysqli_error($connections); mysqli_stmt_close($stmt); json_response(['success' => false, 'error' => 'Update failed: ' . $err], 500); }
     mysqli_stmt_close($stmt);
@@ -226,7 +244,8 @@ if ($method === 'POST' && $action === 'update') {
             'bio' => $bio,
             'email' => $email,
             'phone' => $phone,
-            'experience' => $experience,
+            'experience' => $experienceToStore,
+            'years_experience' => $years,
             'specialties' => $allSpecs,
             'specialties_str' => $specStr,
             'active' => $active,

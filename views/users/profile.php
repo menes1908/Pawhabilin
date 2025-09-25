@@ -261,6 +261,79 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (($_POST['action'] ?? '') === 'dele
     }
 }
 
+// Handle add/edit address for pawdb.location table
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && in_array($_POST['action'], ['add_address', 'edit_address'], true) && $usersId > 0) {
+    $locId = (int)($_POST['address_id'] ?? 0);
+    $label = trim((string)($_POST['address_label'] ?? ''));
+    $recipient = trim((string)($_POST['address_recipient_name'] ?? ''));
+    $phone = trim((string)($_POST['address_phone'] ?? ''));
+    $line1 = trim((string)($_POST['address_line1'] ?? ''));
+    $line2 = trim((string)($_POST['address_line2'] ?? ''));
+    $barangay = trim((string)($_POST['address_barangay'] ?? ''));
+    $city = trim((string)($_POST['address_city'] ?? ''));
+    $province = trim((string)($_POST['address_province'] ?? ''));
+    $isDefault = isset($_POST['address_is_default']) && $_POST['address_is_default'] === '1' ? 1 : 0;
+    $active = isset($_POST['address_active']) && $_POST['address_active'] === '1' ? 1 : 0;
+
+    // Validate required fields
+    if ($label === '' || $recipient === '' || $phone === '' || $line1 === '' || $barangay === '' || $city === '' || $province === '') {
+        $flashMessage = 'Please fill in all required address fields.';
+        $flashType = 'error';
+    } elseif (!isset($connections) || !$connections) {
+        $flashMessage = 'Database connection is not available.';
+        $flashType = 'error';
+    } else {
+        if ($_POST['action'] === 'add_address') {
+            $sql = "INSERT INTO location (users_id, location_label, location_recipient_name, location_phone, location_address_line1, location_address_line2, location_barangay, location_city, location_province, location_is_default, location_active, location_created_at, location_updated_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())";
+            if ($stmt = mysqli_prepare($connections, $sql)) {
+                mysqli_stmt_bind_param($stmt, 'issssssssii', $usersId, $label, $recipient, $phone, $line1, $line2, $barangay, $city, $province, $isDefault, $active);
+                if (mysqli_stmt_execute($stmt)) {
+                    $flashMessage = 'Address added successfully!';
+                    $flashType = 'success';
+                } else {
+                    $flashMessage = 'Failed to add address. Please try again.';
+                    $flashType = 'error';
+                }
+                mysqli_stmt_close($stmt);
+            } else {
+                $flashMessage = 'Could not prepare address insert statement.';
+                $flashType = 'error';
+            }
+        } elseif ($_POST['action'] === 'edit_address' && $locId > 0) {
+            $sql = "UPDATE location SET location_label=?, location_recipient_name=?, location_phone=?, location_address_line1=?, location_address_line2=?, location_barangay=?, location_city=?, location_province=?, location_is_default=?, location_active=?, location_updated_at=NOW() WHERE location_id=? AND users_id=?";
+            if ($stmt = mysqli_prepare($connections, $sql)) {
+                mysqli_stmt_bind_param($stmt, 'ssssssssiiii', $label, $recipient, $phone, $line1, $line2, $barangay, $city, $province, $isDefault, $active, $locId, $usersId);
+                if (mysqli_stmt_execute($stmt)) {
+                    $flashMessage = 'Address updated successfully!';
+                    $flashType = 'success';
+                } else {
+                    $flashMessage = 'Failed to update address. Please try again.';
+                    $flashType = 'error';
+                }
+                mysqli_stmt_close($stmt);
+            } else {
+                $flashMessage = 'Could not prepare address update statement.';
+                $flashType = 'error';
+            }
+        }
+    }
+}
+
+// Fetch up to 2 addresses from pawdb.location (not user_addresses)
+$userAddresses = [];
+if (isset($connections) && $connections && $usersId > 0) {
+    if ($stmt = mysqli_prepare($connections, 'SELECT location_id, location_label, location_recipient_name, location_phone, location_address_line1, location_address_line2, location_barangay, location_city, location_province, location_is_default, location_active FROM location WHERE users_id = ? ORDER BY location_id ASC LIMIT 2')) {
+        mysqli_stmt_bind_param($stmt, 'i', $usersId);
+        mysqli_stmt_execute($stmt);
+        $res = mysqli_stmt_get_result($stmt);
+        while ($row = mysqli_fetch_assoc($res)) {
+            $userAddresses[] = $row;
+        }
+        mysqli_stmt_close($stmt);
+    }
+}
+
 $firstName = (string)($sessionUser['users_firstname'] ?? '');
 $lastName = (string)($sessionUser['users_lastname'] ?? '');
 $username = (string)($sessionUser['users_username'] ?? '');
@@ -361,6 +434,46 @@ if (isset($connections) && $connections && $usersId > 0) {
 }
 $petsCount = count($userPets);
 $bookedCount = count($bookedAppointments);
+
+// Fetch user's orders count and details
+$ordersCount = 0;
+$userOrders = [];
+if (isset($connections) && $connections && $usersId > 0) {
+    // Count orders
+    if ($stmt = mysqli_prepare($connections, 'SELECT COUNT(*) as cnt FROM orders WHERE users_id = ?')) {
+        mysqli_stmt_bind_param($stmt, 'i', $usersId);
+        mysqli_stmt_execute($stmt);
+        $res = mysqli_stmt_get_result($stmt);
+        if ($row = mysqli_fetch_assoc($res)) {
+            $ordersCount = (int)($row['cnt'] ?? 0);
+        }
+        mysqli_stmt_close($stmt);
+    }
+    // Get order details
+    if ($stmt = mysqli_prepare($connections, 'SELECT orders_id, orders_date, orders_status, orders_total FROM orders WHERE users_id = ? ORDER BY orders_date DESC')) {
+        mysqli_stmt_bind_param($stmt, 'i', $usersId);
+        mysqli_stmt_execute($stmt);
+        $res = mysqli_stmt_get_result($stmt);
+        while ($row = mysqli_fetch_assoc($res)) {
+            $userOrders[] = $row;
+        }
+        mysqli_stmt_close($stmt);
+    }
+}
+
+// Fetch up to 2 addresses for the user
+$userAddresses = [];
+if (isset($connections) && $connections && $usersId > 0) {
+    if ($stmt = mysqli_prepare($connections, 'SELECT address_id, address_label, address_line, address_city, address_province, address_postal_code FROM user_addresses WHERE users_id = ? ORDER BY address_id ASC LIMIT 2')) {
+        mysqli_stmt_bind_param($stmt, 'i', $usersId);
+        mysqli_stmt_execute($stmt);
+        $res = mysqli_stmt_get_result($stmt);
+        while ($row = mysqli_fetch_assoc($res)) {
+            $userAddresses[] = $row;
+        }
+        mysqli_stmt_close($stmt);
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -370,7 +483,7 @@ $bookedCount = count($bookedAppointments);
     <title>My Profile - Pawhabilin</title>
     <!-- Tailwind CSS v4.0 -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="../globals.css">
+    <link rel="stylesheet" href="../../globals.css">
     
     <!-- Google Fonts - La Belle Aurore -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -573,6 +686,10 @@ $bookedCount = count($bookedAppointments);
             backdrop-filter: blur(20px);
             border: 1px solid rgba(255, 255, 255, 0.3);
             box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            /* Added: allow modal to scroll when taller than viewport */
+            max-height: 90vh;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
         }
         
         .input-field {
@@ -713,73 +830,8 @@ $bookedCount = count($bookedAppointments);
     </style>
 </head>
 <body class="min-h-screen bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-50">
-    <!-- Header -->
-    <header class="sticky top-0 z-50 border-b bg-white/80 backdrop-blur-sm">
-        <div class="container mx-auto px-4">
-            <div class="flex h-16 items-center justify-between">
-                <a href="index.php" class="flex items-center space-x-2 group">
-                    <div class="w-10 h-10 rounded-lg overflow-hidden transform group-hover:rotate-12 transition-transform duration-300">
-                        <img src="../../pictures/Pawhabilin logo.png" alt="pawhabilin Logo" class="w-full h-full object-cover">
-                    </div>
-                    <span class="text-xl font-semibold bg-gradient-to-r from-orange-600 to-amber-600 bg-clip-text text-transparent" style="font-family: 'La Lou Big', cursive;">
-                        Pawhabilin
-                    </span>
-                </a>
-                
-                <nav class="hidden md:flex items-center space-x-8">
-                    <a href="index.php" class="text-muted-foreground hover:text-foreground transition-colors">About</a>
-                    <!-- Pet Sitter Dropdown -->
-                    <div class="relative" id="petsitterWrapper">
-                        
-                        <button id="petsitterButton" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="petsitterMenu" class="text-muted-foreground hover:text-foreground transition-colors inline-flex items-center gap-2">
-                            Pet Sitter
-                            <i data-lucide="chevron-down" class="w-4 h-4 transition-transform duration-200"></i>
-                        </button>
-
-                        <div id="petsitterMenu" class="absolute left-0 mt-2 w-56 origin-top-left rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 nav-dropdown transition-all duration-200 opacity-0 translate-y-2" role="menu" aria-hidden="true">
-                            <div class="py-1">
-                                <a href="animal_sitting.php" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">Find a Pet Sitter</a>
-                                <a href="become_sitter.php" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">Become a Sitter</a>
-                            </div>
-                        </div>
-                    </div>
-
-                    <a href="buy_products.php" class="text-muted-foreground hover:text-foreground transition-colors">Shop</a>
-                    
-                    
-                    <div class="relative" id="appointmentsWrapper">
-                        <button id="appointmentsButton" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="appointmentsMenu" class="text-muted-foreground hover:text-foreground transition-colors inline-flex items-center gap-2">
-                            Appointments
-                            <i data-lucide="chevron-down" class="w-4 h-4 transition-transform duration-200"></i>
-                        </button>
-
-                        <div id="appointmentsMenu" class="absolute right-0 mt-2 w-48 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 nav-dropdown transition-all duration-200 opacity-0 translate-y-2" role="menu" aria-hidden="true">
-                            <div class="py-1">
-                                <a href="book_appointment.php" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">Grooming Appointment</a>
-                                <a href="book_appointment.php" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">Vet Appointment</a>
-                            </div>
-                        </div>
-                    </div>
-
-                    <a href="subscriptions.php" class="text-muted-foreground hover:text-foreground transition-colors">Subscription</a>
-
-                    
-                    <a href="#support" class="text-muted-foreground hover:text-foreground transition-colors">Support</a>
-                </nav>
-
-                <div class="flex items-center gap-3">
-                    <button class="hidden sm:inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 hover:bg-accent hover:text-accent-foreground h-9 px-3">
-                        <i data-lucide="bell" class="w-4 h-4"></i>
-                        Notifications
-                    </button>
-                    <a href="logout.php" class="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white h-9 px-4">
-                        <i data-lucide="log-out" class="w-4 h-4"></i>
-                        Sign Out
-                    </a>
-                </div>
-            </div>
-        </div>
-    </header>
+    <!-- Header (shared include) -->
+    <?php $basePrefix = '../..'; include __DIR__ . '/../../utils/header-users.php'; ?>
 
     <!-- Floating background elements -->
     <div class="fixed inset-0 overflow-hidden pointer-events-none z-0">
@@ -848,6 +900,18 @@ $bookedCount = count($bookedAppointments);
                     </div>
                 </div>
                 
+                <div class="stats-card rounded-2xl p-6 cursor-pointer" onclick="openStats('orders')">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm text-gray-600 font-medium">My Orders</p>
+                            <p class="text-3xl font-bold text-amber-600"><?php echo (int)$ordersCount; ?></p>
+                        </div>
+                        <div class="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center">
+                            <i data-lucide="shopping-bag" class="w-6 h-6 text-amber-600"></i>
+                        </div>
+                    </div>
+                </div>
+                
                 <div class="stats-card rounded-2xl p-6">
                     <div class="flex items-center justify-between">
                         <div>
@@ -862,6 +926,144 @@ $bookedCount = count($bookedAppointments);
                 
                 
             </div>
+
+            <!-- Address Menu Row (between Profile Information and My Pets) -->
+            <div class="flex flex-col lg:flex-row gap-6 mb-4 items-stretch">
+                <div class="lg:w-1/3"></div>
+                <div class="flex-1 flex flex-col md:flex-row gap-4 justify-center items-center">
+                    <?php if (count($userAddresses) > 0): ?>
+                        <?php foreach ($userAddresses as $addr): ?>
+                            <div class="rounded-xl border border-orange-200 bg-orange-50 px-5 py-3 flex flex-col items-start gap-2 shadow-sm min-w-[260px] w-full relative">
+                                <div class="flex items-center gap-2 font-semibold text-orange-700">
+                                    <i data-lucide="map-pin" class="w-5 h-5"></i>
+                                    <?php echo htmlspecialchars($addr['location_label'] ?? 'Address'); ?>
+                                    <?php if ($addr['location_is_default']): ?>
+                                        <span class="ml-2 px-2 py-0.5 text-xs rounded bg-green-100 text-green-700">Default</span>
+                                    <?php endif; ?>
+                                </div>
+                                <div class="text-sm text-gray-700">
+                                    <span class="font-semibold"><?php echo htmlspecialchars($addr['location_recipient_name'] ?? ''); ?></span>
+                                    <?php if ($addr['location_phone']): ?>
+                                        <span class="ml-2 text-xs text-gray-500"><?php echo htmlspecialchars($addr['location_phone']); ?></span>
+                                    <?php endif; ?>
+                                </div>
+                                <div class="text-xs text-gray-600">
+                                    <?php
+                                        $parts = [
+                                            $addr['location_address_line1'] ?? '',
+                                            $addr['location_address_line2'] ?? '',
+                                            $addr['location_barangay'] ?? '',
+                                            $addr['location_city'] ?? '',
+                                            $addr['location_province'] ?? ''
+                                        ];
+                                        echo htmlspecialchars(implode(', ', array_filter($parts)));
+                                    ?>
+                                </div>
+                                <button type="button" class="absolute top-3 right-3 text-blue-600 hover:text-blue-800" onclick="openAddressModal(<?php echo (int)$addr['location_id']; ?>)">
+                                    <i data-lucide="edit" class="w-4 h-4"></i>
+                                </button>
+                            </div>
+                        <?php endforeach; ?>
+                        <?php if (count($userAddresses) < 2): ?>
+                            <button type="button" class="rounded-xl border-2 border-dashed border-orange-300 bg-orange-50 px-5 py-3 text-orange-700 font-semibold shadow-sm min-w-[260px] w-full flex items-center gap-2 justify-center hover:bg-orange-100 transition" onclick="openAddressModal(0)">
+                                <i data-lucide="plus" class="w-5 h-5"></i>
+                                Add Address
+                            </button>
+                        <?php endif; ?>
+                    <?php else: ?>
+                        <button type="button" class="rounded-xl border-2 border-dashed border-orange-300 bg-orange-50 px-5 py-3 text-orange-700 font-semibold shadow-sm min-w-[260px] w-full flex items-center gap-2 justify-center hover:bg-orange-100 transition" onclick="openAddressModal(0)">
+                            <i data-lucide="plus" class="w-5 h-5"></i>
+                            Add Address
+                        </button>
+                    <?php endif; ?>
+                </div>
+                <div class="lg:w-1/3"></div>
+            </div>
+
+            <!-- Address Modal -->
+            <div id="addressModal" class="fixed inset-0 z-50 hidden">
+                <div class="modal-overlay absolute inset-0" onclick="closeAddressModal()"></div>
+                <div class="flex items-center justify-center min-h-screen p-4">
+                    <div class="modal-content relative w-full max-w-md rounded-3xl p-8 max-h-[90vh] overflow-y-auto">
+                        <button onclick="closeAddressModal()" class="absolute top-4 right-4 text-gray-500 hover:text-gray-700 transition-colors duration-300">
+                            <i data-lucide="x" class="w-6 h-6"></i>
+                        </button>
+                        <div class="text-center mb-6">
+                            <div class="w-16 h-16 bg-gradient-to-br from-orange-400 to-amber-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <i data-lucide="map-pin" class="w-8 h-8 text-white"></i>
+                            </div>
+                            <h3 class="text-2xl font-bold text-gray-800" id="addressModalTitle">Add Address</h3>
+                        </div>
+                        <form id="addressForm" method="post" class="space-y-4">
+                            <input type="hidden" name="action" id="addressFormAction" value="add_address" />
+                            <input type="hidden" name="address_id" id="addressIdField" value="" />
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Label *</label>
+                                <input type="text" id="addressLabel" name="address_label" required class="input-field w-full px-4 py-3 rounded-lg outline-none" placeholder="e.g., Home, Office">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Recipient Name *</label>
+                                <input type="text" id="addressRecipientName" name="address_recipient_name" required class="input-field w-full px-4 py-3 rounded-lg outline-none" placeholder="Full Name">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Phone *</label>
+                                <input type="text" id="addressPhone" name="address_phone" required class="input-field w-full px-4 py-3 rounded-lg outline-none" placeholder="Phone Number">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Address Line 1 *</label>
+                                <input type="text" id="addressLine1" name="address_line1" required class="input-field w-full px-4 py-3 rounded-lg outline-none" placeholder="Street, Building, etc.">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Address Line 2</label>
+                                <input type="text" id="addressLine2" name="address_line2" class="input-field w-full px-4 py-3 rounded-lg outline-none" placeholder="Apartment, Unit, etc.">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Barangay *</label>
+                                <input type="text" id="addressBarangay" name="address_barangay" required class="input-field w-full px-4 py-3 rounded-lg outline-none" placeholder="Barangay">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">City *</label>
+                                <input type="text" id="addressCity" name="address_city" required class="input-field w-full px-4 py-3 rounded-lg outline-none" placeholder="City">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Province *</label>
+                                <input type="text" id="addressProvince" name="address_province" required class="input-field w-full px-4 py-3 rounded-lg outline-none" placeholder="Province">
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <input type="checkbox" id="addressIsDefault" name="address_is_default" value="1" class="mr-2">
+                                <label for="addressIsDefault" class="text-sm text-gray-700">Set as default</label>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <input type="checkbox" id="addressActive" name="address_active" value="1" class="mr-2" checked>
+                                <label for="addressActive" class="text-sm text-gray-700">Active</label>
+                            </div>
+                            <div class="flex gap-3 pt-4">
+                                <button type="button" onclick="closeAddressModal()" class="flex-1 py-3 px-6 rounded-lg font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 transition-colors duration-300">
+                                    Cancel
+                                </button>
+                                <button type="submit" class="btn-primary flex-1 py-3 px-6 rounded-lg font-semibold">
+                                    <span id="addressSubmitBtnText">Save Address</span>
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+    <form id="addressHiddenForm" method="post" class="hidden">
+        <input type="hidden" name="action" value="" />
+        <input type="hidden" name="address_id" value="" />
+        <input type="hidden" name="address_label" value="" />
+        <input type="hidden" name="address_recipient_name" value="" />
+        <input type="hidden" name="address_phone" value="" />
+        <input type="hidden" name="address_line1" value="" />
+        <input type="hidden" name="address_line2" value="" />
+        <input type="hidden" name="address_barangay" value="" />
+        <input type="hidden" name="address_city" value="" />
+        <input type="hidden" name="address_province" value="" />
+        <input type="hidden" name="address_is_default" value="" />
+        <input type="hidden" name="address_active" value="" />
+    </form>
 
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 <!-- Profile Information -->
@@ -1017,7 +1219,7 @@ $bookedCount = count($bookedAppointments);
     <div id="petModal" class="fixed inset-0 z-50 hidden">
         <div class="modal-overlay absolute inset-0" onclick="closePetModal()"></div>
         <div class="flex items-center justify-center min-h-screen p-4">
-            <div class="modal-content relative w-full max-w-md rounded-3xl p-8">
+            <div class="modal-content relative w-full max-w-md rounded-3xl p-8 max-h-[90vh] overflow-y-auto">
                 <button onclick="closePetModal()" class="absolute top-4 right-4 text-gray-500 hover:text-gray-700 transition-colors duration-300">
                     <i data-lucide="x" class="w-6 h-6"></i>
                 </button>
@@ -1118,67 +1320,6 @@ $bookedCount = count($bookedAppointments);
         </div>
     </div>
 
-    <!-- Footer -->
-    <footer class="py-12 bg-gray-900 text-white relative z-10">
-        <div class="container mx-auto px-4">
-            <div class="grid md:grid-cols-4 gap-8">
-                <div class="space-y-4">
-                    <div class="flex items-center space-x-2">
-                        <div class="w-8 h-8 rounded-lg overflow-hidden">
-                            <img src="../../pictures/Pawhabilin logo.png" alt="pawhabilin Logo" class="w-full h-full object-contain">
-                        </div>
-                        <span class="text-xl font-semibold brand-font">pawhabilin</span>
-                    </div>
-                    <p class="text-gray-400">
-                        The Philippines' most trusted pet care platform providing comprehensive services for your beloved pets.
-                    </p>
-                </div>
-
-                <div class="space-y-4">
-                    <h4 class="font-semibold">Account</h4>
-                    <ul class="space-y-2 text-gray-400">
-                        <li><a href="profile.php" class="hover:text-white transition-colors">My Profile</a></li>
-                        <li><a href="#" class="hover:text-white transition-colors">Subscription</a></li>
-                        <li><a href="book_appointment.php" class="hover:text-white transition-colors">Appointments</a></li>
-                        <li><a href="buy_products.php" class="hover:text-white transition-colors">Shop</a></li>
-                    </ul>
-                </div>
-
-                <div class="space-y-4">
-                    <h4 class="font-semibold">Services</h4>
-                    <ul class="space-y-2 text-gray-400">
-                        <li><a href="#" class="hover:text-white transition-colors">Veterinary Care</a></li>
-                        <li><a href="#" class="hover:text-white transition-colors">Pet Grooming</a></li>
-                        <li><a href="#" class="hover:text-white transition-colors">Pet Sitting</a></li>
-                        <li><a href="#" class="hover:text-white transition-colors">Emergency Care</a></li>
-                    </ul>
-                </div>
-
-                <div class="space-y-4">
-                    <h4 class="font-semibold">Contact</h4>
-                    <ul class="space-y-2 text-gray-400">
-                        <li class="flex items-center gap-2">
-                            <i data-lucide="phone" class="w-4 h-4"></i>
-                            +63 912 345 6789
-                        </li>
-                        <li class="flex items-center gap-2">
-                            <i data-lucide="mail" class="w-4 h-4"></i>
-                            hello@pawhabilin.com
-                        </li>
-                        <li class="flex items-center gap-2">
-                            <i data-lucide="map-pin" class="w-4 h-4"></i>
-                            Cebu City, Philippines
-                        </li>
-                    </ul>
-                </div>
-            </div>
-
-            <div class="mt-12 pt-8 border-t border-gray-800 text-center text-gray-400">
-                <p>&copy; 2025 pawhabilin Philippines. All rights reserved.</p>
-            </div>
-        </div>
-    </footer>
-
     <script>
         // Initialize Lucide icons
         document.addEventListener('DOMContentLoaded', function() {
@@ -1199,6 +1340,9 @@ $bookedCount = count($bookedAppointments);
                 const count = window.userApptsData.filter(a => ['pending','confirmed'].includes(String(a.appointments_status||''))).length;
                 numEl.textContent = String(count);
             }
+
+            // Seed global orders data
+            window.userOrdersData = <?php echo json_encode($userOrders ?? []); ?>;
         });
 
         // Global variables
@@ -1364,7 +1508,10 @@ $bookedCount = count($bookedAppointments);
         // Close modal on escape key
         document.addEventListener('keydown', function(e) {
             if (e.key === 'Escape') {
+                // Previously closed only the pet modal; now close all.
                 closePetModal();
+                closeAddressModal();
+                closeStats();
             }
         });
 
@@ -1398,47 +1545,27 @@ $bookedCount = count($bookedAppointments);
                             </div>
                             <div class="flex gap-2">
                                 <button class="action-btn text-blue-600 hover:text-blue-700" title="Edit" type="button" onclick="openEditPetFromList(${Number(p.pets_id)})"><i data-lucide="edit" class="w-4 h-4"></i></button>
-                                <button class="action-btn text-red-600 hover:text-red-700" title="Delete" type="button" onclick="deleteFromList(${Number(p.pets_id)})"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
-                            </div>`;
+                                <button class="action-btn text-red-600 hover:text-red-700" title="Delete" type="button" onclick="confirmDeletePet(this)"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                            </div>
+                        `;
                         content.appendChild(row);
                     });
                 }
             } else if (which === 'appointments') {
-                title.textContent = 'Appointments';
-                subtitle.textContent = 'Your full appointment history with filters';
+                title.textContent = 'My Appointments';
+                subtitle.textContent = '<?php echo (int)$bookedCount; ?> total';
                 iconEl.setAttribute('data-lucide', 'calendar');
-                const appts = (window.userApptsData && Array.isArray(window.userApptsData)) ? window.userApptsData : <?php echo json_encode($userAppointmentsDetailed ?? []); ?>;
-                window.userApptsData = appts;
-                const wrapper = document.createElement('div');
-                wrapper.className = 'space-y-4';
-
-                const controls = document.createElement('div');
-                controls.className = 'flex flex-col gap-3';
-                controls.innerHTML = `
-                    <div class="flex items-center justify-between gap-3">
-                        <h4 class="text-lg font-semibold">All Appointments</h4>
-                        <div class="relative">
-                            <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4"></i>
-                            <input id="userApptSearch" type="text" placeholder="Search..." class="pl-9 pr-3 py-2 border border-gray-300 rounded-md w-80" />
-                        </div>
-                    </div>
-                    <div id="userApptTabs" class="flex items-center gap-2">
-                        <button data-appt-filter="all" class="u-appt-tab px-3 py-1.5 rounded-full border text-sm bg-gray-900 text-white border-gray-900">All</button>
-                        <button data-appt-filter="pet_sitting" class="u-appt-tab px-3 py-1.5 rounded-full border text-sm border-orange-300 text-orange-700 bg-orange-50">Pet Sitting</button>
-                        <button data-appt-filter="grooming" class="u-appt-tab px-3 py-1.5 rounded-full border text-sm border-blue-300 text-blue-700 bg-blue-50">Grooming</button>
-                        <button data-appt-filter="vet" class="u-appt-tab px-3 py-1.5 rounded-full border text-sm border-green-300 text-green-700 bg-green-50">Veterinary</button>
-                    </div>`;
-
-                wrapper.appendChild(controls);
-
-                const tableWrap = document.createElement('div');
-                tableWrap.className = 'overflow-x-auto';
-                tableWrap.innerHTML = `
-                    <table class="min-w-full divide-y divide-gray-200">
+                const appts = window.userApptsData || <?php echo json_encode($userAppointmentsDetailed ?? []); ?>;
+                if (!appts || appts.length === 0) {
+                    content.innerHTML = '<div class="text-center text-gray-600">No appointments found.</div>';
+                } else {
+                    // Table for appointments
+                    const table = document.createElement('table');
+                    table.className = 'min-w-full divide-y divide-gray-200';
+                    table.innerHTML = `
                         <thead class="bg-gray-50">
                             <tr>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Pet</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Service</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Pet Name</th>
                                 <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sitting Type</th>
                                 <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Address</th>
                                 <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date & Time</th>
@@ -1448,135 +1575,34 @@ $bookedCount = count($bookedAppointments);
                             </tr>
                         </thead>
                         <tbody id="userApptsBody" class="bg-white divide-y divide-gray-200"></tbody>
-                    </table>`;
-                wrapper.appendChild(tableWrap);
-
-                content.appendChild(wrapper);
-
-                function statusChip(st){
-                    const s = String(st||'');
-                    if (s==='pending') return '<span class="px-2 py-1 text-xs rounded-full bg-yellow-100 text-yellow-800">Pending</span>';
-                    if (s==='confirmed') return '<span class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">Confirmed</span>';
-                    if (s==='cancelled') return '<span class="px-2 py-1 text-xs rounded-full bg-red-100 text-red-800">Cancelled</span>';
-                    if (s==='completed') return '<span class="px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-800">Completed</span>';
-                    return `<span class="px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-800">${escapeHtml(s)}</span>`;
-                }
-
-                function typeLabel(t){
-                    const tt = String(t||'');
-                    if (tt==='pet_sitting') return 'Pet Sitting';
-                    if (tt==='grooming') return 'Grooming';
-                    if (tt==='vet') return 'Veterinary';
-                    return escapeHtml(tt.replace('_',' '));
-                }
-
-                function sittingTypeLabel(aa){
-                    const mode = (aa && aa.aa_type) ? String(aa.aa_type) : '';
-                    if (!mode) return '-';
-                    return mode === 'home-sitting' ? 'Home-sitting' : (mode === 'drop_off' ? 'Drop Off' : mode);
-                }
-
-                function fullAddress(aa){
-                    const mode = (aa && aa.aa_type) ? String(aa.aa_type) : '';
-                    if (mode !== 'home-sitting') return '-';
-                    const parts = [aa.aa_address, aa.aa_city, aa.aa_province, aa.aa_postal_code]
-                        .map(v => (v||'').trim())
-                        .filter(Boolean);
-                    return parts.length ? parts.join(', ') : '-';
-                }
-
-                function renderRows(list){
-                    const tbody = document.getElementById('userApptsBody');
-                    tbody.innerHTML = '';
-                    if (!list || list.length===0){
-                        const tr = document.createElement('tr');
-                        const td = document.createElement('td');
-                        td.colSpan = 8;
-                        td.className = 'px-4 py-6 text-center text-gray-600';
-                        td.textContent = 'No appointments found.';
-                        tr.appendChild(td);
-                        tbody.appendChild(tr);
-                        return;
-                    }
-                    list.forEach(a=>{
+                    `;
+                    const tbody = table.querySelector('tbody');
+                    appts.forEach(a => {
                         const d = a.appointments_date ? new Date(String(a.appointments_date).replace(' ','T')) : null;
-                        const nice = d ? d.toLocaleString() : '';
-                        const aa = {
-                            aa_type: a.aa_type || '',
-                            aa_address: a.aa_address || '',
-                            aa_city: a.aa_city || '',
-                            aa_province: a.aa_province || '',
-                            aa_postal_code: a.aa_postal_code || '',
-                            aa_notes: a.aa_notes || ''
-                        };
-                        const notes = aa.aa_notes || '';
-                        const canCancel = ['pending','confirmed'].includes(String(a.appointments_status||''));
-                        const canDelete = String(a.appointments_status||'') === 'cancelled';
+                        const niceDate = d ? d.toLocaleString() : '';
+                        const status = String(a.appointments_status||'');
+                        let chip = `<span class="px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-800">${escapeHtml(status)}</span>`;
+                        if (status==='pending') chip = '<span class="px-2 py-1 text-xs rounded-full bg-yellow-100 text-yellow-800">Pending</span>';
+                        if (status==='completed') chip = '<span class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">Completed</span>';
+                        if (status==='cancelled') chip = '<span class="px-2 py-1 text-xs rounded-full bg-red-100 text-red-800">Cancelled</span>';
                         const tr = document.createElement('tr');
-                        tr.setAttribute('data-type', String(a.appointments_type||''));
-                        tr.setAttribute('data-search', `${(a.appointments_pet_name||'')} ${(a.appointments_pet_type||'')} ${(a.appointments_pet_breed||'')} ${(a.appointments_type||'')} ${nice} ${notes} ${(a.appointments_status||'')}`.toLowerCase());
                         tr.innerHTML = `
-                            <td class="px-4 py-3">
-                                <div class="font-medium text-gray-800">${escapeHtml(a.appointments_pet_name || '')}</div>
-                                <div class="text-sm text-gray-600">${escapeHtml(a.appointments_pet_type || '')}${a.appointments_pet_breed? ' • '+escapeHtml(a.appointments_pet_breed):''}${a.appointments_pet_age_years? ' • '+escapeHtml(String(a.appointments_pet_age_years)+'y'):''}</div>
-                            </td>
+                            <td class="px-4 py-3 font-medium text-gray-800">${escapeHtml(a.appointments_pet_name || '')}</td>
                             <td class="px-4 py-3">${typeLabel(a.appointments_type)}</td>
                             <td class="px-4 py-3">${a.appointments_type==='pet_sitting' ? escapeHtml(sittingTypeLabel(aa)) : '-'}</td>
                             <td class="px-4 py-3">${a.appointments_type==='pet_sitting' ? escapeHtml(fullAddress(aa)) : '-'}</td>
-                            <td class="px-4 py-3">${escapeHtml(nice)}</td>
+                            <td class="px-4 py-3">${escapeHtml(niceDate)}</td>
                             <td class="px-4 py-3 text-sm text-gray-700">${escapeHtml(notes)}</td>
                             <td class="px-4 py-3">${statusChip(a.appointments_status)}</td>
                             <td class="px-4 py-3 text-right space-x-2">
                                 ${canCancel ? `<button class="px-3 py-1.5 rounded-md border text-sm hover:bg-gray-50" onclick="confirmCancelAppt(${Number(a.appointments_id)})">Cancel</button>` : ''}
-                                ${canDelete ? `<button class=\"px-3 py-1.5 rounded-md border text-sm hover:bg-gray-50\" onclick=\"confirmDeleteAppt(${Number(a.appointments_id)})\">Delete</button>` : ''}
+                                ${canDelete ? `<button class=\"px-3 py-1.5 rounded-md border text-sm hover:bg-gray-50" onclick=\"confirmDeleteAppt(${Number(a.appointments_id)})\">Delete</button>` : ''}
                             </td>`;
                         tbody.appendChild(tr);
                     });
+                    content.appendChild(table);
                 }
-
-                // Initial render
-                renderRows(appts);
-                if (window.lucide && lucide.createIcons) lucide.createIcons();
-
-                // Filters
-                let currentFilter = 'all';
-                const tabs = controls.querySelectorAll('.u-appt-tab');
-                const searchInput = controls.querySelector('#userApptSearch');
-
-                function applyFilters(){
-                    const term = (searchInput.value||'').toLowerCase();
-                    const filtered = appts.filter(a => (currentFilter==='all' || String(a.appointments_type||'')===currentFilter));
-                    const filtered2 = term ? filtered.filter(a => {
-                        const d = a.appointments_date ? new Date(String(a.appointments_date).replace(' ','T')) : null;
-                        const nice = d ? d.toLocaleString() : '';
-                        const aa = {
-                            aa_type: a.aa_type || '',
-                            aa_address: a.aa_address || '',
-                            aa_city: a.aa_city || '',
-                            aa_province: a.aa_province || '',
-                            aa_postal_code: a.aa_postal_code || '',
-                            aa_notes: a.aa_notes || ''
-                        };
-                        const notes = aa.aa_notes || '';
-                        const hay = `${(a.appointments_pet_name||'')} ${(a.appointments_pet_type||'')} ${(a.appointments_pet_breed||'')} ${(a.appointments_type||'')} ${nice} ${notes} ${(a.appointments_status||'')}`.toLowerCase();
-                        return hay.includes(term);
-                    }) : filtered;
-                    renderRows(filtered2);
-                    if (window.lucide && lucide.createIcons) lucide.createIcons();
-                }
-
-                tabs.forEach(btn=>{
-                    btn.addEventListener('click', () => {
-                        tabs.forEach(b=> b.classList.remove('bg-gray-900','text-white','border-gray-900'));
-                        tabs.forEach(b=> b.classList.add('bg-white'));
-                        btn.classList.add('bg-gray-900','text-white','border-gray-900');
-                        currentFilter = btn.getAttribute('data-appt-filter') || 'all';
-                        applyFilters();
-                    });
-                });
-                searchInput.addEventListener('input', applyFilters);
             }
-
             modal.classList.remove('hidden');
             document.body.style.overflow = 'hidden';
             lucide.createIcons();
@@ -1695,6 +1721,59 @@ $bookedCount = count($bookedAppointments);
                     });
             });
         }
+
+        // Address modal logic
+        function openAddressModal(addressId) {
+            let addr = null;
+            if (addressId && window.addressesData) {
+                addr = window.addressesData.find(a => Number(a.location_id) === Number(addressId));
+            }
+            document.getElementById('addressModalTitle').textContent = addr ? 'Edit Address' : 'Add Address';
+            document.getElementById('addressFormAction').value = addr ? 'edit_address' : 'add_address';
+            document.getElementById('addressIdField').value = addr ? addr.location_id : '';
+            document.getElementById('addressLabel').value = addr ? addr.location_label : '';
+            document.getElementById('addressRecipientName').value = addr ? addr.location_recipient_name : '';
+            document.getElementById('addressPhone').value = addr ? addr.location_phone : '';
+            document.getElementById('addressLine1').value = addr ? addr.location_address_line1 : '';
+            document.getElementById('addressLine2').value = addr ? addr.location_address_line2 : '';
+            document.getElementById('addressBarangay').value = addr ? addr.location_barangay : '';
+            document.getElementById('addressCity').value = addr ? addr.location_city : '';
+            document.getElementById('addressProvince').value = addr ? addr.location_province : '';
+            document.getElementById('addressIsDefault').checked = addr ? !!Number(addr.location_is_default) : false;
+            document.getElementById('addressActive').checked = addr ? !!Number(addr.location_active) : true;
+            document.getElementById('addressSubmitBtnText').textContent = addr ? 'Save Changes' : 'Add Address';
+            document.getElementById('addressModal').classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+        }
+        function closeAddressModal() {
+            document.getElementById('addressModal').classList.add('hidden');
+            document.body.style.overflow = 'auto';
+        }
+        window.addressesData = <?php echo json_encode($userAddresses ?? []); ?>;
+
+        // Address form submit handler
+        document.addEventListener('DOMContentLoaded', function() {
+            // ...existing code...
+            lucide.createIcons();
+
+            document.getElementById('addressForm').onsubmit = function(e) {
+                e.preventDefault();
+                var form = document.getElementById('addressHiddenForm');
+                form.action.value = document.getElementById('addressFormAction').value;
+                form.address_id.value = document.getElementById('addressIdField').value;
+                form.address_label.value = document.getElementById('addressLabel').value;
+                form.address_recipient_name.value = document.getElementById('addressRecipientName').value;
+                form.address_phone.value = document.getElementById('addressPhone').value;
+                form.address_line1.value = document.getElementById('addressLine1').value;
+                form.address_line2.value = document.getElementById('addressLine2').value;
+                form.address_barangay.value = document.getElementById('addressBarangay').value;
+                form.address_city.value = document.getElementById('addressCity').value;
+                form.address_province.value = document.getElementById('addressProvince').value;
+                form.address_is_default.value = document.getElementById('addressIsDefault').checked ? '1' : '0';
+                form.address_active.value = document.getElementById('addressActive').checked ? '1' : '0';
+                form.submit();
+            };
+        });
 
         // Helpers for list actions
         function openEditPetFromList(id) {

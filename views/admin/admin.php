@@ -925,6 +925,7 @@ function resolveImageUrl($path) {
                                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
                                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contact</th>
                                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Specialties</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Bio</th>
                                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Experience</th>
                                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
@@ -934,7 +935,7 @@ function resolveImageUrl($path) {
                                     <?php
                                     $sitterRows = [];
                                     if (isset($connections) && $connections) {
-                                        $qs = "SELECT sitters_id, sitters_name, sitters_bio, sitter_email, sitters_contact, sitter_specialty, sitter_experience, sitters_image_url, sitters_active FROM sitters ORDER BY sitters_id DESC";
+                                        $qs = "SELECT sitters_id, sitters_name, sitters_bio, sitter_email, sitters_contact, sitter_specialty, sitter_experience, sitters_image_url, sitters_active, years_experience FROM sitters ORDER BY sitters_id DESC";
                                         if ($res = mysqli_query($connections, $qs)) {
                                             while ($r = mysqli_fetch_assoc($res)) { $sitterRows[] = $r; }
                                             mysqli_free_result($res);
@@ -942,19 +943,40 @@ function resolveImageUrl($path) {
                                     }
                                     if (empty($sitterRows)):
                                     ?>
-                                        <tr><td colspan="6" class="px-6 py-6 text-center text-gray-500">No sitters found.</td></tr>
+                                        <tr><td colspan="7" class="px-6 py-6 text-center text-gray-500">No sitters found.</td></tr>
                                     <?php else: foreach ($sitterRows as $s):
                                         $email = $s['sitter_email'] ?? '';
                                         $phone = $s['sitters_contact'] ?? '';
-                                        $experience = $s['sitter_experience'] ?? '';
+                                        $yearsExp = isset($s['years_experience']) ? (int)$s['years_experience'] : 0;
+                                        $experience = $yearsExp > 0 ? ($yearsExp . ' yrs') : '';
+                                        $bioText = trim($s['sitters_bio'] ?? '');
+                                        $bioFull = $bioText;
+                                        $bioShort = strlen($bioText) > 60 ? substr($bioText, 0, 60) . '…' : $bioText;
                                         $specStr = $s['sitter_specialty'] ?? '';
                                         $specs = array_filter(array_map('trim', explode(',', (string)$specStr)), function($v){ return $v !== ''; });
                                         $specColorMap = [
-                                            'dog' => 'bg-orange-50 text-orange-700 border border-orange-200',
-                                            'cat' => 'bg-purple-50 text-purple-700 border border-purple-200',
-                                            'bird' => 'bg-blue-50 text-blue-700 border border-blue-200',
-                                            'fish' => 'bg-cyan-50 text-cyan-700 border border-cyan-200',
-                                            'small pet' => 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                                            'dog' => 'bg-orange-100 text-orange-800 border border-orange-200',
+                                            'dogs' => 'bg-orange-100 text-orange-800 border border-orange-200',
+                                            'cat' => 'bg-purple-100 text-purple-800 border border-purple-200',
+                                            'cats' => 'bg-purple-100 text-purple-800 border border-purple-200',
+                                            'bird' => 'bg-blue-100 text-blue-800 border border-blue-200',
+                                            'birds' => 'bg-blue-100 text-blue-800 border border-blue-200',
+                                            'fish' => 'bg-cyan-100 text-cyan-800 border border-cyan-200',
+                                            'fishes' => 'bg-cyan-100 text-cyan-800 border border-cyan-200',
+                                            'small pet' => 'bg-emerald-100 text-emerald-800 border border-emerald-200',
+                                            'small pets' => 'bg-emerald-100 text-emerald-800 border border-emerald-200',
+                                            'rabbit' => 'bg-pink-100 text-pink-800 border border-pink-200',
+                                            'rabbits' => 'bg-pink-100 text-pink-800 border border-pink-200',
+                                            'hamster' => 'bg-yellow-100 text-yellow-800 border border-yellow-200',
+                                            'hamsters' => 'bg-yellow-100 text-yellow-800 border border-yellow-200',
+                                            'guinea pig' => 'bg-lime-100 text-lime-800 border border-lime-200',
+                                            'guinea pigs' => 'bg-lime-100 text-lime-800 border border-lime-200',
+                                            'reptile' => 'bg-amber-100 text-amber-800 border border-amber-200',
+                                            'reptiles' => 'bg-amber-100 text-amber-800 border border-amber-200',
+                                            'ferret' => 'bg-rose-100 text-rose-800 border border-rose-200',
+                                            'ferrets' => 'bg-rose-100 text-rose-800 border border-rose-200',
+                                            'exotic pet' => 'bg-indigo-100 text-indigo-800 border border-indigo-200',
+                                            'exotic pets' => 'bg-indigo-100 text-indigo-800 border border-indigo-200'
                                         ];
                                     ?>
                                         <tr data-id="<?php echo (int)$s['sitters_id']; ?>">
@@ -984,6 +1006,13 @@ function resolveImageUrl($path) {
                                                         <span class="px-2 py-1 text-xs rounded-full <?php echo $cls; ?>"><?php echo htmlspecialchars($sp); ?></span>
                                                     <?php endforeach; ?>
                                                 </div>
+                                            </td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                                <?php if ($bioFull !== ''): ?>
+                                                    <span title="<?php echo htmlspecialchars($bioFull); ?>"><?php echo htmlspecialchars($bioShort); ?></span>
+                                                <?php else: ?>
+                                                    -
+                                                <?php endif; ?>
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900"><?php echo htmlspecialchars($experience ?: '-'); ?></td>
                                             <td class="px-6 py-4 whitespace-nowrap">
@@ -1028,13 +1057,13 @@ function resolveImageUrl($path) {
                                         <input type="text" name="sitters_phone" required class="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2">
                                     </div>
                                     <div>
-                                        <label class="block text-sm font-medium text-gray-700">Experience (years)</label>
-                                        <input type="text" name="sitter_experience" placeholder="e.g., 5 years" class="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2">
+                                        <label class="block text-sm font-medium text-gray-700">Years of Experience</label>
+                                        <input type="number" name="years_experience" min="0" step="1" placeholder="e.g., 5" class="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2">
                                     </div>
                                 </div>
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700">Bio</label>
-                                    <textarea name="sitters_bio" rows="3" class="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2"></textarea>
+                                    <textarea name="sitters_bio" rows="3" class="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2" placeholder="Short profile shown to pet owners"></textarea>
                                 </div>
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700">Specialties</label>
@@ -1097,45 +1126,13 @@ function resolveImageUrl($path) {
                                         <input type="text" name="sitters_phone" id="edit_sitters_phone" required class="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2">
                                     </div>
                                     <div>
-                                        <label class="block text-sm font-medium text-gray-700">Experience (years)</label>
-                                        <input type="text" name="sitter_experience" id="edit_sitter_experience" class="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2">
+                                        <label class="block text-sm font-medium text-gray-700">Years of Experience</label>
+                                        <input type="number" name="years_experience" id="edit_years_experience" min="0" step="1" class="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2">
                                     </div>
                                 </div>
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700">Bio</label>
-                                    <textarea name="sitters_bio" id="edit_sitters_bio" rows="3" class="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2"></textarea>
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700">Specialties</label>
-                                    <div class="mt-1 grid grid-cols-2 md:grid-cols-3 gap-2" id="edit_specialties_group">
-                                        <?php $specs = ['Dog','Cat','Bird','Fish','Small Pet']; foreach ($specs as $sp): ?>
-                                            <label class="inline-flex items-center gap-2">
-                                                <input type="checkbox" name="sitters_specialties[]" value="<?php echo htmlspecialchars($sp); ?>" class="rounded border-gray-300">
-                                                <span><?php echo htmlspecialchars($sp); ?></span>
-                                            </label>
-                                        <?php endforeach; ?>
-                                    </div>
-                                    <div class="mt-3">
-                                        <label class="block text-sm font-medium text-gray-700">Additional pet types (comma-separated)</label>
-                                        <input type="text" name="sitters_specialties_extra" id="edit_sitters_specialties_extra" placeholder="e.g., Reptile, Rabbit" class="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2">
-                                    </div>
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700">Image</label>
-                                    <div class="mt-1 flex items-center gap-4">
-                                        <div class="w-20 h-20 rounded-md bg-gray-100 overflow-hidden flex items-center justify-center">
-                                            <img id="editSitterImagePreview" src="" alt="Preview" class="hidden w-full h-full object-cover">
-                                            <i id="editSitterImageIcon" data-lucide="image" class="w-5 h-5 text-gray-400"></i>
-                                        </div>
-                                        <div class="flex items-center gap-2">
-                                            <input id="editSitterImageInput" type="file" name="sitters_image" accept="image/*" class="text-sm">
-                                            <button id="editClearSitterImage" type="button" class="px-2 py-1 text-sm border border-gray-300 rounded-md hover:bg-gray-50">Clear</button>
-                                            <label class="inline-flex items-center gap-2 ml-2">
-                                                <input type="checkbox" id="edit_remove_image" name="remove_image" value="1" class="rounded border-gray-300">
-                                                <span>Remove current</span>
-                                            </label>
-                                        </div>
-                                    </div>
+                                    <textarea name="sitters_bio" id="edit_sitters_bio" rows="3" class="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2" placeholder="Short profile shown to pet owners"></textarea>
                                 </div>
                                 <div class="flex items-center justify-between gap-2 pt-2">
                                     <label class="inline-flex items-center gap-2">
@@ -1173,19 +1170,13 @@ function resolveImageUrl($path) {
                             const editName = document.getElementById('edit_sitters_name');
                             const editEmail = document.getElementById('edit_sitters_email');
                             const editPhone = document.getElementById('edit_sitters_phone');
-                            const editExp = document.getElementById('edit_sitter_experience');
+                            const editYears = document.getElementById('edit_years_experience');
                             const editBio = document.getElementById('edit_sitters_bio');
-                            const editSpecsExtra = document.getElementById('edit_sitters_specialties_extra');
-                            const editImgInput = document.getElementById('editSitterImageInput');
-                            const editImgPrev = document.getElementById('editSitterImagePreview');
-                            const editImgIcon = document.getElementById('editSitterImageIcon');
-                            const editClearImg = document.getElementById('editClearSitterImage');
-                            const editRemoveImage = document.getElementById('edit_remove_image');
+                            const editDescription = document.getElementById('edit_description');
                             const editActive = document.getElementById('edit_sitters_active');
 
                             function openEdit(){ editModal.classList.remove('hidden'); editModal.classList.add('flex'); }
-                            function closeEdit(){ editModal.classList.add('hidden'); editModal.classList.remove('flex'); editForm.reset(); resetEditImage(); }
-                            function resetEditImage(){ editImgPrev.src=''; editImgPrev.classList.add('hidden'); editImgIcon.classList.remove('hidden'); editImgInput.value=''; editRemoveImage.checked=false; }
+                            function closeEdit(){ editModal.classList.add('hidden'); editModal.classList.remove('flex'); editForm.reset(); }
 
                             function open(){ modal.classList.remove('hidden'); modal.classList.add('flex'); }
                             function close(){ modal.classList.add('hidden'); modal.classList.remove('flex'); form.reset(); resetImage(); }
@@ -1203,13 +1194,6 @@ function resolveImageUrl($path) {
                                 imgPrev.src = url; imgPrev.classList.remove('hidden'); imgIcon.classList.add('hidden');
                             });
                             if (clearImg) clearImg.addEventListener('click', resetImage);
-                            if (editImgInput) editImgInput.addEventListener('change', (e)=>{
-                                const f = e.target.files && e.target.files[0];
-                                if (!f) return resetEditImage();
-                                const url = URL.createObjectURL(f);
-                                editImgPrev.src = url; editImgPrev.classList.remove('hidden'); editImgIcon.classList.add('hidden'); editRemoveImage.checked=false;
-                            });
-                            if (editClearImg) editClearImg.addEventListener('click', resetEditImage);
                             if (editCloseBtn) editCloseBtn.addEventListener('click', closeEdit);
                             if (editCancelBtn) editCancelBtn.addEventListener('click', closeEdit);
 
@@ -1217,12 +1201,29 @@ function resolveImageUrl($path) {
                             function specClass(name){
                                 const k = String(name||'').trim().toLowerCase();
                                 switch(k){
-                                    case 'dog': return 'bg-orange-50 text-orange-700 border border-orange-200';
-                                    case 'cat': return 'bg-purple-50 text-purple-700 border border-purple-200';
-                                    case 'bird': return 'bg-blue-50 text-blue-700 border border-blue-200';
-                                    case 'fish': return 'bg-cyan-50 text-cyan-700 border border-cyan-200';
-                                    case 'small pet': return 'bg-emerald-50 text-emerald-700 border border-emerald-200';
-                                    default: return 'bg-gray-50 text-gray-700 border border-gray-200';
+                                    case 'dog':
+                                    case 'dogs': return 'bg-orange-100 text-orange-800 border border-orange-200';
+                                    case 'cat':
+                                    case 'cats': return 'bg-purple-100 text-purple-800 border border-purple-200';
+                                    case 'bird':
+                                    case 'birds': return 'bg-blue-100 text-blue-800 border border-blue-200';
+                                    case 'fish':
+                                    case 'fishes': return 'bg-cyan-100 text-cyan-800 border border-cyan-200';
+                                    case 'small pet':
+                                    case 'small pets': return 'bg-emerald-100 text-emerald-800 border border-emerald-200';
+                                    case 'rabbit':
+                                    case 'rabbits': return 'bg-pink-100 text-pink-800 border border-pink-200';
+                                    case 'hamster':
+                                    case 'hamsters': return 'bg-yellow-100 text-yellow-800 border border-yellow-200';
+                                    case 'guinea pig':
+                                    case 'guinea pigs': return 'bg-lime-100 text-lime-800 border border-lime-200';
+                                    case 'reptile':
+                                    case 'reptiles': return 'bg-amber-100 text-amber-800 border border-amber-200';
+                                    case 'ferret':
+                                    case 'ferrets': return 'bg-rose-100 text-rose-800 border border-rose-200';
+                                    case 'exotic pet':
+                                    case 'exotic pets': return 'bg-indigo-100 text-indigo-800 border border-indigo-200';
+                                    default: return 'bg-gray-100 text-gray-800 border border-gray-200';
                                 }
                             }
                             function esc(s){ const d=document.createElement('div'); d.textContent=s??''; return d.innerHTML; }
@@ -1248,13 +1249,17 @@ function resolveImageUrl($path) {
                                         </div>`;
                                     tr.appendChild(addr(nameHTML));
                                     // Contact
-                                    const contactHTML = `<div class="space-y-1"><p>${esc(s.email||'')}</p><p class="text-gray-600">${esc(s.phone||'')}</p>${s.experience?`<p class=\"text-gray-600\">${esc(s.experience)}</p>`:''}</div>`;
+                                    const contactHTML = `<div class=\"space-y-1\"><p>${esc(s.email||'')}</p><p class=\"text-gray-600\">${esc(s.phone||'')}</p></div>`;
                                     tr.appendChild(addr(contactHTML));
                                     // Specialties
                                     const specs = (s.specialties||[]).map(x=>`<span class="px-2 py-1 text-xs rounded-full ${specClass(x)}">${esc(x)}</span>`).join(' ');
                                     tr.appendChild(addr(`<div class="flex flex-wrap gap-1">${specs}</div>`));
+                                    // Bio (new column)
+                                    const bio = (s.bio||'').trim();
+                                    const bioShort = bio.length>60 ? bio.slice(0,60)+'…' : bio;
+                                    tr.appendChild(addr(bio ? `<span title="${esc(bio)}">${esc(bioShort)}</span>` : '-'));
                                     // Experience
-                                    tr.appendChild(addr(esc(s.experience||'')));
+                                    tr.appendChild(addr(esc((s.years_experience? (String(s.years_experience)+ ' yrs') : (s.experience||'')))))
                                     // Status
                                     const active = String(s.active)==='1' || s.active===1 || s.active===true;
                                     tr.appendChild(addr(`<span class="px-2 py-1 text-xs rounded-full ${active?'bg-green-100 text-green-800':'bg-red-100 text-red-800'}">${active?'Active':'Inactive'}</span>`));
@@ -1294,17 +1299,9 @@ function resolveImageUrl($path) {
                                         editName.value = s.name||'';
                                         editEmail.value = s.email||'';
                                         editPhone.value = s.phone||'';
-                                        editExp.value = s.experience||'';
+                                        editYears.value = s.years_experience||0;
                                         editBio.value = s.bio||'';
-                                        resetEditImage();
-                                        if (s.image) { editImgPrev.src = s.image; editImgPrev.classList.remove('hidden'); editImgIcon.classList.add('hidden'); }
                                         editActive.checked = String(s.active)==='1' || s.active===1 || s.active===true;
-                                        // Set specialties
-                                        const base = ['Dog','Cat','Bird','Fish','Small Pet'];
-                                        const set = new Set((s.specialties||[]).map(x=>String(x)));
-                                        editForm.querySelectorAll('input[name="sitters_specialties[]"]').forEach(cb=>{ cb.checked = set.has(cb.value); });
-                                        const extras = (s.specialties||[]).filter(x=>!base.includes(String(x)));
-                                        editSpecsExtra.value = extras.join(', ');
                                         if (window.lucide && lucide.createIcons) lucide.createIcons();
                                         openEdit();
                                     } catch(err){ console.error(err); alert('Network error loading sitter'); }
@@ -1353,16 +1350,20 @@ function resolveImageUrl($path) {
                                         }
                                         const nameP = nameCell.querySelector('p.font-medium');
                                         if (nameP) nameP.textContent = s.name||'';
-                                        // Contact (1)
+                                        // Contact (1) with years badge
                                         const contactCell = tds[1];
-                                        contactCell.innerHTML = `<div class="space-y-1"><p>${esc(s.email||'')}</p><p class="text-gray-600">${esc(s.phone||'')}</p></div>`;
+                                        contactCell.innerHTML = `<div class=\"space-y-1\"><p>${esc(s.email||'')}</p><p class=\"text-gray-600\">${esc(s.phone||'')}</p></div>`;
                                         // Specialties (2)
                                         const specsHTML = (s.specialties||[]).map(x=>`<span class="px-2 py-1 text-xs rounded-full ${specClass(x)}">${esc(x)}</span>`).join(' ');
                                         tds[2].innerHTML = `<div class="flex flex-wrap gap-1">${specsHTML}</div>`;
-                                        // Experience (3)
-                                        tds[3].textContent = s.experience||'-';
-                                        // Status (4)
-                                        tds[4].innerHTML = `<span class="px-2 py-1 text-xs rounded-full ${ (String(s.active)==='1'||s.active===1||s.active===true) ? 'bg-green-100 text-green-800':'bg-red-100 text-red-800'}">${ (String(s.active)==='1'||s.active===1||s.active===true) ? 'Active':'Inactive' }</span>`;
+                                        // Bio (3)
+                                        const bio2 = (s.bio||'').trim();
+                                        const bioShort2 = bio2.length>60 ? bio2.slice(0,60)+'…' : bio2;
+                                        tds[3].innerHTML = bio2 ? `<span title="${esc(bio2)}">${esc(bioShort2)}</span>` : '-';
+                                        // Experience years (4)
+                                        tds[4].textContent = (s.years_experience && Number(s.years_experience)>0) ? `${Number(s.years_experience)} yrs` : (s.experience||'-');
+                                        // Status (5)
+                                        tds[5].innerHTML = `<span class="px-2 py-1 text-xs rounded-full ${ (String(s.active)==='1'||s.active===1||s.active===true) ? 'bg-green-100 text-green-800':'bg-red-100 text-red-800'}">${ (String(s.active)==='1'||s.active===1||s.active===true) ? 'Active':'Inactive' }</span>`;
                                         if (window.lucide && lucide.createIcons) lucide.createIcons();
                                     }
                                     closeEdit();
@@ -3249,5 +3250,20 @@ function resolveImageUrl($path) {
             const half=Math.floor(maxButtons/2); let start=Math.max(1,current-half); let end=start+maxButtons-1; if(end>total){end=total; start=end-maxButtons+1;} if(start>1){ range.push(1); if(start>2) range.push('...'); } for(let i=start;i<=end;i++) range.push(i); if(end<total){ if(end<total-1) range.push('...'); range.push(total);} return range;
         }
     </script>
+    <!-- Tailwind safelist (hidden) to ensure dynamic specialty classes are included by CDN JIT -->
+    <div class="hidden">
+        <span class="bg-orange-100 text-orange-800 border border-orange-200"></span>
+        <span class="bg-purple-100 text-purple-800 border border-purple-200"></span>
+        <span class="bg-blue-100 text-blue-800 border border-blue-200"></span>
+        <span class="bg-cyan-100 text-cyan-800 border border-cyan-200"></span>
+        <span class="bg-emerald-100 text-emerald-800 border border-emerald-200"></span>
+        <span class="bg-pink-100 text-pink-800 border border-pink-200"></span>
+        <span class="bg-yellow-100 text-yellow-800 border border-yellow-200"></span>
+        <span class="bg-lime-100 text-lime-800 border border-lime-200"></span>
+        <span class="bg-amber-100 text-amber-800 border border-amber-200"></span>
+        <span class="bg-rose-100 text-rose-800 border border-rose-200"></span>
+        <span class="bg-indigo-100 text-indigo-800 border border-indigo-200"></span>
+        <span class="bg-gray-100 text-gray-800 border border-gray-200"></span>
+    </div>
 </body>
 </html>

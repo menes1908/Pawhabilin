@@ -4,6 +4,16 @@ require_once __DIR__ . '/utils/session.php';
 require_once __DIR__ . '/database.php';
 
 $email = '';
+$success_message = '';
+
+// Show success after registration
+if (isset($_GET['registered'])) {
+    if (isset($_GET['sitter'])) {
+        $success_message = 'Your sitter account has been created successfully. Please sign in to continue.';
+    } else {
+        $success_message = 'Your account has been created successfully. Please sign in to continue.';
+    }
+}
 
 // Handle login form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -205,6 +215,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             border-radius: 8px;
             margin-bottom: 16px;
         }
+
+        /* Success message styling */
+        .success-message {
+            background: #dcfce7; /* emerald-100 */
+            border: 1px solid #86efac; /* emerald-300 */
+            color: #16a34a; /* green-600 */
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+        }
     </style>
 </head>
 <body class="min-h-screen gradient-bg relative overflow-x-hidden overflow-y-auto">
@@ -382,6 +402,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </div>
 
                     <div class="p-8 space-y-6">
+                        <?php if (!empty($success_message)): ?>
+                            <div class="success-message">
+                                <div class="flex items-center gap-2">
+                                    <i data-lucide="check-circle" class="w-5 h-5"></i>
+                                    <span><?php echo htmlspecialchars($success_message); ?></span>
+                                </div>
+                            </div>
+                        <?php endif; ?>
+
                         <?php if (isset($error_message)): ?>
                             <div class="error-message">
                                 <?php echo htmlspecialchars($error_message); ?>

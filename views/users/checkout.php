@@ -60,6 +60,12 @@ function h($v){return htmlspecialchars($v??'',ENT_QUOTES,'UTF-8');}
 .success-notification p{font-size:1rem}
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:12px 24px;border-radius:8px;border:none;cursor:pointer;transition:.2s;text-decoration:none;font-weight:500}.btn-primary{background:linear-gradient(135deg,#f97316,#ea580c);color:#fff}.btn-primary:hover{background:linear-gradient(135deg,#ea580c,#dc2626);box-shadow:0 4px 12px rgba(249,115,22,.3)}.btn-secondary{background:#fff;color:#374151;border:1px solid #e5e7eb}.btn-secondary:hover{background:#f9fafb}
 .badge{display:inline-flex;align-items:center;gap:4px;padding:4px 12px;border-radius:12px;font-size:12px;font-weight:600}.badge-primary{background:linear-gradient(135deg,#10b981,#059669);color:#fff}
+/* Scrollable address list (when >2 addresses) */
+#address-list-wrapper.scrollable{max-height:340px;overflow-y:auto;scrollbar-gutter:stable;padding-right:4px}
+#address-list-wrapper.scrollable::-webkit-scrollbar{width:8px}
+#address-list-wrapper.scrollable::-webkit-scrollbar-track{background:#f1f5f9;border-radius:8px}
+#address-list-wrapper.scrollable::-webkit-scrollbar-thumb{background:linear-gradient(180deg,#f97316,#ea580c);border-radius:8px}
+#address-list-wrapper.scrollable::-webkit-scrollbar-thumb:hover{background:linear-gradient(180deg,#ea580c,#c2410c)}
 </style>
 </head>
 <body class="min-h-screen bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-50">
@@ -186,12 +192,31 @@ function h($v){return htmlspecialchars($v??'',ENT_QUOTES,'UTF-8');}
             </div>
         </div>
         <div class="bg-white rounded-xl border border-gray-200 p-6" id="delivery-address-box">
-            <div class="flex items-center justify-between mb-4"><h3 class="text-lg font-semibold flex items-center gap-2"><i data-lucide=map-pin class="w-5 h-5 text-blue-500"></i> Delivery Address</h3><button onclick="showAddressModal()" class="btn btn-secondary text-orange-600 border-orange-300"><i data-lucide=plus class="w-4 h-4"></i> Add Address</button></div>
-            <div id="address-list-wrapper">
-                <?php if($locations): $defaultLoc=null; foreach($locations as $l){ if($l['location_is_default']){$defaultLoc=$l; break;} } if(!$defaultLoc) $defaultLoc=$locations[0]; $full=trim($defaultLoc['location_address_line1'].' '.($defaultLoc['location_address_line2']??'').', '.($defaultLoc['location_barangay']??'').', '.$defaultLoc['location_city'].', '.$defaultLoc['location_province']); ?>
-                    <div class="address-card bg-gradient-to-br from-blue-100 to-blue-200 border-2 border-blue-400 rounded-lg p-4" data-location-id="<?php echo (int)$defaultLoc['location_id']; ?>">
-                        <div class="flex justify-between items-start"><div><div class="flex items-center gap-2 mb-2"><span class="badge badge-primary">Address</span><?php if($defaultLoc['location_is_default']): ?><span class="badge" style="background:#dcfce7;color:#166534">Default</span><?php endif; ?></div><h4 class="font-semibold text-gray-800"><?php echo h($defaultLoc['location_recipient_name']); ?></h4><p class="text-sm text-gray-600"><?php echo h($defaultLoc['location_phone']); ?></p><p class="text-sm text-gray-700 mt-1 leading-snug"><?php echo h($full); ?></p></div></div>
-                    </div>
+            <div class="flex items-center justify-between mb-4 flex-wrap gap-3">
+                <h3 class="text-lg font-semibold flex items-center gap-2"><i data-lucide=map-pin class="w-5 h-5 text-blue-500"></i> Delivery Address</h3>
+                <div class="flex items-center gap-2">
+                    <button onclick="refreshAddressesFromServer(true)" type="button" class="btn btn-secondary !py-2 !px-3 text-blue-600 border-blue-300" title="Reload addresses saved in Profile"><i data-lucide=refresh-cw class="w-4 h-4"></i><span class="hidden sm:inline"> Refresh</span></button>
+                    <button onclick="showAddressModal()" type="button" class="btn btn-secondary text-orange-600 border-orange-300"><i data-lucide=plus class="w-4 h-4"></i> <span class="hidden sm:inline">Add Address</span><span class="sm:hidden">Add</span></button>
+                </div>
+            </div>
+            <div id="address-list-wrapper" class="space-y-3">
+                <?php if($locations): $defaultLoc=null; foreach($locations as $l){ if($l['location_is_default']){$defaultLoc=$l; break;} } if(!$defaultLoc) $defaultLoc=$locations[0]; $selectedId=(int)$defaultLoc['location_id']; ?>
+                    <?php foreach($locations as $loc): $full=trim($loc['location_address_line1'].' '.($loc['location_address_line2']??'').', '.($loc['location_barangay']??'').', '.$loc['location_city'].', '.$loc['location_province']); ?>
+                        <div class="address-card border rounded-lg p-4 cursor-pointer transition <?php echo ((int)$loc['location_id']===$selectedId)?'bg-gradient-to-br from-blue-100 to-blue-200 border-blue-400 ring-2 ring-blue-300':'bg-white hover:bg-blue-50 border-gray-200'; ?>" data-location-id="<?php echo (int)$loc['location_id']; ?>">
+                            <label class="flex gap-3 w-full cursor-pointer">
+                                <input type="radio" name="address_select" value="<?php echo (int)$loc['location_id']; ?>" class="mt-1" <?php echo ((int)$loc['location_id']===$selectedId)?'checked':''; ?> />
+                                <div class="flex-1">
+                                    <div class="flex items-center gap-2 mb-1">
+                                        <span class="badge badge-primary">Address</span>
+                                        <?php if($loc['location_is_default']): ?><span class="badge" style="background:#dcfce7;color:#166534">Default</span><?php endif; ?>
+                                    </div>
+                                    <h4 class="font-semibold text-gray-800"><?php echo h($loc['location_recipient_name']); ?></h4>
+                                    <?php if($loc['location_phone']): ?><p class="text-sm text-gray-600"><?php echo h($loc['location_phone']); ?></p><?php endif; ?>
+                                    <p class="text-sm text-gray-700 mt-1 leading-snug"><?php echo h($full); ?></p>
+                                </div>
+                            </label>
+                        </div>
+                    <?php endforeach; ?>
                 <?php else: ?>
                     <div class="text-center py-8 text-gray-500"><i data-lucide=map-pin class="w-12 h-12 mx-auto mb-4 opacity-50"></i><p>No delivery address saved</p><button onclick="showAddressModal()" class="btn btn-primary mt-4">Add Address</button></div>
                 <?php endif; ?>
@@ -302,8 +327,76 @@ function initPayment(){
 function showAddressModal(){document.getElementById('address-modal').classList.add('show');}
 function closeAddressModal(){document.getElementById('address-modal').classList.remove('show');}
 document.getElementById('add-address-form').addEventListener('submit',async e=>{e.preventDefault();const fd=new FormData(e.target);try{const res=await fetch('../../users/location_add.php',{method:'POST',body:fd});const data=await res.json();if(!data.ok) throw new Error(data.error||'Error');renderAddresses(data.locations);closeAddressModal();toast('Address added','success');e.target.reset();}catch(err){const el=document.getElementById('address-form-error');el.textContent=err.message;el.classList.remove('hidden');}});
-function renderAddresses(list){if(!list.length){document.getElementById('address-list-wrapper').innerHTML='<div class="text-center py-8 text-gray-500"><i data-lucide=map-pin class="w-12 h-12 mx-auto mb-4 opacity-50"></i><p>No addresses saved</p></div>';return;}const def=list.find(l=>l.is_default)||list[0];document.getElementById('address-list-wrapper').innerHTML=`<div class=\"address-card bg-gradient-to-br from-blue-100 to-blue-200 border-2 border-blue-400 rounded-lg p-4\" data-location-id=\"${def.id}\"><div class=\"flex justify-between items-start\"><div><div class=\"flex items-center gap-2 mb-2\"><span class=\"badge badge-primary\">Address</span>${def.is_default?'<span class=\"badge\" style=\"background:#dcfce7;color:#166534\">Default</span>':''}</div><h4 class=\"font-semibold text-gray-800\">${escapeHtml(def.recipient)}</h4><p class=\"text-sm text-gray-600\">${escapeHtml(def.phone||'')}</p><p class=\"text-sm text-gray-700 mt-1 leading-snug\">${escapeHtml(def.full)}</p></div></div></div>`;if(window.lucide) lucide.createIcons();}
-async function placeOrder(){const payment=document.querySelector('input[name="payment_method"]:checked')?.value||'cod';const fulfillment=currentFulfillment();const locationBox=document.querySelector('[data-location-id]');const locationId=locationBox?locationBox.getAttribute('data-location-id'):'';const clientAmtEl=document.getElementById('client_amount');const clientAmount=clientAmtEl && !clientAmtEl.closest('.hidden')?clientAmtEl.value:'';if((payment==='gcash'||payment==='maya') && clientAmount===''){showOrderError('Enter exact amount');return;}if(fulfillment==='delivery' && !locationId){showOrderError('Please add/select a delivery address');return;}const pd=document.getElementById('pickup_date')?.value;const pt=document.getElementById('pickup_time')?.value; if(fulfillment==='pickup'){ if(!pd||!pt){showOrderError('Pickup date & time required');return;} }
+function renderAddresses(list){
+    const wrap=document.getElementById('address-list-wrapper');
+    if(!wrap) return;
+    if(!list.length){wrap.innerHTML='<div class="text-center py-8 text-gray-500"><i data-lucide=map-pin class="w-12 h-12 mx-auto mb-4 opacity-50"></i><p>No addresses saved</p></div>';return;}
+    const def=list.find(l=>l.is_default)||list[0];
+    let html='';
+    list.forEach(loc=>{
+        const selected = (loc.id===def.id);
+        html += `<div class="address-card border rounded-lg p-4 cursor-pointer transition ${selected?'bg-gradient-to-br from-blue-100 to-blue-200 border-blue-400 ring-2 ring-blue-300':'bg-white hover:bg-blue-50 border-gray-200'}" data-location-id="${loc.id}">
+            <label class="flex gap-3 w-full cursor-pointer">
+                <input type="radio" name="address_select" value="${loc.id}" class="mt-1" ${selected?'checked':''} />
+                <div class="flex-1">
+                    <div class="flex items-center gap-2 mb-1"><span class="badge badge-primary">Address</span>${loc.is_default?'<span class="badge" style="background:#dcfce7;color:#166534">Default</span>':''}</div>
+                    <h4 class="font-semibold text-gray-800">${escapeHtml(loc.recipient)}</h4>
+                    ${loc.phone?`<p class=\"text-sm text-gray-600\">${escapeHtml(loc.phone)}</p>`:''}
+                    <p class="text-sm text-gray-700 mt-1 leading-snug">${escapeHtml(loc.full)}</p>
+                </div>
+            </label>
+        </div>`;
+    });
+    wrap.innerHTML=html;
+    // Toggle scroll class if more than 2 addresses
+    if(list.length>2){wrap.classList.add('scrollable');} else {wrap.classList.remove('scrollable');}
+    enhanceAddressSelection();
+    if(window.lucide) lucide.createIcons();
+}
+function enhanceAddressSelection(){
+    document.querySelectorAll('.address-card').forEach(card=>{
+        card.addEventListener('click',()=>{
+            document.querySelectorAll('.address-card').forEach(c=>c.classList.remove('ring-2','ring-blue-300','border-blue-400','bg-gradient-to-br','from-blue-100','to-blue-200'));
+            card.classList.add('ring-2','ring-blue-300','border-blue-400','bg-gradient-to-br','from-blue-100','to-blue-200');
+            const r=card.querySelector('input[type=radio]'); if(r){r.checked=true;}
+        });
+    });
+}
+document.addEventListener('DOMContentLoaded',()=>{enhanceAddressSelection();refreshAddressesFromServer(false);});
+let lastSelectedAddressId = (function(){
+    const r=document.querySelector('input[name="address_select"]:checked');
+    return r?parseInt(r.value,10):null;
+})();
+async function refreshAddressesFromServer(showToast){
+    try {
+        const res = await fetch('../../users/location_list.php',{headers:{'Accept':'application/json'}});
+        if(!res.ok) throw new Error('fetch_failed');
+        const data = await res.json();
+        if(!data.ok) throw new Error(data.error||'error');
+        if(Array.isArray(data.locations)){
+            // Preserve previous selection if still present
+            const previous = document.querySelector('input[name="address_select"]:checked');
+            if(previous) lastSelectedAddressId = parseInt(previous.value,10);
+            renderAddresses(data.locations.map(l=>({
+                id:l.id,
+                label:l.label,
+                recipient:l.recipient,
+                phone:l.phone,
+                full:l.full,
+                is_default:l.is_default
+            })));
+            // re-check last selected if present
+            if(lastSelectedAddressId!==null){
+                const match = document.querySelector(`.address-card input[value="${lastSelectedAddressId}"]`);
+                if(match){
+                    match.checked=true;match.closest('.address-card')?.classList.add('ring-2','ring-blue-300','border-blue-400','bg-gradient-to-br','from-blue-100','to-blue-200');
+                }
+            }
+            if(showToast) toast('Addresses refreshed','success');
+        }
+    } catch(e){ if(showToast) toast('Could not refresh addresses','error'); }
+}
+async function placeOrder(){const payment=document.querySelector('input[name="payment_method"]:checked')?.value||'cod';const fulfillment=currentFulfillment();const selectedRadio=document.querySelector('input[name="address_select"]:checked');const locationId=selectedRadio?selectedRadio.value:'';const clientAmtEl=document.getElementById('client_amount');const clientAmount=clientAmtEl && !clientAmtEl.closest('.hidden')?clientAmtEl.value:'';if((payment==='gcash'||payment==='maya') && clientAmount===''){showOrderError('Enter exact amount');return;}if(fulfillment==='delivery' && !locationId){showOrderError('Please add/select a delivery address');return;}const pd=document.getElementById('pickup_date')?.value;const pt=document.getElementById('pickup_time')?.value; if(fulfillment==='pickup'){ if(!pd||!pt){showOrderError('Pickup date & time required');return;} }
  const fd=new FormData();fd.append('csrf',CSRF);fd.append('fulfillment',fulfillment);if(locationId && fulfillment==='delivery') fd.append('location_id',locationId);fd.append('payment_method',payment);if(clientAmount) fd.append('client_amount',clientAmount);if(fulfillment==='pickup'){fd.append('pickup_date',pd);fd.append('pickup_time',pt+':00');}
  togglePlaceBtn(true);try{const res=await fetch('../../shop/order_place.php',{method:'POST',body:fd});const data=await res.json();if(!data.ok) throw new Error(mapOrderError(data));showSuccess(data.transaction_id,data.total);}catch(e){showOrderError(e.message||'Order failed');}finally{togglePlaceBtn(false);} }
 function mapOrderError(d){switch(d.error){case'amount_mismatch':return 'Amount does not match total';case'no_location':return 'Please add an address first';case'stock_changed':return 'Stock changed for a product. Refresh cart.';default:return 'Order failed';}}

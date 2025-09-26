@@ -138,7 +138,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (($_POST['action'] ?? '') === 'upda
         set_flash_and_redirect('Could not prepare update statement.', 'error');
     }
 }
-// Handle pet registration
+// Handle pet registration (now using PRG to prevent duplicate on refresh)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && (($_POST['action'] ?? '') === 'add_pet') && $usersId > 0) {
     $pname = trim((string)($_POST['pet_name'] ?? ''));
     $pspecies = trim((string)($_POST['pet_species'] ?? ''));
@@ -147,43 +147,38 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (($_POST['action'] ?? '') === 'add_
     $pgender = trim((string)($_POST['pet_gender'] ?? ''));
 
     if ($pname === '' || $pspecies === '' || $pgender === '') {
-        $flashMessage = 'Please fill in Pet Name, Species, and Gender.';
-        $flashType = 'error';
+        set_flash_and_redirect('Please fill in Pet Name, Species, and Gender.', 'error');
+    }
+
+    if (strtolower($pspecies) === 'other') {
+        if ($pspecies_other === '') {
+            set_flash_and_redirect('Please specify the pet species.', 'error');
+        } else {
+            $pspecies = $pspecies_other;
+        }
+    }
+
+    $pgender = in_array($pgender, ['male','female','unknown'], true) ? $pgender : 'unknown';
+
+    if (!isset($connections) || !$connections) {
+        set_flash_and_redirect('Database connection is not available.', 'error');
+    }
+
+    if ($stmt = mysqli_prepare($connections, 'INSERT INTO pets (users_id, pets_name, pets_species, pets_breed, pets_gender) VALUES (?, ?, ?, ?, ?)')) {
+        mysqli_stmt_bind_param($stmt, 'issss', $usersId, $pname, $pspecies, $pbreed, $pgender);
+        if (mysqli_stmt_execute($stmt)) {
+            mysqli_stmt_close($stmt);
+            set_flash_and_redirect('Pet added successfully!', 'success');
+        } else {
+            mysqli_stmt_close($stmt);
+            set_flash_and_redirect('Failed to add pet. Please try again.', 'error');
+        }
     } else {
-        if (strtolower($pspecies) === 'other') {
-            if ($pspecies_other === '') {
-                $flashMessage = 'Please specify the pet species.';
-                $flashType = 'error';
-            } else {
-                $pspecies = $pspecies_other;
-            }
-        }
-        $pgender = in_array($pgender, ['male','female','unknown'], true) ? $pgender : 'unknown';
-        if ($flashType !== 'error') {
-            if (isset($connections) && $connections) {
-                if ($stmt = mysqli_prepare($connections, 'INSERT INTO pets (users_id, pets_name, pets_species, pets_breed, pets_gender) VALUES (?, ?, ?, ?, ?)')) {
-                    mysqli_stmt_bind_param($stmt, 'issss', $usersId, $pname, $pspecies, $pbreed, $pgender);
-                    if (mysqli_stmt_execute($stmt)) {
-                        $flashMessage = 'Pet added successfully!';
-                        $flashType = 'success';
-                    } else {
-                        $flashMessage = 'Failed to add pet. Please try again.';
-                        $flashType = 'error';
-                    }
-                    mysqli_stmt_close($stmt);
-                } else {
-                    $flashMessage = 'Could not prepare pet insert statement.';
-                    $flashType = 'error';
-                }
-            } else {
-                $flashMessage = 'Database connection is not available.';
-                $flashType = 'error';
-            }
-        }
+        set_flash_and_redirect('Could not prepare pet insert statement.', 'error');
     }
 }
 
-// Handle pet edit
+// Handle pet edit (PRG)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && (($_POST['action'] ?? '') === 'edit_pet') && $usersId > 0) {
     $petId = (int)($_POST['pet_id'] ?? 0);
     $pname = trim((string)($_POST['pet_name'] ?? ''));
@@ -193,68 +188,56 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (($_POST['action'] ?? '') === 'edit
     $pgender = trim((string)($_POST['pet_gender'] ?? ''));
 
     if ($petId <= 0 || $pname === '' || $pspecies === '' || $pgender === '') {
-        $flashMessage = 'Please fill in Pet Name, Species, and Gender.';
-        $flashType = 'error';
+        set_flash_and_redirect('Please fill in Pet Name, Species, and Gender.', 'error');
+    }
+
+    if (strtolower($pspecies) === 'other') {
+        if ($pspecies_other === '') {
+            set_flash_and_redirect('Please specify the pet species.', 'error');
+        } else {
+            $pspecies = $pspecies_other;
+        }
+    }
+    $pgender = in_array($pgender, ['male','female','unknown'], true) ? $pgender : 'unknown';
+
+    if (!isset($connections) || !$connections) {
+        set_flash_and_redirect('Database connection is not available.', 'error');
+    }
+
+    if ($stmt = mysqli_prepare($connections, 'UPDATE pets SET pets_name = ?, pets_species = ?, pets_breed = ?, pets_gender = ? WHERE pets_id = ? AND users_id = ?')) {
+        mysqli_stmt_bind_param($stmt, 'ssssii', $pname, $pspecies, $pbreed, $pgender, $petId, $usersId);
+        if (mysqli_stmt_execute($stmt)) {
+            mysqli_stmt_close($stmt);
+            set_flash_and_redirect('Pet updated successfully!', 'success');
+        } else {
+            mysqli_stmt_close($stmt);
+            set_flash_and_redirect('Failed to update pet. Please try again.', 'error');
+        }
     } else {
-        if (strtolower($pspecies) === 'other') {
-            if ($pspecies_other === '') {
-                $flashMessage = 'Please specify the pet species.';
-                $flashType = 'error';
-            } else {
-                $pspecies = $pspecies_other;
-            }
-        }
-        $pgender = in_array($pgender, ['male','female','unknown'], true) ? $pgender : 'unknown';
-        if ($flashType !== 'error') {
-            if (isset($connections) && $connections) {
-                if ($stmt = mysqli_prepare($connections, 'UPDATE pets SET pets_name = ?, pets_species = ?, pets_breed = ?, pets_gender = ? WHERE pets_id = ? AND users_id = ?')) {
-                    mysqli_stmt_bind_param($stmt, 'ssssii', $pname, $pspecies, $pbreed, $pgender, $petId, $usersId);
-                    if (mysqli_stmt_execute($stmt)) {
-                        $flashMessage = 'Pet updated successfully!';
-                        $flashType = 'success';
-                    } else {
-                        $flashMessage = 'Failed to update pet. Please try again.';
-                        $flashType = 'error';
-                    }
-                    mysqli_stmt_close($stmt);
-                } else {
-                    $flashMessage = 'Could not prepare pet update statement.';
-                    $flashType = 'error';
-                }
-            } else {
-                $flashMessage = 'Database connection is not available.';
-                $flashType = 'error';
-            }
-        }
+        set_flash_and_redirect('Could not prepare pet update statement.', 'error');
     }
 }
 
-// Handle pet delete
+// Handle pet delete (PRG)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && (($_POST['action'] ?? '') === 'delete_pet') && $usersId > 0) {
     $petId = (int)($_POST['pet_id'] ?? 0);
-    if ($petId > 0) {
-        if (isset($connections) && $connections) {
-            if ($stmt = mysqli_prepare($connections, 'DELETE FROM pets WHERE pets_id = ? AND users_id = ?')) {
-                mysqli_stmt_bind_param($stmt, 'ii', $petId, $usersId);
-                if (mysqli_stmt_execute($stmt)) {
-                    $flashMessage = 'Pet deleted successfully!';
-                    $flashType = 'success';
-                } else {
-                    $flashMessage = 'Failed to delete pet. Please try again.';
-                    $flashType = 'error';
-                }
-                mysqli_stmt_close($stmt);
-            } else {
-                $flashMessage = 'Could not prepare pet delete statement.';
-                $flashType = 'error';
-            }
+    if ($petId <= 0) {
+        set_flash_and_redirect('Invalid pet selected for deletion.', 'error');
+    }
+    if (!isset($connections) || !$connections) {
+        set_flash_and_redirect('Database connection is not available.', 'error');
+    }
+    if ($stmt = mysqli_prepare($connections, 'DELETE FROM pets WHERE pets_id = ? AND users_id = ?')) {
+        mysqli_stmt_bind_param($stmt, 'ii', $petId, $usersId);
+        if (mysqli_stmt_execute($stmt)) {
+            mysqli_stmt_close($stmt);
+            set_flash_and_redirect('Pet deleted successfully!', 'success');
         } else {
-            $flashMessage = 'Database connection is not available.';
-            $flashType = 'error';
+            mysqli_stmt_close($stmt);
+            set_flash_and_redirect('Failed to delete pet. Please try again.', 'error');
         }
     } else {
-        $flashMessage = 'Invalid pet selected for deletion.';
-        $flashType = 'error';
+        set_flash_and_redirect('Could not prepare pet delete statement.', 'error');
     }
 }
 
@@ -435,10 +418,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (($_POST['action'] ?? '') === 'dele
     }
 }
 
-// Fetch up to 2 addresses from locations (default first)
+// Fetch ALL addresses from locations (default first, newest first)
 $userAddresses = [];
 if (isset($connections) && $connections && $usersId > 0) {
-    if ($stmt = mysqli_prepare($connections, 'SELECT location_id, location_label, location_recipient_name, location_phone, location_address_line1, location_address_line2, location_barangay, location_city, location_province, location_is_default, location_active FROM locations WHERE users_id = ? ORDER BY location_is_default DESC, location_id ASC LIMIT 2')) {
+    if ($stmt = mysqli_prepare($connections, 'SELECT location_id, location_label, location_recipient_name, location_phone, location_address_line1, location_address_line2, location_barangay, location_city, location_province, location_is_default, location_active, location_created_at FROM locations WHERE users_id = ? ORDER BY location_is_default DESC, location_created_at DESC')) {
         mysqli_stmt_bind_param($stmt, 'i', $usersId);
         mysqli_stmt_execute($stmt);
         $res = mysqli_stmt_get_result($stmt);
@@ -527,6 +510,8 @@ if (isset($connections) && $connections && $usersId > 0) {
         mysqli_stmt_close($stmt);
     }
 }
+
+// Detailed appointments
 $userAppointmentsDetailed = [];
 if (isset($connections) && $connections && $usersId > 0) {
     $sql = "SELECT a.appointments_id, a.appointments_type, a.appointments_date, a.appointments_status,
@@ -550,7 +535,7 @@ if (isset($connections) && $connections && $usersId > 0) {
 $petsCount = count($userPets);
 $bookedCount = count($bookedAppointments);
 
-// Unified product orders derived from transactions + pickups/deliveries + transaction_products
+// Orders (pickup & delivery)
 $ordersCount = 0;
 $userPickupOrders = [];
 $userDeliveryOrders = [];
@@ -605,7 +590,6 @@ if (isset($connections) && $connections && $usersId > 0) {
         }
     }
 }
-
 // Handle order cancellation (pickup)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'cancel_pickup_order' && $usersId > 0) {
     $tid = (int)($_POST['transactions_id'] ?? 0);

@@ -1,3 +1,12 @@
+<?php
+// Guard: prevent guests from accessing the authenticated subscriptions page directly
+require_once __DIR__ . '/../../utils/session.php';
+session_start_if_needed();
+if (!get_current_user_session()) {
+    header('Location: ../../subscriptions.php');
+    exit; // Stop rendering the user-only version
+}
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -7,7 +16,7 @@
     
     <!-- Tailwind CSS v4.0 -->
      <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="styles/globals.css">
+    <link rel="stylesheet" href="../../globals.css">
     
     <!-- Google Fonts - La Belle Aurore -->
     <link rel="preconnect" href="https://fonts.googleapis.com">

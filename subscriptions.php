@@ -1,3 +1,14 @@
+<?php
+// Access control redirect logic for subscription pages
+require_once __DIR__ . '/utils/session.php';
+session_start_if_needed();
+$__currentUser = get_current_user_session();
+// If a logged-in user lands on the guest subscriptions page, send them to the user version
+if ($__currentUser) {
+    header('Location: views/users/subscriptions.php');
+    exit; // Ensure no further output
+}
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>

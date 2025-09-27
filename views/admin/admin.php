@@ -487,8 +487,8 @@ function resolveImageUrl($path) {
                                     <div class="flex flex-wrap gap-3 text-sm">
                                         <label class="inline-flex items-center gap-2"><input type="checkbox" class="form-checkbox" name="category" value="food"> Food</label>
                                         <label class="inline-flex items-center gap-2"><input type="checkbox" class="form-checkbox" name="category" value="accessory"> Accessories</label>
-                                        <label class="inline-flex items-center gap-2"><input type="checkbox" class="form-checkbox" name="category" value="necessity"> Grooming</label>
-                                        <label class="inline-flex items-center gap-2"><input type="checkbox" class="form-checkbox" name="category" value="toy"> Treats</label>
+                                        <label class="inline-flex items-center gap-2"><input type="checkbox" class="form-checkbox" name="category" value="necessity"> Necessity</label>
+                                        <label class="inline-flex items-center gap-2"><input type="checkbox" class="form-checkbox" name="category" value="toy"> Toys</label>
                                     </div>
                                 </div>
                                 <div>
@@ -597,205 +597,117 @@ function resolveImageUrl($path) {
                     </div>
                 </div>
 
-                <!-- Orders Section -->
-                <div id="orders-section" class="space-y-8 hidden">
+                <!-- Orders Section (Delivery Only) -->
+                <div id="orders-section" class="space-y-6 hidden">
                     <?php
-                    // Build unified orders dataset then split into pickup / delivery arrays.
-                    $allOrders = [];
+                    $orders = [];
                     $itemsByTxn = [];
-                    if (isset($connections) && $connections) {
-                        $sql = "SELECT t.transactions_id, t.users_id, u.users_firstname, u.users_lastname, t.transactions_amount,
-                                        t.transactions_payment_method, t.transactions_fulfillment_type,
-                                        p.pickups_pickup_date, p.pickups_pickup_time, p.pickups_pickup_status,
-                                        d.deliveries_delivery_status, d.deliveries_estimated_delivery_date, d.deliveries_actual_delivery_date,
-                                        d.deliveries_recipient_signature, d.location_id,
-                                        COALESCE(l.address_line1, d.deliveries_address) AS full_address_line1,
-                                        COALESCE(l.city, d.deliveries_city) AS full_address_city,
-                                        COALESCE(l.province, '') AS full_address_province,
-                                        COALESCE(l.postal_code, d.deliveries_postal_code) AS full_address_postal,
-                                        COALESCE(l.address_line1, d.deliveries_address, '') AS addr_line1
+                    if(isset($connections) && $connections){
+                        $sql = "SELECT t.transactions_id, t.users_id, u.users_firstname, u.users_lastname, t.transactions_amount, t.transactions_payment_method, t.transactions_created_at,
+                                        d.deliveries_delivery_status, d.deliveries_estimated_delivery_date, d.deliveries_actual_delivery_date, d.deliveries_recipient_signature,
+                                        l.location_address_line1, l.location_address_line2, l.location_city, l.location_province, l.location_barangay
                                 FROM transactions t
                                 JOIN users u ON u.users_id = t.users_id
-                                LEFT JOIN pickups p ON p.transactions_id = t.transactions_id
                                 LEFT JOIN deliveries d ON d.transactions_id = t.transactions_id
                                 LEFT JOIN locations l ON l.location_id = d.location_id
                                 WHERE t.transactions_type='product'
                                 ORDER BY t.transactions_created_at DESC, t.transactions_id DESC";
-                        if ($res = mysqli_query($connections, $sql)) {
-                            while ($r = mysqli_fetch_assoc($res)) { $allOrders[] = $r; }
+                        if($res = mysqli_query($connections,$sql)){
+                            while($r = mysqli_fetch_assoc($res)){ $orders[] = $r; }
                             mysqli_free_result($res);
                         }
-                        if (!empty($allOrders)) {
-                            $ids = array_column($allOrders, 'transactions_id');
-                            $idList = implode(',', array_map('intval', $ids));
-                            if ($idList !== '') {
+                        if(!empty($orders)){
+                            $ids = array_column($orders,'transactions_id');
+                            $idList = implode(',', array_map('intval',$ids));
+                            if($idList!==''){
                                 $lineSql = "SELECT tp.transactions_id, tp.products_id, tp.tp_quantity, pr.products_name, pr.products_image_url
                                             FROM transaction_products tp
                                             JOIN products pr ON pr.products_id = tp.products_id
                                             WHERE tp.transactions_id IN ($idList)";
-                                if ($res2 = mysqli_query($connections, $lineSql)) {
-                                    while ($r2 = mysqli_fetch_assoc($res2)) {
-                                        $tid = (int)$r2['transactions_id'];
-                                        if (!isset($itemsByTxn[$tid])) $itemsByTxn[$tid] = [];
-                                        $itemsByTxn[$tid][] = $r2;
+                                if($res2 = mysqli_query($connections,$lineSql)){
+                                    while($r2 = mysqli_fetch_assoc($res2)){
+                                        $tid=(int)$r2['transactions_id'];
+                                        if(!isset($itemsByTxn[$tid])) $itemsByTxn[$tid]=[];
+                                        $itemsByTxn[$tid][]=$r2;
                                     }
                                     mysqli_free_result($res2);
                                 }
                             }
                         }
                     }
-                    if (!function_exists('o_e')) { function o_e($v){ return htmlspecialchars((string)$v, ENT_QUOTES,'UTF-8'); } }
-                    $pickupOrders = array_filter($allOrders, fn($o)=>($o['transactions_fulfillment_type']??'')==='pickup');
-                    $deliveryOrders = array_filter($allOrders, fn($o)=>($o['transactions_fulfillment_type']??'')==='delivery');
+                    if(!function_exists('o_e')){ function o_e($v){ return htmlspecialchars((string)$v,ENT_QUOTES,'UTF-8'); } }
                     ?>
                     <div>
-                        <h2 class="text-xl font-semibold text-gray-800 flex items-center gap-2"><i data-lucide="shopping-bag" class="w-5 h-5 text-orange-500"></i> Orders Management</h2>
-                        <p class="text-sm text-gray-500">Separate views for Pickup and Delivery orders</p>
+                        <h2 class="text-xl font-semibold flex items-center gap-2 text-gray-800"><i data-lucide="shopping-bag" class="w-5 h-5 text-orange-500"></i> Product Orders (Delivery)</h2>
+                        <p class="text-sm text-gray-500">All product transactions with delivery details.</p>
                     </div>
-
-                    <!-- Pickup Orders -->
-                    <div class="bg-white rounded-lg border border-gray-200 shadow-sm">
+                    <div class="bg-white border border-gray-200 rounded-lg shadow-sm">
                         <div class="p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-gray-200">
                             <div class="flex items-center gap-2">
-                                <h3 class="font-medium text-gray-700 flex items-center gap-1"><i data-lucide="truck" class="w-4 h-4 text-emerald-500"></i> Pickup Orders (<?php echo count($pickupOrders); ?>)</h3>
+                                <h3 class="font-medium text-gray-700 flex items-center gap-1"><i data-lucide="package" class="w-4 h-4 text-blue-500"></i> Orders (<?php echo count($orders); ?>)</h3>
                             </div>
                             <div class="flex flex-wrap items-center gap-3">
-                                <input id="pickupOrdersSearch" type="text" placeholder="Search buyer or item..." class="px-3 py-2 text-sm border border-gray-300 rounded-md w-64 focus:outline-none focus:ring-2 focus:ring-emerald-500">
-                                <select id="pickupStatusFilter" class="px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500">
-                                    <option value="">All Status</option>
-                                    <option value="scheduled">Scheduled</option>
-                                    <option value="picked_up">Picked Up</option>
-                                    <option value="cancelled">Cancelled</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="overflow-x-auto">
-                            <table class="min-w-full text-sm" id="pickupOrdersTable">
-                                <thead class="bg-gray-50 text-[11px] uppercase text-gray-600">
-                                    <tr>
-                                        <th class="px-4 py-3 text-left font-medium">Buyer</th>
-                                        <th class="px-4 py-3 text-left font-medium">Order List</th>
-                                        <th class="px-4 py-3 text-left font-medium">Pickup Date</th>
-                                        <th class="px-4 py-3 text-left font-medium">Pickup Time</th>
-                                        <th class="px-4 py-3 text-left font-medium">Status</th>
-                                        <th class="px-4 py-3 text-left font-medium">Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="pickupOrdersTableBody" class="divide-y divide-gray-100">
-                                <?php if (empty($pickupOrders)): ?>
-                                    <tr><td colspan="6" class="px-4 py-6 text-center text-gray-500">No pickup orders.</td></tr>
-                                <?php else: foreach ($pickupOrders as $ord): $tid=(int)$ord['transactions_id']; $buyer=trim(($ord['users_firstname']??'').' '.($ord['users_lastname']??'')); $items=$itemsByTxn[$tid]??[]; $status=$ord['pickups_pickup_status']??''; ?>
-                                    <tr data-buyer="<?php echo o_e(strtolower($buyer)); ?>" data-status="<?php echo o_e($status); ?>">
-                                        <td class="px-4 py-3 align-top">
-                                            <div class="font-medium text-gray-800"><?php echo o_e($buyer ?: 'User #'.$ord['users_id']); ?></div>
-                                            <div class="text-[11px] text-gray-500">#<?php echo $tid; ?> • ₱<?php echo number_format((float)$ord['transactions_amount'],2); ?></div>
-                                        </td>
-                                        <td class="px-4 py-3 align-top">
-                                            <ul class="space-y-1">
-                                                <?php foreach ($items as $it): ?>
-                                                    <li class="flex items-center gap-2 text-xs">
-                                                        <span class="text-gray-700 truncate max-w-[130px]" title="<?php echo o_e($it['products_name']); ?>"><?php echo o_e($it['products_name']); ?></span>
-                                                        <span class="text-gray-400">x<?php echo (int)$it['tp_quantity']; ?></span>
-                                                    </li>
-                                                <?php endforeach; ?>
-                                            </ul>
-                                        </td>
-                                        <td class="px-4 py-3 text-xs text-gray-700"><?php echo o_e($ord['pickups_pickup_date'] ?? ''); ?></td>
-                                        <td class="px-4 py-3 text-xs text-gray-700"><?php echo o_e($ord['pickups_pickup_time'] ?? ''); ?></td>
-                                        <td class="px-4 py-3 text-xs">
-                                            <?php if($status): ?><span class="px-2 py-1 rounded-full bg-gray-100 text-gray-700"><?php echo o_e(ucwords(str_replace('_',' ',$status))); ?></span><?php endif; ?>
-                                        </td>
-                                        <td class="px-4 py-3 text-xs">
-                                            <div class="flex items-center gap-2">
-                                                <button type="button" class="text-emerald-600 hover:text-emerald-700" data-edit-pickup data-id="<?php echo $tid; ?>" title="Edit"><i data-lucide="edit" class="w-4 h-4"></i></button>
-                                                <form method="post" action="../../controllers/admin/ordercontroller.php" onsubmit="return confirm('Delete this order?');">
-                                                    <input type="hidden" name="action" value="delete">
-                                                    <input type="hidden" name="transactions_id" value="<?php echo $tid; ?>">
-                                                    <button class="text-red-600 hover:text-red-700" title="Delete"><i data-lucide="trash" class="w-4 h-4"></i></button>
-                                                </form>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                <?php endforeach; endif; ?>
-                                </tbody>
-                            </table>
-                        </div>
-                        <div id="pickupOrdersPagination" class="p-3 border-t border-gray-100 flex items-center justify-between hidden">
-                            <div id="pickupOrdersPageInfo" class="text-xs text-gray-600"></div>
-                            <div class="flex items-center gap-1">
-                                <button id="pickupOrdersPrev" class="px-2 py-1.5 border border-gray-300 rounded-md text-xs text-gray-700 hover:bg-gray-50">Prev</button>
-                                <div id="pickupOrdersPageNums" class="flex items-center gap-1"></div>
-                                <button id="pickupOrdersNext" class="px-2 py-1.5 border border-gray-300 rounded-md text-xs text-gray-700 hover:bg-gray-50">Next</button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Delivery Orders -->
-                    <div class="bg-white rounded-lg border border-gray-200 shadow-sm">
-                        <div class="p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-gray-200">
-                            <div class="flex items-center gap-2">
-                                <h3 class="font-medium text-gray-700 flex items-center gap-1"><i data-lucide="package" class="w-4 h-4 text-blue-500"></i> Delivery Orders (<?php echo count($deliveryOrders); ?>)</h3>
-                            </div>
-                            <div class="flex flex-wrap items-center gap-3">
-                                <input id="deliveryOrdersSearch" type="text" placeholder="Search buyer, item, or address..." class="px-3 py-2 text-sm border border-gray-300 rounded-md w-64 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                                <select id="deliveryStatusFilter" class="px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <input id="ordersSearch" type="text" placeholder="Search buyer, item, address..." class="px-3 py-2 text-sm border border-gray-300 rounded-md w-64 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <select id="ordersStatusFilter" class="px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
                                     <option value="">All Status</option>
                                     <option value="processing">Processing</option>
                                     <option value="out_for_delivery">Out for Delivery</option>
                                     <option value="delivered">Delivered</option>
                                     <option value="cancelled">Cancelled</option>
                                 </select>
-                                <select id="deliveryPaymentFilter" class="px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <select id="ordersPaymentFilter" class="px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
                                     <option value="">All Payments</option>
-                                    <option value="cod">Cash on Delivery</option>
-                                    <option value="online">Online</option>
+                                    <option value="cod">COD</option>
+                                    <option value="gcash">GCash</option>
+                                    <option value="maya">Maya</option>
                                 </select>
                             </div>
                         </div>
                         <div class="overflow-x-auto">
-                            <table class="min-w-full text-sm" id="deliveryOrdersTable">
+                            <table class="min-w-full text-sm" id="ordersTable">
                                 <thead class="bg-gray-50 text-[11px] uppercase text-gray-600">
                                     <tr>
                                         <th class="px-4 py-3 text-left font-medium">Buyer</th>
-                                        <th class="px-4 py-3 text-left font-medium">Order List</th>
+                                        <th class="px-4 py-3 text-left font-medium">Order Items</th>
                                         <th class="px-4 py-3 text-left font-medium">Address</th>
+                                        <th class="px-4 py-3 text-left font-medium">Payment</th>
                                         <th class="px-4 py-3 text-left font-medium">Status</th>
-                                        <th class="px-4 py-3 text-left font-medium">ETA</th>
+                                        <th class="px-4 py-3 text-left font-medium">Estimated</th>
                                         <th class="px-4 py-3 text-left font-medium">Actual</th>
                                         <th class="px-4 py-3 text-left font-medium">Signature</th>
-                                        <th class="px-4 py-3 text-left font-medium">Payment</th>
                                         <th class="px-4 py-3 text-left font-medium">Actions</th>
                                     </tr>
                                 </thead>
-                                <tbody id="deliveryOrdersTableBody" class="divide-y divide-gray-100">
-                                <?php if (empty($deliveryOrders)): ?>
-                                    <tr><td colspan="9" class="px-4 py-6 text-center text-gray-500">No delivery orders.</td></tr>
-                                <?php else: foreach ($deliveryOrders as $ord): $tid=(int)$ord['transactions_id']; $buyer=trim(($ord['users_firstname']??'').' '.($ord['users_lastname']??'')); $items=$itemsByTxn[$tid]??[]; $status=$ord['deliveries_delivery_status']??''; $addressParts=array_filter([$ord['full_address_line1']??'', $ord['full_address_city']??'', $ord['full_address_province']??'', $ord['full_address_postal']??'']); $address=implode(', ',$addressParts); ?>
-                                    <tr data-buyer="<?php echo o_e(strtolower($buyer)); ?>" data-status="<?php echo o_e($status); ?>" data-payment="<?php echo o_e($ord['transactions_payment_method']??''); ?>" data-address="<?php echo o_e(strtolower($address)); ?>">
+                                <tbody id="ordersTableBody" class="divide-y divide-gray-100">
+                                <?php if(empty($orders)): ?>
+                                    <tr><td colspan="9" class="px-4 py-6 text-center text-gray-500">No orders found.</td></tr>
+                                <?php else: foreach($orders as $ord): $tid=(int)$ord['transactions_id']; $buyer=trim(($ord['users_firstname']??'').' '.($ord['users_lastname']??'')); $items=$itemsByTxn[$tid]??[]; $status=$ord['deliveries_delivery_status']??''; $addressParts=array_filter([$ord['location_address_line1']??'', $ord['location_barangay']??'', $ord['location_city']??'', $ord['location_province']??'']); $address=implode(', ',$addressParts); $eta=$ord['deliveries_estimated_delivery_date']??''; ?>
+                                    <tr data-buyer="<?php echo o_e(strtolower($buyer)); ?>" data-status="<?php echo o_e($status); ?>" data-payment="<?php echo o_e(strtolower($ord['transactions_payment_method']??'')); ?>" data-address="<?php echo o_e(strtolower($address)); ?>">
                                         <td class="px-4 py-3 align-top">
                                             <div class="font-medium text-gray-800"><?php echo o_e($buyer ?: 'User #'.$ord['users_id']); ?></div>
                                             <div class="text-[11px] text-gray-500">#<?php echo $tid; ?> • ₱<?php echo number_format((float)$ord['transactions_amount'],2); ?></div>
+                                            <div class="text-[10px] text-gray-400"><?php echo o_e(date('Y-m-d H:i',strtotime($ord['transactions_created_at']))); ?></div>
                                         </td>
                                         <td class="px-4 py-3 align-top">
-                                            <ul class="space-y-1">
-                                                <?php foreach ($items as $it): ?>
+                                            <ul class="space-y-1 max-w-[170px]">
+                                                <?php foreach($items as $it): ?>
                                                     <li class="flex items-center gap-2 text-xs">
-                                                        <span class="text-gray-700 truncate max-w-[150px]" title="<?php echo o_e($it['products_name']); ?>"><?php echo o_e($it['products_name']); ?></span>
+                                                        <span class="text-gray-700 truncate" title="<?php echo o_e($it['products_name']); ?>"><?php echo o_e($it['products_name']); ?></span>
                                                         <span class="text-gray-400">x<?php echo (int)$it['tp_quantity']; ?></span>
                                                     </li>
                                                 <?php endforeach; ?>
                                             </ul>
                                         </td>
-                                        <td class="px-4 py-3 text-xs max-w-[200px] truncate" title="<?php echo o_e($address); ?>"><?php echo o_e($address); ?></td>
-                                        <td class="px-4 py-3 text-xs"><?php if($status): ?><span class="px-2 py-1 rounded-full bg-gray-100 text-gray-700"><?php echo o_e(ucwords(str_replace('_',' ',$status))); ?></span><?php endif; ?></td>
-                                        <td class="px-4 py-3 text-xs text-gray-700"><?php echo o_e($ord['deliveries_estimated_delivery_date'] ?? ''); ?></td>
-                                        <td class="px-4 py-3 text-xs text-gray-700"><?php echo o_e($ord['deliveries_actual_delivery_date'] ?? ''); ?></td>
-                                        <td class="px-4 py-3 text-xs text-gray-700"><?php echo ($ord['deliveries_recipient_signature']??'')? '<span class=\'text-emerald-600 font-semibold\'>Received</span>' : '<span class=\'text-gray-400\'>Pending</span>'; ?></td>
+                                        <td class="px-4 py-3 text-xs max-w-[220px] truncate" title="<?php echo o_e($address); ?>"><?php echo o_e($address); ?></td>
                                         <td class="px-4 py-3 text-xs"><span class="px-2 py-1 rounded-full bg-orange-50 text-orange-600"><?php echo o_e(strtoupper($ord['transactions_payment_method']??'')); ?></span></td>
+                                        <td class="px-4 py-3 text-xs"><?php if($status): ?><span class="px-2 py-1 rounded-full bg-gray-100 text-gray-700"><?php echo o_e(ucwords(str_replace('_',' ',$status))); ?></span><?php endif; ?></td>
+                                        <td class="px-4 py-3 text-xs text-gray-700"><?php echo o_e($eta); ?></td>
+                                        <td class="px-4 py-3 text-xs text-gray-700"><?php echo o_e($ord['deliveries_actual_delivery_date'] ?? ''); ?></td>
+                                        <td class="px-4 py-3 text-xs text-gray-700"><?php echo ($ord['deliveries_recipient_signature']??'')?'<span class="text-emerald-600 font-semibold">Received</span>':'<span class="text-gray-400">Pending</span>'; ?></td>
                                         <td class="px-4 py-3 text-xs">
                                             <div class="flex items-center gap-2">
-                                                <button type="button" class="text-blue-600 hover:text-blue-700" data-edit-delivery data-id="<?php echo $tid; ?>" title="Edit"><i data-lucide="edit" class="w-4 h-4"></i></button>
-                                                <form method="post" action="../../controllers/admin/ordercontroller.php" onsubmit="return confirm('Delete this order?');">
+                                                <button type="button" class="text-blue-600 hover:text-blue-700 order-edit-btn" data-id="<?php echo $tid; ?>" title="Edit"><i data-lucide="edit" class="w-4 h-4"></i></button>
+                                                <form method="post" action="../../controllers/admin/ordercontroller.php" class="inline" onsubmit="return confirm('Delete this order? This cannot be undone.');">
                                                     <input type="hidden" name="action" value="delete">
                                                     <input type="hidden" name="transactions_id" value="<?php echo $tid; ?>">
                                                     <button class="text-red-600 hover:text-red-700" title="Delete"><i data-lucide="trash" class="w-4 h-4"></i></button>
@@ -807,65 +719,29 @@ function resolveImageUrl($path) {
                                 </tbody>
                             </table>
                         </div>
-                        <div id="deliveryOrdersPagination" class="p-3 border-t border-gray-100 flex items-center justify-between hidden">
-                            <div id="deliveryOrdersPageInfo" class="text-xs text-gray-600"></div>
+                        <div id="ordersPagination" class="p-3 border-t border-gray-100 flex items-center justify-between hidden">
+                            <div id="ordersPageInfo" class="text-xs text-gray-600"></div>
                             <div class="flex items-center gap-1">
-                                <button id="deliveryOrdersPrev" class="px-2 py-1.5 border border-gray-300 rounded-md text-xs text-gray-700 hover:bg-gray-50">Prev</button>
-                                <div id="deliveryOrdersPageNums" class="flex items-center gap-1"></div>
-                                <button id="deliveryOrdersNext" class="px-2 py-1.5 border border-gray-300 rounded-md text-xs text-gray-700 hover:bg-gray-50">Next</button>
+                                <button id="ordersPrev" class="px-2 py-1.5 border border-gray-300 rounded-md text-xs text-gray-700 hover:bg-gray-50">Prev</button>
+                                <div id="ordersPageNums" class="flex items-center gap-1"></div>
+                                <button id="ordersNext" class="px-2 py-1.5 border border-gray-300 rounded-md text-xs text-gray-700 hover:bg-gray-50">Next</button>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Pickup Edit Modal -->
-                    <div id="pickupEditModal" class="fixed inset-0 bg-black bg-opacity-30 hidden items-center justify-center z-50">
-                        <div class="bg-white rounded-lg shadow-lg w-full max-w-md p-5">
-                            <div class="flex items-center justify-between mb-4">
-                                <h3 class="text-lg font-semibold">Edit Pickup Order</h3>
-                                <button type="button" data-close-pickup class="text-gray-400 hover:text-gray-600"><i data-lucide="x" class="w-5 h-5"></i></button>
-                            </div>
-                            <form method="post" action="../../controllers/admin/ordercontroller.php" class="space-y-4">
-                                <input type="hidden" name="action" value="update_pickup">
-                                <input type="hidden" name="transactions_id" id="pickup_edit_tid">
-                                <div class="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <label class="text-xs font-medium text-gray-600">Pickup Date</label>
-                                        <input type="date" name="pickups_pickup_date" id="pickup_edit_date" class="mt-1 w-full border border-gray-300 rounded-md px-2 py-1 text-sm" required>
-                                    </div>
-                                    <div>
-                                        <label class="text-xs font-medium text-gray-600">Pickup Time</label>
-                                        <input type="time" name="pickups_pickup_time" id="pickup_edit_time" class="mt-1 w-full border border-gray-300 rounded-md px-2 py-1 text-sm" required>
-                                    </div>
-                                </div>
-                                <div>
-                                    <label class="text-xs font-medium text-gray-600">Status</label>
-                                    <select name="pickups_pickup_status" id="pickup_edit_status" class="mt-1 w-full border border-gray-300 rounded-md px-2 py-1 text-sm" required>
-                                        <option value="scheduled">Scheduled</option>
-                                        <option value="picked_up">Picked Up</option>
-                                        <option value="cancelled">Cancelled</option>
-                                    </select>
-                                </div>
-                                <div class="flex justify-end gap-2 pt-2">
-                                    <button type="button" data-close-pickup class="px-3 py-1.5 text-sm border rounded-md">Cancel</button>
-                                    <button type="submit" class="px-4 py-1.5 text-sm rounded-md bg-emerald-600 text-white hover:bg-emerald-700">Save</button>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
-
-                    <!-- Delivery Edit Modal -->
-                    <div id="deliveryEditModal" class="fixed inset-0 bg-black bg-opacity-30 hidden items-center justify-center z-50">
+                    <!-- Order Edit Modal -->
+                    <div id="orderEditModal" class="fixed inset-0 bg-black bg-opacity-30 hidden items-center justify-center z-50">
                         <div class="bg-white rounded-lg shadow-lg w-full max-w-md p-5">
                             <div class="flex items-center justify-between mb-4">
                                 <h3 class="text-lg font-semibold">Edit Delivery Order</h3>
-                                <button type="button" data-close-delivery class="text-gray-400 hover:text-gray-600"><i data-lucide="x" class="w-5 h-5"></i></button>
+                                <button type="button" data-close-order class="text-gray-400 hover:text-gray-600"><i data-lucide="x" class="w-5 h-5"></i></button>
                             </div>
                             <form method="post" action="../../controllers/admin/ordercontroller.php" class="space-y-4">
                                 <input type="hidden" name="action" value="update_delivery">
-                                <input type="hidden" name="transactions_id" id="delivery_edit_tid">
+                                <input type="hidden" name="transactions_id" id="order_edit_tid">
                                 <div>
                                     <label class="text-xs font-medium text-gray-600">Status</label>
-                                    <select name="deliveries_delivery_status" id="delivery_edit_status" class="mt-1 w-full border border-gray-300 rounded-md px-2 py-1 text-sm" required>
+                                    <select name="deliveries_delivery_status" id="order_edit_status" class="mt-1 w-full border border-gray-300 rounded-md px-2 py-1 text-sm" required>
                                         <option value="processing">Processing</option>
                                         <option value="out_for_delivery">Out for Delivery</option>
                                         <option value="delivered">Delivered</option>
@@ -874,21 +750,21 @@ function resolveImageUrl($path) {
                                 </div>
                                 <div class="grid grid-cols-2 gap-4">
                                     <div>
-                                        <label class="text-xs font-medium text-gray-600">ETA</label>
-                                        <input type="date" name="deliveries_estimated_delivery_date" id="delivery_edit_eta" class="mt-1 w-full border border-gray-300 rounded-md px-2 py-1 text-sm">
+                                        <label class="text-xs font-medium text-gray-600">Estimated Date</label>
+                                        <input type="date" name="deliveries_estimated_delivery_date" id="order_edit_eta" class="mt-1 w-full border border-gray-300 rounded-md px-2 py-1 text-sm">
                                     </div>
                                     <div>
-                                        <label class="text-xs font-medium text-gray-600">Actual</label>
-                                        <input type="date" name="deliveries_actual_delivery_date" id="delivery_edit_actual" class="mt-1 w-full border border-gray-300 rounded-md px-2 py-1 text-sm">
+                                        <label class="text-xs font-medium text-gray-600">Actual Date</label>
+                                        <input type="date" name="deliveries_actual_delivery_date" id="order_edit_actual" class="mt-1 w-full border border-gray-300 rounded-md px-2 py-1 text-sm">
                                     </div>
                                 </div>
                                 <div>
                                     <label class="inline-flex items-center gap-2 text-xs text-gray-600">
-                                        <input type="checkbox" name="signature_received" id="delivery_edit_signature" value="1" class="rounded"> Mark as Received (Signature)
+                                        <input type="checkbox" name="signature_received" id="order_edit_signature" value="1" class="rounded"> Mark as Received (Signature)
                                     </label>
                                 </div>
                                 <div class="flex justify-end gap-2 pt-2">
-                                    <button type="button" data-close-delivery class="px-3 py-1.5 text-sm border rounded-md">Cancel</button>
+                                    <button type="button" data-close-order class="px-3 py-1.5 text-sm border rounded-md">Cancel</button>
                                     <button type="submit" class="px-4 py-1.5 text-sm rounded-md bg-blue-600 text-white hover:bg-blue-700">Save</button>
                                 </div>
                             </form>
@@ -935,7 +811,7 @@ function resolveImageUrl($path) {
                                     <?php
                                     $sitterRows = [];
                                     if (isset($connections) && $connections) {
-                                        $qs = "SELECT sitters_id, sitters_name, sitters_bio, sitter_email, sitters_contact, sitter_specialty, sitter_experience, sitters_image_url, sitters_active, years_experience FROM sitters ORDER BY sitters_id DESC";
+                                        $qs = "SELECT sitters_id, sitters_name, sitters_bio, sitter_email, sitters_contact, sitter_specialty, sitters_image_url, sitters_active, years_experience FROM sitters ORDER BY sitters_id DESC";
                                         if ($res = mysqli_query($connections, $qs)) {
                                             while ($r = mysqli_fetch_assoc($res)) { $sitterRows[] = $r; }
                                             mysqli_free_result($res);
@@ -1034,51 +910,50 @@ function resolveImageUrl($path) {
                     
 
                     <!-- Add Sitter Modal -->
-                    <div id="addSitterModal" class="fixed inset-0 bg-black bg-opacity-30 hidden items-center justify-center z-50">
-                        <div class="bg-white rounded-lg shadow-lg w-full max-w-2xl">
-                            <div class="flex items-center justify-between p-4 border-b">
+                    <div id="addSitterModal" class="fixed inset-0 bg-black/40 hidden items-center justify-center z-50">
+                        <div class="bg-white rounded-lg shadow-lg w-full max-w-2xl p-6">
+                            <div class="flex items-center justify-between mb-4">
                                 <h3 class="text-lg font-semibold">Add Pet Sitter</h3>
-                                <button id="closeAddSitter" class="text-gray-500 hover:text-gray-700">
-                                    <i data-lucide="x" class="w-5 h-5"></i>
-                                </button>
+                                <button type="button" id="closeAddSitter" class="text-gray-400 hover:text-gray-600"><i data-lucide="x" class="w-5 h-5"></i></button>
                             </div>
-                            <form id="addSitterForm" enctype="multipart/form-data" class="p-6 space-y-4">
+                            <form id="addSitterForm" enctype="multipart/form-data" class="space-y-4">
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div>
                                         <label class="block text-sm font-medium text-gray-700">Sitter Name</label>
-                                        <input type="text" name="sitters_name" required class="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2">
+                                        <input type="text" name="sitters_name" required class="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2" placeholder="Full name">
                                     </div>
                                     <div>
                                         <label class="block text-sm font-medium text-gray-700">Email</label>
-                                        <input type="email" name="sitters_email" required class="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2">
+                                        <input type="email" name="sitters_email" required class="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2" placeholder="example@mail.com">
                                     </div>
                                     <div>
                                         <label class="block text-sm font-medium text-gray-700">Contact Number</label>
-                                        <input type="text" name="sitters_phone" required class="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2">
+                                        <input type="text" name="sitters_phone" required class="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2" placeholder="09xxxxxxxxx" maxlength="11">
                                     </div>
                                     <div>
                                         <label class="block text-sm font-medium text-gray-700">Years of Experience</label>
-                                        <input type="number" name="years_experience" min="0" step="1" placeholder="e.g., 5" class="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2">
+                                        <input type="number" name="years_experience" min="0" step="1" class="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2" placeholder="0">
+                                    </div>
+                                </div>
+                                <!-- Specialties: categorized checkboxes with dynamic Other input -->
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">Specialties <span class="text-xs text-gray-500 font-normal">(select all that apply)</span></label>
+                                    <div id="addSpecialtiesGroup" class="mt-2 grid grid-cols-2 md:grid-cols-3 gap-2 text-sm">
+                                        <label class="inline-flex items-center gap-1"><input type="checkbox" name="sitters_specialty[]" value="Dog" class="rounded border-gray-300"> <span>Dog</span></label>
+                                        <label class="inline-flex items-center gap-1"><input type="checkbox" name="sitters_specialty[]" value="Cat" class="rounded border-gray-300"> <span>Cat</span></label>
+                                        <label class="inline-flex items-center gap-1"><input type="checkbox" name="sitters_specialty[]" value="Bird" class="rounded border-gray-300"> <span>Bird</span></label>
+                                        <label class="inline-flex items-center gap-1"><input type="checkbox" name="sitters_specialty[]" value="Fish" class="rounded border-gray-300"> <span>Fish</span></label>
+                                        <label class="inline-flex items-center gap-1"><input type="checkbox" name="sitters_specialty[]" value="Small Pet" class="rounded border-gray-300"> <span>Small Pet</span></label>
+                                        <label class="inline-flex items-center gap-1"><input id="addOtherSpec" type="checkbox" value="Other" class="rounded border-gray-300"> <span>Other</span></label>
+                                    </div>
+                                    <div id="addOtherWrapper" class="mt-2 hidden">
+                                        <input type="text" name="sitters_specialties_extra" class="block w-full border border-gray-300 rounded-md px-3 py-2 text-sm" placeholder="Specify other pets, comma-separated e.g. Iguana, Farm Animals">
+                                        <p class="mt-1 text-xs text-gray-500">Separate multiple with commas. These will be saved along with the selected specialties.</p>
                                     </div>
                                 </div>
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700">Bio</label>
                                     <textarea name="sitters_bio" rows="3" class="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2" placeholder="Short profile shown to pet owners"></textarea>
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700">Specialties</label>
-                                    <div class="mt-1 grid grid-cols-2 md:grid-cols-3 gap-2">
-                                        <?php $specs = ['Dog','Cat','Bird','Fish','Small Pet']; foreach ($specs as $sp): ?>
-                                            <label class="inline-flex items-center gap-2">
-                                                <input type="checkbox" name="sitters_specialties[]" value="<?php echo htmlspecialchars($sp); ?>" class="rounded border-gray-300">
-                                                <span><?php echo htmlspecialchars($sp); ?></span>
-                                            </label>
-                                        <?php endforeach; ?>
-                                    </div>
-                                    <div class="mt-3">
-                                        <label class="block text-sm font-medium text-gray-700">Additional pet types (comma-separated)</label>
-                                        <input type="text" name="sitters_specialties_extra" placeholder="e.g., Reptile, Rabbit" class="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2">
-                                    </div>
                                 </div>
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700">Image</label>
@@ -1088,14 +963,19 @@ function resolveImageUrl($path) {
                                             <i id="sitterImageIcon" data-lucide="image" class="w-5 h-5 text-gray-400"></i>
                                         </div>
                                         <div class="flex items-center gap-2">
-                                            <input id="sitterImageInput" type="file" name="sitters_image" accept="image/*" class="text-sm">
+                                            <input id="sitterImageInput" type="file" name="sitters_image" accept="image" class="text-sm">
                                             <button id="clearSitterImage" type="button" class="px-2 py-1 text-sm border border-gray-300 rounded-md hover:bg-gray-50">Clear</button>
                                         </div>
                                     </div>
                                 </div>
-                                <div class="flex items-center justify-end gap-2 pt-2">
-                                    <button type="button" id="cancelAddSitter" class="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50">Cancel</button>
-                                    <button type="submit" class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700">Save Sitter</button>
+                                <div class="flex items-center justify-between gap-2 pt-2">
+                                    <label class="inline-flex items-center gap-2 text-sm">
+                                        <input type="checkbox" name="sitters_active" value="1" class="rounded border-gray-300"> Active
+                                    </label>
+                                    <div class="flex items-center gap-2">
+                                        <button type="button" id="cancelAddSitter" class="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50">Cancel</button>
+                                        <button type="submit" class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700">Save Sitter</button>
+                                    </div>
                                 </div>
                             </form>
                         </div>
@@ -1128,6 +1008,21 @@ function resolveImageUrl($path) {
                                     <div>
                                         <label class="block text-sm font-medium text-gray-700">Years of Experience</label>
                                         <input type="number" name="years_experience" id="edit_years_experience" min="0" step="1" class="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2">
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">Specialties <span class="text-xs text-gray-500 font-normal">(update selections)</span></label>
+                                    <div id="editSpecialtiesGroup" class="mt-2 grid grid-cols-2 md:grid-cols-3 gap-2 text-sm">
+                                        <label class="inline-flex items-center gap-1"><input type="checkbox" name="sitters_specialty[]" value="Dog" class="rounded border-gray-300"> <span>Dog</span></label>
+                                        <label class="inline-flex items-center gap-1"><input type="checkbox" name="sitters_specialty[]" value="Cat" class="rounded border-gray-300"> <span>Cat</span></label>
+                                        <label class="inline-flex items-center gap-1"><input type="checkbox" name="sitters_specialty[]" value="Bird" class="rounded border-gray-300"> <span>Bird</span></label>
+                                        <label class="inline-flex items-center gap-1"><input type="checkbox" name="sitters_specialty[]" value="Fish" class="rounded border-gray-300"> <span>Fish</span></label>
+                                        <label class="inline-flex items-center gap-1"><input type="checkbox" name="sitters_specialty[]" value="Small Pet" class="rounded border-gray-300"> <span>Small Pet</span></label>
+                                        <label class="inline-flex items-center gap-1"><input id="editOtherSpec" type="checkbox" value="Other" class="rounded border-gray-300"> <span>Other</span></label>
+                                    </div>
+                                    <div id="editOtherWrapper" class="mt-2 hidden">
+                                        <input type="text" name="sitters_specialties_extra" id="edit_other_specialties" class="block w-full border border-gray-300 rounded-md px-3 py-2 text-sm" placeholder="Other pets, comma-separated">
+                                        <p class="mt-1 text-xs text-gray-500">Unlisted pets retained here.</p>
                                     </div>
                                 </div>
                                 <div>
@@ -1174,6 +1069,33 @@ function resolveImageUrl($path) {
                             const editBio = document.getElementById('edit_sitters_bio');
                             const editDescription = document.getElementById('edit_description');
                             const editActive = document.getElementById('edit_sitters_active');
+                            // Specialties elements (add)
+                            const addOtherSpec = document.getElementById('addOtherSpec');
+                            const addOtherWrapper = document.getElementById('addOtherWrapper');
+                            // Specialties elements (edit)
+                            const editOtherSpec = document.getElementById('editOtherSpec');
+                            const editOtherWrapper = document.getElementById('editOtherWrapper');
+                            const editOtherInput = document.getElementById('edit_other_specialties');
+
+                            const predefinedSpecs = ['dog','cat','bird','fish','small pet','rabbit','hamster','guinea pig','reptile','ferret','exotic pet'];
+
+                            function toggleAddOther(){
+                                if (addOtherSpec && addOtherWrapper) {
+                                    addOtherWrapper.classList.toggle('hidden', !addOtherSpec.checked);
+                                    if (!addOtherSpec.checked) {
+                                        const extra = addOtherWrapper.querySelector('input[name="sitters_specialties_extra"]');
+                                        if (extra) extra.value='';
+                                    }
+                                }
+                            }
+                            function toggleEditOther(){
+                                if (editOtherSpec && editOtherWrapper) {
+                                    editOtherWrapper.classList.toggle('hidden', !editOtherSpec.checked);
+                                    if (!editOtherSpec.checked && editOtherInput) editOtherInput.value='';
+                                }
+                            }
+                            if (addOtherSpec) addOtherSpec.addEventListener('change', toggleAddOther);
+                            if (editOtherSpec) editOtherSpec.addEventListener('change', toggleEditOther);
 
                             function openEdit(){ editModal.classList.remove('hidden'); editModal.classList.add('flex'); }
                             function closeEdit(){ editModal.classList.add('hidden'); editModal.classList.remove('flex'); editForm.reset(); }
@@ -1302,6 +1224,26 @@ function resolveImageUrl($path) {
                                         editYears.value = s.years_experience||0;
                                         editBio.value = s.bio||'';
                                         editActive.checked = String(s.active)==='1' || s.active===1 || s.active===true;
+                                        // Populate specialties checkboxes in edit form
+                                        try {
+                                            const specBoxes = editModal.querySelectorAll('#editSpecialtiesGroup input[type="checkbox"][name="sitters_specialty[]"]');
+                                            specBoxes.forEach(cb => cb.checked = false);
+                                            if (editOtherSpec) editOtherSpec.checked = false;
+                                            if (editOtherInput) editOtherInput.value='';
+                                            if (editOtherWrapper) editOtherWrapper.classList.add('hidden');
+                                            const extras = [];
+                                            (s.specialties||[]).forEach(val => {
+                                                const norm = String(val).trim().toLowerCase();
+                                                const matched = [...specBoxes].find(cb => cb.value.toLowerCase() === norm);
+                                                if (matched) { matched.checked = true; }
+                                                else { if (!predefinedSpecs.includes(norm)) extras.push(val); }
+                                            });
+                                            if (extras.length>0) {
+                                                if (editOtherSpec) editOtherSpec.checked = true;
+                                                if (editOtherWrapper) editOtherWrapper.classList.remove('hidden');
+                                                if (editOtherInput) editOtherInput.value = extras.join(', ');
+                                            }
+                                        } catch(err){ console.warn('Failed to populate specialties', err); }
                                         if (window.lucide && lucide.createIcons) lucide.createIcons();
                                         openEdit();
                                     } catch(err){ console.error(err); alert('Network error loading sitter'); }
@@ -2127,8 +2069,10 @@ function resolveImageUrl($path) {
             }
         ];
 
-        // Global state
-        let currentActiveSection = 'dashboard';
+        // Global state with persistence of last active section
+        let currentActiveSection = (function(){
+            try { return localStorage.getItem('admin_active_section') || 'dashboard'; } catch(e){ return 'dashboard'; }
+        })();
         let sidebarExpanded = false;
         let sidebarLocked = false;
         let currentTimeFilter = 'monthly';
@@ -2137,9 +2081,119 @@ function resolveImageUrl($path) {
         document.addEventListener('DOMContentLoaded', function() {
             lucide.createIcons();
             updateChart();
-            // populateAppointments(); // replaced by server-rendered table
             populateSubscribers();
             initProductFilters();
+            // Section isolation logic: ensure only active section's UI is visible
+            const sectionIds = ['dashboard','orders','sitters','appointments','owners','subscribers','products'];
+            function showSection(id){
+                sectionIds.forEach(sid=>{
+                    const el = document.getElementById(sid+'-section');
+                    if(!el) return;
+                    if(sid===id){ el.classList.remove('hidden'); } else { el.classList.add('hidden'); }
+                });
+                currentActiveSection = id;
+                // Persist
+                try { localStorage.setItem('admin_active_section', id); } catch(e){}
+                // Update sidebar active classes
+                document.querySelectorAll('.sidebar-item').forEach(item => {
+                    item.classList.remove('bg-gradient-to-r','from-orange-500','to-amber-600','text-white','shadow-md');
+                    item.classList.add('text-gray-700','hover:bg-gray-100');
+                });
+                const activeItem = document.querySelector(`[data-section="${id}"]`);
+                if (activeItem) {
+                    activeItem.classList.add('bg-gradient-to-r','from-orange-500','to-amber-600','text-white','shadow-md');
+                    activeItem.classList.remove('text-gray-700','hover:bg-gray-100');
+                }
+            }
+            // Bind nav items marked with data-section
+            document.querySelectorAll('[data-section]')?.forEach(btn=>{
+                btn.addEventListener('click', e=>{
+                    const id = btn.getAttribute('data-section');
+                    if(id) showSection(id);
+                });
+            });
+            // Initialize to existing or default
+            if(!document.getElementById(currentActiveSection+'-section')) currentActiveSection='dashboard';
+            showSection(currentActiveSection);
+            // Orders edit/delete handlers
+            (function initOrders(){
+                const editModal = document.getElementById('orderEditModal');
+                const form = document.getElementById('orderEditForm');
+                const saveBtn = document.getElementById('orderEditSaveBtn');
+                const feedback = document.getElementById('orderEditFeedback');
+                const tidInput = document.getElementById('order_edit_tid');
+                const statusSel = document.getElementById('order_edit_status');
+                const etaInput = document.getElementById('order_edit_eta');
+                const actualInput = document.getElementById('order_edit_actual');
+                const sigInput = document.getElementById('order_edit_signature');
+                const closeBtns = document.querySelectorAll('[data-close-order]');
+
+                function open(){ editModal.classList.remove('hidden'); editModal.classList.add('flex'); }
+                function close(){ editModal.classList.add('hidden'); editModal.classList.remove('flex'); form.reset(); feedback.textContent=''; }
+                closeBtns.forEach(b=> b.addEventListener('click', close));
+                editModal?.addEventListener('click', e=>{ if(e.target===editModal) close(); });
+
+                async function fetchOrder(tid){
+                    feedback.textContent='Loading...';
+                    try {
+                        const res = await fetch(`../../controllers/admin/ordercontroller.php?action=get&transactions_id=${tid}`, {headers:{'Accept':'application/json'}});
+                        const data = await res.json();
+                        if(!data.success) throw new Error(data.error||'Failed');
+                        const o = data.order;
+                        statusSel.value = o.deliveries_delivery_status || 'processing';
+                        etaInput.value = (o.deliveries_estimated_delivery_date||'').substring(0,10);
+                        actualInput.value = (o.deliveries_actual_delivery_date||'').substring(0,10);
+                        sigInput.checked = !!parseInt(o.deliveries_recipient_signature||0);
+                        feedback.textContent='';
+                    } catch(err){
+                        feedback.textContent='Error loading order: '+err.message;
+                    }
+                }
+
+                document.querySelectorAll('.order-edit-btn').forEach(btn => {
+                    btn.addEventListener('click', ()=>{
+                        const tid = btn.getAttribute('data-id');
+                        tidInput.value = tid;
+                        open();
+                        fetchOrder(tid);
+                    });
+                });
+
+                form?.addEventListener('submit', async e=>{
+                    e.preventDefault();
+                    feedback.textContent='Saving...';
+                    saveBtn.disabled=true;
+                    try {
+                        const fd = new FormData(form);
+                        const res = await fetch('../../controllers/admin/ordercontroller.php', {method:'POST', body:fd, headers:{'Accept':'application/json'}});
+                        const data = await res.json();
+                        if(!data.success) throw new Error(data.error||'Update failed');
+                        feedback.textContent='Saved. Refreshing row...';
+                        // Optimistic update of row values
+                        const row = document.querySelector(`#ordersTableBody tr td div.text-[11px]`); // fallback not used
+                        const tid = tidInput.value;
+                        const targetRow = Array.from(document.querySelectorAll('#ordersTableBody tr')).find(r=> r.querySelector('input[name="transactions_id"]')?.value === tid || r.innerHTML.includes(`#${tid}`));
+                        if(targetRow){
+                            targetRow.setAttribute('data-status', statusSel.value);
+                            const statusCell = targetRow.querySelector('td:nth-child(5)');
+                            if(statusCell){
+                                statusCell.innerHTML = `<span class=\"px-2 py-1 rounded-full bg-gray-100 text-gray-700\">${statusSel.value.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase())}</span>`;
+                            }
+                            const etaCell = targetRow.querySelector('td:nth-child(6)');
+                            if(etaCell) etaCell.textContent = etaInput.value;
+                            const actualCell = targetRow.querySelector('td:nth-child(7)');
+                            if(actualCell) actualCell.textContent = actualInput.value;
+                            const sigCell = targetRow.querySelector('td:nth-child(8)');
+                            if(sigCell) sigCell.innerHTML = sigInput.checked? '<span class="text-emerald-600 font-semibold">Received</span>' : '<span class="text-gray-400">Pending</span>';
+                        }
+                        setTimeout(()=>{ close(); }, 600);
+                    } catch(err){
+                        feedback.textContent='Error: '+err.message;
+                    } finally {
+                        saveBtn.disabled=false;
+                    }
+                });
+            })();
 
             // Pet Owners directory: search + pagination (10/page)
             (function initOwnersDirectory(){

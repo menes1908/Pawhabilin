@@ -160,36 +160,11 @@ function h($v){return htmlspecialchars($v??'',ENT_QUOTES,'UTF-8');}
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
      <div class="lg:col-span-2 space-y-6">
         <div class="flex items-center gap-3"><button onclick="showCartStep()" class="p-2 hover:bg-gray-100 rounded-full"><i data-lucide=arrow-left class="w-5 h-5"></i></button><div><h2 class="text-2xl font-bold">Order Confirmation</h2><p class="text-gray-600">Review your order and complete purchase</p></div></div>
-        <!-- Fulfillment Selection -->
+        <!-- Fulfillment (Delivery only now) -->
         <div class="bg-white rounded-xl border border-gray-200 p-6" id="fulfillment-box">
-            <h3 class="text-2xl font-bold flex items-center gap-3 mb-5 tracking-tight"><i data-lucide=truck class="w-7 h-7 text-orange-500"></i> Fulfillment Method</h3>
-            <p class="text-gray-600 mb-4 text-sm md:text-base">Choose how you'd like to receive your order.</p>
-            <div class="fulfillment-pills flex flex-wrap gap-4 items-stretch">
-                <label class="cursor-pointer" data-mode="delivery">
-                    <input type="radio" name="fulfillment" value="delivery" class="fulfillment-radio" checked />
-                    <span>Delivery</span>
-                </label>
-                <label class="cursor-pointer" data-mode="pickup">
-                    <input type="radio" name="fulfillment" value="pickup" class="fulfillment-radio" />
-                    <span>Pickup (In-Store)</span>
-                </label>
-                <div class="basis-full pl-1 pt-1 text-sm md:text-base text-gray-600 font-medium tracking-tight">
-                    <span class="inline-flex items-center gap-1"><i data-lucide=info class="w-4 h-4 text-orange-500"></i> Selecting <strong>Pickup</strong> removes the delivery fee.</span>
-                </div>
-            </div>
-            <div id="pickup-fields" class="hidden mt-5 grid md:grid-cols-3 sm:grid-cols-2 gap-5">
-                <div>
-                    <label class="block text-sm md:text-base font-semibold mb-1">Pickup Date *</label>
-                    <input type="date" id="pickup_date" class="w-full border rounded-lg px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-orange-400" />
-                </div>
-                <div>
-                    <label class="block text-sm md:text-base font-semibold mb-1">Pickup Time *</label>
-                    <input type="time" id="pickup_time" step="3600" class="w-full border rounded-lg px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-orange-400" />
-                </div>
-                <div class="text-xs md:text-sm text-gray-500 leading-snug md:col-span-1 sm:col-span-2 mt-1">
-                    Allowed window: <span class="font-medium text-gray-700">08:00 - 16:00</span> (hourly slots).
-                </div>
-            </div>
+            <h3 class="text-2xl font-bold flex items-center gap-3 mb-5 tracking-tight"><i data-lucide=truck class="w-7 h-7 text-orange-500"></i> Delivery</h3>
+            <p class="text-gray-600 mb-1 text-sm md:text-base">All product orders are delivered to your saved address.</p>
+            <p class="text-xs text-gray-500">Pickup option has been disabled.</p>
         </div>
         <div class="bg-white rounded-xl border border-gray-200 p-6" id="delivery-address-box">
             <div class="flex items-center justify-between mb-4 flex-wrap gap-3">
@@ -221,7 +196,7 @@ function h($v){return htmlspecialchars($v??'',ENT_QUOTES,'UTF-8');}
                     <div class="text-center py-8 text-gray-500"><i data-lucide=map-pin class="w-12 h-12 mx-auto mb-4 opacity-50"></i><p>No delivery address saved</p><button onclick="showAddressModal()" class="btn btn-primary mt-4">Add Address</button></div>
                 <?php endif; ?>
             </div>
-            <p class="text-xs text-gray-500 mt-3">(Delivery only) You can still change address or choose pickup later.</p>
+            <p class="text-xs text-gray-500 mt-3">Delivery only. Manage addresses above.</p>
         </div>
         <div class="bg-white rounded-xl border border-gray-200 p-6"><h3 class="text-lg font-semibold flex items-center gap-2 mb-4"><i data-lucide=package class="w-5 h-5 text-orange-500"></i> Order Items</h3><div class="space-y-4" id="confirm-items">
             <?php foreach($cartItems as $item): $img=$item['image']; if($img && !preg_match('/^https?:/i',$img)) $img='../../'.ltrim($img,'/'); ?>
@@ -274,11 +249,11 @@ function showCartStep(){currentStep=1;document.getElementById('cart-step-content
 function showCheckoutStep(){currentStep=2;document.getElementById('cart-step-content').classList.add('hidden');document.getElementById('checkout-step-content').classList.remove('hidden');updateStepDisplay();}
 function updateStepDisplay(){const step1=document.getElementById('step-1'),step2=document.getElementById('step-2'),connector=document.querySelector('.progress-connector'),s1l=document.getElementById('step-1-label'),s2l=document.getElementById('step-2-label');if(currentStep===1){step1.classList.add('active');step1.classList.remove('completed');step2.classList.remove('active','completed');connector.classList.remove('completed');s1l.classList.add('text-orange-600','font-medium');s2l.classList.remove('text-orange-600','font-medium');}else{step1.classList.add('completed');step1.classList.remove('active');step2.classList.add('active');connector.classList.add('completed');s1l.classList.remove('text-orange-600','font-medium');s2l.classList.add('text-orange-600','font-medium');}}
 function changeQty(id,delta){const input=document.querySelector(`[data-product-id="${id}"] .quantity-input`);if(!input)return;let v=parseInt(input.value||'1',10)+delta;if(v<1) v=1;setQty(id,v);}function setQty(id,v){v=parseInt(v,10);if(isNaN(v)||v<1) v=1;updateQtyRequest(id,v);}async function updateQtyRequest(id,qty){const fd=new FormData();fd.append('csrf',CSRF);fd.append('product_id',id);fd.append('qty',qty);const res=await fetch('../../shop/cart_update.php',{method:'POST',body:fd});const data=await res.json();if(!data.ok){toast('Update failed','error');return;}if(!data.item){document.querySelector(`[data-product-id="${id}"]`)?.remove();}else{const row=document.querySelector(`[data-product-id="${id}"]`);if(row){row.querySelector('.quantity-input').value=data.item.qty;const price=parseFloat(data.item.price);row.querySelector('.line-total').textContent='₱'+(price*data.item.qty).toFixed(2);} }recalcSummary(data.subtotal);}async function removeItem(id){const fd=new FormData();fd.append('csrf',CSRF);fd.append('product_id',id);fd.append('qty',0);const res=await fetch('../../shop/cart_update.php',{method:'POST',body:fd});const data=await res.json();if(data.ok){document.querySelector(`[data-product-id="${id}"]`)?.remove();recalcSummary(data.subtotal);if(!data.item && data.cartCount===0){location.href='buy_products.php';}}}
-function currentFulfillment(){return document.querySelector('input[name="fulfillment"]:checked')?.value||'delivery';}
+function currentFulfillment(){return 'delivery';}
 function recalcSummary(subtotal){
     const hasDiscountEl=document.getElementById('sum-discount');
     let discount=0; if(hasDiscountEl) discount=parseFloat(<?php echo $hasDiscount? '0.10':'0'; ?>)*subtotal;
-    const delivery = currentFulfillment()==='delivery'?50:0; // pickup => 0
+    const delivery = 50; // always delivery
     const total = subtotal - discount + delivery;
     ['sum-subtotal','c-subtotal'].forEach(id=>{const el=document.getElementById(id);if(el) el.textContent='₱'+subtotal.toFixed(2);});
     if(document.getElementById('sum-total')) document.getElementById('sum-total').textContent='₱'+total.toFixed(2);
@@ -290,26 +265,8 @@ function recalcSummary(subtotal){
     const ca=document.getElementById('client_amount');
     if(ca){ca.setAttribute('placeholder','₱'+total.toFixed(2));const helper=ca.parentElement?.querySelector('p.text-sm.text-yellow-700');if(helper) helper.innerHTML='Please enter exactly <strong>₱'+total.toFixed(2)+'</strong>';}
 }
-// Fulfillment radio logic
-document.addEventListener('DOMContentLoaded',()=>{
-    const radios=document.querySelectorAll('.fulfillment-radio');
-    const pickup=document.getElementById('pickup-fields');
-    const addressBox=document.getElementById('delivery-address-box');
-    const pd=document.getElementById('pickup_date');
-    const pt=document.getElementById('pickup_time');
-    if(pd){const today=new Date();const y=today.getFullYear();const m=String(today.getMonth()+1).padStart(2,'0');const d=String(today.getDate()).padStart(2,'0');pd.min=`${y}-${m}-${d}`;pd.value=`${y}-${m}-${d}`;}
-    if(pt){pt.value='10:00';}
-    radios.forEach(r=>r.addEventListener('change',()=>{
-        // visual active state
-        document.querySelectorAll('.fulfillment-pills label').forEach(l=>l.classList.remove('active'));
-        const lbl=r.closest('label'); if(lbl) lbl.classList.add('active');
-        if(r.value==='pickup'&&r.checked){pickup.classList.remove('hidden');addressBox.classList.add('opacity-40','pointer-events-none');}
-        if(r.value==='delivery'&&r.checked){pickup.classList.add('hidden');addressBox.classList.remove('opacity-40','pointer-events-none');}
-        recalcSummary(SUBTOTAL_INIT);
-    }));
-    // set initial active
-    const init=document.querySelector('.fulfillment-pills input[type=radio]:checked'); if(init){const lbl=init.closest('label'); if(lbl) lbl.classList.add('active');}
-});
+// Removed fulfillment radio logic – delivery only
+document.addEventListener('DOMContentLoaded',()=>{ /* delivery only */ });
 function initPayment(){
     document.querySelectorAll('input[name="payment_method"]').forEach(r=>{
         r.addEventListener('change',()=>{
@@ -396,8 +353,8 @@ async function refreshAddressesFromServer(showToast){
         }
     } catch(e){ if(showToast) toast('Could not refresh addresses','error'); }
 }
-async function placeOrder(){const payment=document.querySelector('input[name="payment_method"]:checked')?.value||'cod';const fulfillment=currentFulfillment();const selectedRadio=document.querySelector('input[name="address_select"]:checked');const locationId=selectedRadio?selectedRadio.value:'';const clientAmtEl=document.getElementById('client_amount');const clientAmount=clientAmtEl && !clientAmtEl.closest('.hidden')?clientAmtEl.value:'';if((payment==='gcash'||payment==='maya') && clientAmount===''){showOrderError('Enter exact amount');return;}if(fulfillment==='delivery' && !locationId){showOrderError('Please add/select a delivery address');return;}const pd=document.getElementById('pickup_date')?.value;const pt=document.getElementById('pickup_time')?.value; if(fulfillment==='pickup'){ if(!pd||!pt){showOrderError('Pickup date & time required');return;} }
- const fd=new FormData();fd.append('csrf',CSRF);fd.append('fulfillment',fulfillment);if(locationId && fulfillment==='delivery') fd.append('location_id',locationId);fd.append('payment_method',payment);if(clientAmount) fd.append('client_amount',clientAmount);if(fulfillment==='pickup'){fd.append('pickup_date',pd);fd.append('pickup_time',pt+':00');}
+async function placeOrder(){const payment=document.querySelector('input[name="payment_method"]:checked')?.value||'cod';const selectedRadio=document.querySelector('input[name="address_select"]:checked');const locationId=selectedRadio?selectedRadio.value:'';const clientAmtEl=document.getElementById('client_amount');const clientAmount=clientAmtEl && !clientAmtEl.closest('.hidden')?clientAmtEl.value:'';if((payment==='gcash'||payment==='maya') && clientAmount===''){showOrderError('Enter exact amount');return;}if(!locationId){showOrderError('Please add/select a delivery address');return;}
+ const fd=new FormData();fd.append('csrf',CSRF);fd.append('location_id',locationId);fd.append('payment_method',payment);if(clientAmount) fd.append('client_amount',clientAmount);
  togglePlaceBtn(true);try{const res=await fetch('../../shop/order_place.php',{method:'POST',body:fd});const data=await res.json();if(!data.ok) throw new Error(mapOrderError(data));showSuccess(data.transaction_id,data.total);}catch(e){showOrderError(e.message||'Order failed');}finally{togglePlaceBtn(false);} }
 function mapOrderError(d){switch(d.error){case'amount_mismatch':return 'Amount does not match total';case'no_location':return 'Please add an address first';case'stock_changed':return 'Stock changed for a product. Refresh cart.';default:return 'Order failed';}}
 function togglePlaceBtn(dis){const b=document.getElementById('place-order-btn');if(!b)return;b.disabled=dis;b.innerHTML=dis?'<div class="loading-spinner w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div> Processing...':'<i data-lucide=check-circle class="w-5 h-5"></i> Place Order';if(window.lucide) lucide.createIcons();}

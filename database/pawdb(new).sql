@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Sep 28, 2025 at 06:28 PM
+-- Generation Time: Sep 28, 2025 at 06:20 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.0.30
 
@@ -119,15 +119,8 @@ CREATE TABLE `deliveries` (
 --
 
 INSERT INTO `deliveries` (`deliveries_id`, `transactions_id`, `location_id`, `deliveries_delivery_status`, `deliveries_estimated_delivery_date`, `deliveries_actual_delivery_date`, `deliveries_recipient_signature`) VALUES
-(1, 3, 2, 'cancelled', '2025-09-28', NULL, NULL),
-(2, 4, 1, 'delivered', '2025-09-29', '2025-09-29', '1'),
-(3, 5, 1, 'delivered', '2025-09-30', '2025-09-28', 'Received 2025-09-28 14:05:05'),
-(4, 6, 2, 'delivered', '2025-09-30', NULL, 'Received 2025-09-28 14:09:58'),
-(5, 7, 2, 'delivered', '2025-09-30', '2025-09-28', 'Received 2025-09-28 14:21:28'),
-(6, 8, 2, 'cancelled', '2025-09-30', NULL, 'cancelled'),
-(7, 9, 2, 'cancelled', '2025-09-30', NULL, 'cancelled'),
-(8, 10, 2, 'cancelled', '2025-09-30', NULL, NULL),
-(9, 11, 2, 'delivered', '2025-09-30', '2025-09-28', 'Received 2025-09-28 15:55:50');
+(1, 3, 1, 'delivered', '2025-09-30', '2025-09-28', 'Received 2025-09-28 22:39:00'),
+(2, 4, 1, 'processing', '2025-09-30', NULL, NULL);
 
 -- --------------------------------------------------------
 
@@ -157,8 +150,7 @@ CREATE TABLE `locations` (
 --
 
 INSERT INTO `locations` (`location_id`, `users_id`, `location_label`, `location_recipient_name`, `location_phone`, `location_address_line1`, `location_address_line2`, `location_barangay`, `location_city`, `location_province`, `location_is_default`, `location_active`, `location_created_at`, `location_updated_at`) VALUES
-(1, 2, 'Home', 'Accel John', '09023347823', '012, Residence', 'beside alfamart', 'poblacion', 'lipa', 'batangas', 0, 1, '2025-09-26 21:12:41', '2025-09-26 21:12:41'),
-(2, 2, 'Office', 'Angel Curtis', '09328942394', '56', 'Highway lang tabi ng shell', 'purok 2', 'lian', 'batangas', 0, 1, '2025-09-26 21:13:53', '2025-09-26 21:13:53');
+(1, 2, 'Home', 'Accel John', '09127836123', '012, Residence', 'near batumbakal', 'hendo', 'lipa', 'batangas', 0, 1, '2025-09-28 22:37:47', '2025-09-28 22:37:47');
 
 --
 -- Triggers `locations`
@@ -203,9 +195,7 @@ CREATE TABLE `pets` (
 
 INSERT INTO `pets` (`pets_id`, `users_id`, `pets_name`, `pets_species`, `pets_breed`, `pets_gender`, `pets_image_url`, `pets_created_at`) VALUES
 (1, 2, 'Fred', 'Dog', 'Shih Tzu', 'male', NULL, '2025-09-23 17:49:35'),
-(2, 2, 'Kitty', 'Cat', 'Egyptian', 'female', NULL, '2025-09-23 17:50:19'),
-(10, 2, 'Jen', 'Horse', '', 'male', NULL, '2025-09-26 20:13:48'),
-(13, 2, 'Uno', 'Bird', 'Vulture', 'male', NULL, '2025-09-26 21:23:43');
+(2, 2, 'Kitty', 'Cat', 'Egyptian', 'female', NULL, '2025-09-23 17:50:19');
 
 -- --------------------------------------------------------
 
@@ -242,8 +232,7 @@ INSERT INTO `products` (`products_id`, `products_name`, `products_pet_type`, `pr
 (8, '23qwra', 'Cat', 'waqdc', 'necessity', 234.00, NULL, '234', NULL, 1, '2025-09-20 12:05:36'),
 (9, 'q3awr3weqr', 'Cat', '23wetfesdf', 'necessity', 345.00, NULL, '234', NULL, 1, '2025-09-20 12:05:50'),
 (10, 't43wegdxz', 'Bird', 'sdregsdfg', 'necessity', 3425.00, NULL, '324', NULL, 1, '2025-09-20 12:06:20'),
-(11, '345rt', 'Bird', '6346', 'necessity', 345.00, NULL, '234', NULL, 1, '2025-09-20 12:06:36'),
-(12, 'feswd', 'Dog', 'rewdfeasdf', 'accessory', 23.00, NULL, '33', NULL, 0, '2025-09-27 21:44:22');
+(11, '345ry', 'Bird', '6346', 'necessity', 345.00, NULL, '234', NULL, 1, '2025-09-20 12:06:36');
 
 -- --------------------------------------------------------
 
@@ -258,6 +247,7 @@ CREATE TABLE `sitters` (
   `sitter_email` varchar(255) NOT NULL,
   `sitters_contact` varchar(255) DEFAULT NULL,
   `sitter_specialty` varchar(255) NOT NULL,
+  `sitter_experience` varchar(255) NOT NULL,
   `sitters_image_url` varchar(255) DEFAULT NULL,
   `sitters_active` tinyint(1) DEFAULT 1,
   `sitters_created_at` datetime DEFAULT current_timestamp(),
@@ -269,9 +259,9 @@ CREATE TABLE `sitters` (
 -- Dumping data for table `sitters`
 --
 
-INSERT INTO `sitters` (`sitters_id`, `sitters_name`, `sitters_bio`, `sitter_email`, `sitters_contact`, `sitter_specialty`, `sitters_image_url`, `sitters_active`, `sitters_created_at`, `sitters_verified`, `years_experience`) VALUES
-(1, 'John Ricardo', 'qw3aed', 'jr@gmail.com', '0956 789 0999', '', 'pictures/sitters/images-1758347866-6335.jpg', 1, '2025-09-20 13:57:46', 1, NULL),
-(2, 'Jastin', 'asewdawd', 'ja@gmail.com', '09283946727', 'Dog, Cat, Fish', 'pictures/sitters/luffy-1758964723-6685.png', 1, '2025-09-27 17:18:43', 1, NULL);
+INSERT INTO `sitters` (`sitters_id`, `sitters_name`, `sitters_bio`, `sitter_email`, `sitters_contact`, `sitter_specialty`, `sitter_experience`, `sitters_image_url`, `sitters_active`, `sitters_created_at`, `sitters_verified`, `years_experience`) VALUES
+(1, 'John Ricardo', 'qw3aed', 'jr@gmail.com', '0956 789 0999', 'Dog, Cat, Fish', '4 years', 'pictures/sitters/images-1758347866-6335.jpg', 1, '2025-09-20 13:57:46', 0, NULL),
+(2, 'ampuiti amputi', '324e234', 'amaputie@gmail.com', '0956159882', 'Dog, Cat, Small Pet', '', 'pictures/sitters/amaputie-gmail-com-1759042950-8787.png', 1, '2025-09-28 15:02:36', 1, 2);
 
 -- --------------------------------------------------------
 
@@ -289,6 +279,13 @@ CREATE TABLE `subscriptions` (
   `subscriptions_created_at` datetime DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+--
+-- Dumping data for table `subscriptions`
+--
+
+INSERT INTO `subscriptions` (`subscriptions_id`, `subscriptions_name`, `subscriptions_description`, `subscriptions_price`, `subscriptions_duration_days`, `subscriptions_active`, `subscriptions_created_at`) VALUES
+(1, 'Premium', 'Premium Plan: Priority booking, premium sitters, support, and discounts', 299.00, 30, 1, '2025-09-28 21:37:29');
+
 -- --------------------------------------------------------
 
 --
@@ -299,7 +296,8 @@ CREATE TABLE `transactions` (
   `transactions_id` int(11) NOT NULL,
   `users_id` int(11) NOT NULL,
   `transactions_amount` decimal(10,2) NOT NULL,
-  `transactions_type` enum('product','subscription') NOT NULL,
+  `transactions_type` enum('product','appointment','subscription') NOT NULL,
+  `transactions_fulfillment_type` enum('delivery','pickup') DEFAULT NULL,
   `transactions_payment_method` enum('cod','gcash','maya') DEFAULT NULL,
   `transactions_created_at` datetime DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
@@ -308,16 +306,11 @@ CREATE TABLE `transactions` (
 -- Dumping data for table `transactions`
 --
 
-INSERT INTO `transactions` (`transactions_id`, `users_id`, `transactions_amount`, `transactions_type`, `transactions_payment_method`, `transactions_created_at`) VALUES
-(3, 2, 4165.00, 'product', 'gcash', '2025-09-26 21:26:52'),
-(4, 2, 740.00, 'product', 'cod', '2025-09-27 17:34:43'),
-(5, 2, 120.00, 'product', 'gcash', '2025-09-28 13:51:08'),
-(6, 2, 350.00, 'product', 'cod', '2025-09-28 14:08:41'),
-(7, 2, 120.00, 'product', 'cod', '2025-09-28 14:20:43'),
-(8, 2, 350.00, 'product', 'cod', '2025-09-28 14:25:37'),
-(9, 2, 395.00, 'product', 'cod', '2025-09-28 14:27:33'),
-(10, 2, 395.00, 'product', 'cod', '2025-09-28 14:34:17'),
-(11, 2, 3545.00, 'product', 'gcash', '2025-09-28 15:55:01');
+INSERT INTO `transactions` (`transactions_id`, `users_id`, `transactions_amount`, `transactions_type`, `transactions_fulfillment_type`, `transactions_payment_method`, `transactions_created_at`) VALUES
+(1, 2, 70.00, 'product', 'pickup', 'cod', '2025-09-26 01:10:30'),
+(2, 2, 299.00, 'subscription', NULL, 'gcash', '2025-09-28 22:36:30'),
+(3, 2, 320.00, 'product', NULL, 'cod', '2025-09-28 22:38:42'),
+(4, 2, 320.00, 'product', NULL, 'gcash', '2025-09-28 23:12:20');
 
 -- --------------------------------------------------------
 
@@ -337,18 +330,9 @@ CREATE TABLE `transaction_products` (
 --
 
 INSERT INTO `transaction_products` (`tp_id`, `transactions_id`, `products_id`, `tp_quantity`) VALUES
-(3, 3, 9, '1'),
-(4, 3, 10, '1'),
-(5, 3, 11, '1'),
-(6, 4, 9, '2'),
-(7, 5, 1, '1'),
-(8, 6, 3, '1'),
-(9, 7, 1, '1'),
-(10, 8, 3, '1'),
-(11, 9, 9, '1'),
-(12, 10, 9, '1'),
-(13, 11, 10, '1'),
-(14, 11, 1, '1');
+(1, 1, 1, '1'),
+(2, 3, 3, '1'),
+(3, 4, 3, '1');
 
 -- --------------------------------------------------------
 
@@ -361,6 +345,13 @@ CREATE TABLE `transaction_subscriptions` (
   `transactions_id` int(11) NOT NULL,
   `us_id` int(11) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `transaction_subscriptions`
+--
+
+INSERT INTO `transaction_subscriptions` (`ts_id`, `transactions_id`, `us_id`) VALUES
+(1, 2, 1);
 
 -- --------------------------------------------------------
 
@@ -386,7 +377,7 @@ CREATE TABLE `users` (
 
 INSERT INTO `users` (`users_id`, `users_firstname`, `users_lastname`, `users_username`, `users_email`, `users_password_hash`, `users_role`, `users_image_url`, `users_created_at`) VALUES
 (1, 'Admin', '', 'ADMIN', 'admin256@admin.com', 'Abcd@1234', '1', NULL, '2025-09-18 21:52:11'),
-(2, 'Accel', 'John', 'ajo23', 'ajo23@gmail.com', 'Acejohn123@', '0', 'pictures/users/u2_1758863948_5683265be4.png', '2025-09-20 16:12:45'),
+(2, 'Accel', 'John', 'ajo23', 'ajo23@gmail.com', 'Acejohn123@', '0', NULL, '2025-09-20 16:12:45'),
 (3, 'Grade', 'Lat', 'glat', 'glat21@gmail.com', 'Glat1234!', '0', NULL, '2025-09-23 13:23:55');
 
 -- --------------------------------------------------------
@@ -403,6 +394,13 @@ CREATE TABLE `user_subscriptions` (
   `us_end_date` datetime DEFAULT NULL,
   `us_status` enum('active','expired','cancelled') DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `user_subscriptions`
+--
+
+INSERT INTO `user_subscriptions` (`us_id`, `users_id`, `subscriptions_id`, `us_start_date`, `us_end_date`, `us_status`) VALUES
+(1, 2, 1, '2025-09-28 16:36:30', '2025-10-28 16:36:30', 'active');
 
 --
 -- Indexes for dumped tables
@@ -537,25 +535,25 @@ ALTER TABLE `appointment_address`
 -- AUTO_INCREMENT for table `deliveries`
 --
 ALTER TABLE `deliveries`
-  MODIFY `deliveries_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
+  MODIFY `deliveries_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- AUTO_INCREMENT for table `locations`
 --
 ALTER TABLE `locations`
-  MODIFY `location_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `location_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT for table `pets`
 --
 ALTER TABLE `pets`
-  MODIFY `pets_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=14;
+  MODIFY `pets_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
 
 --
 -- AUTO_INCREMENT for table `products`
 --
 ALTER TABLE `products`
-  MODIFY `products_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
+  MODIFY `products_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=12;
 
 --
 -- AUTO_INCREMENT for table `sitters`
@@ -567,25 +565,25 @@ ALTER TABLE `sitters`
 -- AUTO_INCREMENT for table `subscriptions`
 --
 ALTER TABLE `subscriptions`
-  MODIFY `subscriptions_id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `subscriptions_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT for table `transactions`
 --
 ALTER TABLE `transactions`
-  MODIFY `transactions_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=12;
+  MODIFY `transactions_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
 -- AUTO_INCREMENT for table `transaction_products`
 --
 ALTER TABLE `transaction_products`
-  MODIFY `tp_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=15;
+  MODIFY `tp_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- AUTO_INCREMENT for table `transaction_subscriptions`
 --
 ALTER TABLE `transaction_subscriptions`
-  MODIFY `ts_id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `ts_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT for table `users`
@@ -597,7 +595,7 @@ ALTER TABLE `users`
 -- AUTO_INCREMENT for table `user_subscriptions`
 --
 ALTER TABLE `user_subscriptions`
-  MODIFY `us_id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `us_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- Constraints for dumped tables

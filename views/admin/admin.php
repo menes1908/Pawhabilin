@@ -63,6 +63,57 @@ if (!$adminId) {
 $admin_fullname = trim(($admin['users_firstname'] ?? '') . ' ' . ($admin['users_lastname'] ?? '')) ?: 'Admin User';
 $admin_initial = strtoupper(substr(($admin['users_firstname'] ?? '') !== '' ? $admin['users_firstname'] : ($admin['users_username'] ?? 'A'), 0, 1));
 
+// ====== Dashboard KPIs (database-driven) ======
+// Metrics: Total Sales (sum transactions_amount for product & subscription), Appointments Booked (count appointments),
+// Pet Sitters (active sitters), Pet Owners (non-admin users), Active Users (distinct users having recent activity: transaction OR appointment in last 30 days)
+$kpi = [
+    'total_sales' => 0.00,
+    'appointments' => 0,
+    'sitters' => 0,
+    'owners' => 0,
+    'active_users' => 0
+];
+$topSellingProducts = [];
+if(isset($connections) && $connections){
+    // Total sales
+    if($res = mysqli_query($connections, "SELECT COALESCE(SUM(transactions_amount),0) s FROM transactions")){
+        if($row = mysqli_fetch_assoc($res)) $kpi['total_sales'] = (float)$row['s'];
+        mysqli_free_result($res);
+    }
+    // Appointments booked
+    if($res = mysqli_query($connections, "SELECT COUNT(*) c FROM appointments")){
+        if($row = mysqli_fetch_assoc($res)) $kpi['appointments'] = (int)$row['c'];
+        mysqli_free_result($res);
+    }
+    // Active sitters (sitters_active=1)
+    if($res = mysqli_query($connections, "SELECT COUNT(*) c FROM sitters WHERE sitters_active=1")){
+        if($row = mysqli_fetch_assoc($res)) $kpi['sitters'] = (int)$row['c'];
+        mysqli_free_result($res);
+    }
+    // Pet owners (users_role='0')
+    if($res = mysqli_query($connections, "SELECT COUNT(*) c FROM users WHERE users_role='0'")){
+        if($row = mysqli_fetch_assoc($res)) $kpi['owners'] = (int)$row['c'];
+        mysqli_free_result($res);
+    }
+    // Active users (any transaction or appointment in last 30 days)
+    if($res = mysqli_query($connections, "SELECT COUNT(DISTINCT u.users_id) c FROM users u LEFT JOIN transactions t ON t.users_id=u.users_id AND t.transactions_created_at >= (NOW() - INTERVAL 30 DAY) LEFT JOIN appointments a ON a.users_id=u.users_id AND a.appointments_created_at >= (NOW() - INTERVAL 30 DAY) WHERE (t.transactions_id IS NOT NULL OR a.appointments_id IS NOT NULL)")){
+        if($row = mysqli_fetch_assoc($res)) $kpi['active_users'] = (int)$row['c'];
+        mysqli_free_result($res);
+    }
+    // Top selling products (by total quantity ordered) for modal
+    $sqlTop = "SELECT p.products_id, p.products_name, p.products_image_url, SUM(tp.tp_quantity) total_qty
+               FROM transaction_products tp
+               JOIN transactions t ON t.transactions_id = tp.transactions_id AND t.transactions_type='product'
+               JOIN products p ON p.products_id = tp.products_id
+               GROUP BY p.products_id, p.products_name, p.products_image_url
+               ORDER BY total_qty DESC, p.products_name ASC
+               LIMIT 100"; // safety limit
+    if($res = mysqli_query($connections,$sqlTop)){
+        while($r = mysqli_fetch_assoc($res)) $topSellingProducts[] = $r;
+        mysqli_free_result($res);
+    }
+}
+
 // ---- Subscribers (Subscription) Stats + List Preparation ----
 // We treat any record in user_subscriptions as a subscriber. Active defined by status 'active' and (no end date or future end date).
 $subscriberStats = [ 'total' => 0, 'active' => 0, 'this_month' => 0 ];
@@ -190,7 +241,15 @@ function resolveImageUrl($path) {
             transform: scaleY(1);
             background: linear-gradient(180deg, #f97316, #f59e0b);
         }
+
+        @keyframes 
+        fadeInUp { 
+            from { opacity:0; transform: translateY(4px);} 
+            to { opacity:1; transform: translateY(0);} }
+            
+        .animate-fade-in { animation: fadeInUp .25s ease-out; transition: opacity .25s, transform .25s; }
     </style>
+        
 </head>
 <body class="bg-gray-50 font-sans">
     <!-- Admin Dashboard Container -->
@@ -358,65 +417,81 @@ function resolveImageUrl($path) {
                         </div>
                     </div>
 
-                    <!-- Stats Cards -->
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                        <div class="stats-card bg-gradient-to-br from-orange-50 to-amber-50 border border-orange-200 rounded-lg">
-                            <div class="p-6">
-                                <div class="flex items-center justify-between">
+                    <!-- Stats Cards (Dynamic) -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
+                        <!-- Total Sales -->
+                        <div id="totalSalesCard" class="cursor-pointer stats-card bg-gradient-to-br from-orange-50 to-amber-50 border border-orange-200 rounded-lg relative overflow-hidden hover:shadow-md transition-shadow" title="View top selling products">
+                            <div class="p-6 space-y-2">
+                                <div class="flex items-start justify-between">
                                     <div>
-                                        <p class="text-sm text-orange-600 font-medium">Total Revenue</p>
-                                        <p id="totalRevenue" class="text-2xl font-bold text-orange-700">₱342,680</p>
-                                        <p class="text-xs text-orange-600 mt-1">+15.7% from last period</p>
+                                        <p class="text-xs font-semibold tracking-wide text-orange-600">TOTAL SALES</p>
+                                        <p class="text-2xl font-bold text-orange-700">₱<?php echo number_format($kpi['total_sales'],2); ?></p>
                                     </div>
-                                    <div class="w-12 h-12 bg-orange-500 rounded-full flex items-center justify-center">
+                                    <div class="w-12 h-12 bg-orange-500 rounded-full flex items-center justify-center shadow-inner">
                                         <i data-lucide="dollar-sign" class="w-6 h-6 text-white"></i>
                                     </div>
                                 </div>
+                                <p class="text-[11px] text-orange-600">Sum of all transactions</p>
                             </div>
                         </div>
-
-                        <div class="stats-card bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-lg">
-                            <div class="p-6">
-                                <div class="flex items-center justify-between">
+                        <!-- Appointments Booked -->
+                        <div class="stats-card bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-lg relative overflow-hidden">
+                            <div class="p-6 space-y-2">
+                                <div class="flex items-start justify-between">
                                     <div>
-                                        <p class="text-sm text-blue-600 font-medium">Transactions</p>
-                                        <p id="totalTransactions" class="text-2xl font-bold text-blue-700">1,247</p>
-                                        <p class="text-xs text-blue-600 mt-1">Active bookings</p>
+                                        <p class="text-xs font-semibold tracking-wide text-blue-600">APPOINTMENTS BOOKED</p>
+                                        <p class="text-2xl font-bold text-blue-700"><?php echo number_format($kpi['appointments']); ?></p>
                                     </div>
-                                    <div class="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center">
-                                        <i data-lucide="activity" class="w-6 h-6 text-white"></i>
+                                    <div class="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center shadow-inner">
+                                        <i data-lucide="calendar-check" class="w-6 h-6 text-white"></i>
                                     </div>
                                 </div>
+                                <p class="text-[11px] text-blue-600">All time total</p>
                             </div>
                         </div>
-
-                        <div class="stats-card bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-lg">
-                            <div class="p-6">
-                                <div class="flex items-center justify-between">
+                        <!-- Pet Sitters -->
+                        <div class="stats-card bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-lg relative overflow-hidden">
+                            <div class="p-6 space-y-2">
+                                <div class="flex items-start justify-between">
                                     <div>
-                                        <p class="text-sm text-green-600 font-medium">Pet Sitters</p>
-                                        <p class="text-2xl font-bold text-green-700">2</p>
-                                        <p class="text-xs text-green-600 mt-1">Active providers</p>
+                                        <p class="text-xs font-semibold tracking-wide text-green-600">PET SITTERS</p>
+                                        <p class="text-2xl font-bold text-green-700"><?php echo number_format($kpi['sitters']); ?></p>
                                     </div>
-                                    <div class="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center">
+                                    <div class="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center shadow-inner">
                                         <i data-lucide="users" class="w-6 h-6 text-white"></i>
                                     </div>
                                 </div>
+                                <p class="text-[11px] text-green-600">Active providers</p>
                             </div>
                         </div>
-
-                        <div class="stats-card bg-gradient-to-br from-purple-50 to-violet-50 border border-purple-200 rounded-lg">
-                            <div class="p-6">
-                                <div class="flex items-center justify-between">
+                        <!-- Pet Owners -->
+                        <div class="stats-card bg-gradient-to-br from-purple-50 to-violet-50 border border-purple-200 rounded-lg relative overflow-hidden">
+                            <div class="p-6 space-y-2">
+                                <div class="flex items-start justify-between">
                                     <div>
-                                        <p class="text-sm text-purple-600 font-medium">Pet Owners</p>
-                                        <p class="text-2xl font-bold text-purple-700">2</p>
-                                        <p class="text-xs text-purple-600 mt-1">Registered users</p>
+                                        <p class="text-xs font-semibold tracking-wide text-purple-600">PET OWNERS</p>
+                                        <p class="text-2xl font-bold text-purple-700"><?php echo number_format($kpi['owners']); ?></p>
                                     </div>
-                                    <div class="w-12 h-12 bg-purple-500 rounded-full flex items-center justify-center">
+                                    <div class="w-12 h-12 bg-purple-500 rounded-full flex items-center justify-center shadow-inner">
                                         <i data-lucide="paw-print" class="w-6 h-6 text-white"></i>
                                     </div>
                                 </div>
+                                <p class="text-[11px] text-purple-600">Registered users</p>
+                            </div>
+                        </div>
+                        <!-- Active Users -->
+                        <div class="stats-card bg-gradient-to-br from-rose-50 to-pink-50 border border-rose-200 rounded-lg relative overflow-hidden">
+                            <div class="p-6 space-y-2">
+                                <div class="flex items-start justify-between">
+                                    <div>
+                                        <p class="text-xs font-semibold tracking-wide text-rose-600">ACTIVE USERS (30D)</p>
+                                        <p class="text-2xl font-bold text-rose-700"><?php echo number_format($kpi['active_users']); ?></p>
+                                    </div>
+                                    <div class="w-12 h-12 bg-rose-500 rounded-full flex items-center justify-center shadow-inner">
+                                        <i data-lucide="user-check" class="w-6 h-6 text-white"></i>
+                                    </div>
+                                </div>
+                                <p class="text-[11px] text-rose-600">Recent engaged users</p>
                             </div>
                         </div>
                     </div>
@@ -719,7 +794,7 @@ function resolveImageUrl($path) {
                                     <tr><td colspan="9" class="px-4 py-6 text-center text-gray-500">No orders found.</td></tr>
                                 <?php else: foreach($orders as $ord): $tid=(int)$ord['transactions_id']; $buyer=trim(($ord['users_firstname']??'').' '.($ord['users_lastname']??'')); $items=$itemsByTxn[$tid]??[]; $status=$ord['deliveries_delivery_status']??''; $addressParts=array_filter([$ord['location_address_line1']??'', $ord['location_barangay']??'', $ord['location_city']??'', $ord['location_province']??'']); $address=implode(', ',$addressParts); $eta=$ord['deliveries_estimated_delivery_date']??''; ?>
                                     <?php $itemsSearch = strtolower(implode(' ', array_map(fn($x)=>$x['products_name'],$items))); ?>
-                                    <tr data-buyer="<?php echo o_e(strtolower($buyer )); ?>" data-status="<?php echo o_e($status); ?>" data-payment="<?php echo o_e(strtolower($ord['transactions_payment_method']??'')); ?>" data-address="<?php echo o_e(strtolower($address)); ?>" data-items="<?php echo o_e($itemsSearch); ?>">
+                                    <tr data-tid="<?php echo $tid; ?>" data-buyer="<?php echo o_e(strtolower($buyer )); ?>" data-status="<?php echo o_e($status); ?>" data-payment="<?php echo o_e(strtolower($ord['transactions_payment_method']??'')); ?>" data-address="<?php echo o_e(strtolower($address)); ?>" data-items="<?php echo o_e($itemsSearch); ?>">
                                         <td class="px-4 py-3 align-top">
                                             <div class="font-medium text-gray-800"><?php echo o_e($buyer ?: 'User #'.$ord['users_id']); ?></div>
                                             <div class="text-[11px] text-gray-500">#<?php echo $tid; ?> • ₱<?php echo number_format((float)$ord['transactions_amount'],2); ?></div>
@@ -756,7 +831,7 @@ function resolveImageUrl($path) {
                                         <td class="px-4 py-3 text-xs">
                                             <div class="flex items-center gap-2">
                                                 <button type="button" class="text-blue-600 hover:text-blue-700 order-edit-btn" data-id="<?php echo $tid; ?>" title="Edit"><i data-lucide="edit" class="w-4 h-4"></i></button>
-                                                <form method="post" action="../../controllers/admin/ordercontroller.php" class="inline" onsubmit="return confirm('Delete this order? This cannot be undone.');">
+                                                <form method="post" action="../../controllers/admin/ordercontroller.php" class="inline order-delete-form" onsubmit="return false;" data-id="<?php echo $tid; ?>">
                                                     <input type="hidden" name="action" value="delete">
                                                     <input type="hidden" name="transactions_id" value="<?php echo $tid; ?>">
                                                     <button class="text-red-600 hover:text-red-700" title="Delete"><i data-lucide="trash" class="w-4 h-4"></i></button>
@@ -785,7 +860,7 @@ function resolveImageUrl($path) {
                                 <h3 class="text-lg font-semibold">Edit Delivery Order</h3>
                                 <button type="button" data-close-order class="text-gray-400 hover:text-gray-600"><i data-lucide="x" class="w-5 h-5"></i></button>
                             </div>
-                            <form method="post" action="../../controllers/admin/ordercontroller.php" class="space-y-4">
+                            <form id="orderEditForm" method="post" action="../../controllers/admin/ordercontroller.php" class="space-y-4">
                                 <input type="hidden" name="action" value="update_delivery">
                                 <input type="hidden" name="transactions_id" id="order_edit_tid">
                                 <div>
@@ -813,8 +888,9 @@ function resolveImageUrl($path) {
                                     </label>
                                 </div>
                                 <div class="flex justify-end gap-2 pt-2">
+                                    <div id="orderEditFeedback" class="mr-auto text-xs text-gray-500"></div>
                                     <button type="button" data-close-order class="px-3 py-1.5 text-sm border rounded-md">Cancel</button>
-                                    <button type="submit" class="px-4 py-1.5 text-sm rounded-md bg-blue-600 text-white hover:bg-blue-700">Save</button>
+                                    <button id="orderEditSaveBtn" type="submit" class="px-4 py-1.5 text-sm rounded-md bg-blue-600 text-white hover:bg-blue-700">Save</button>
                                 </div>
                             </form>
                         </div>
@@ -1838,6 +1914,55 @@ function resolveImageUrl($path) {
     </div>
 
     <!-- Modals -->
+    <!-- Top Selling Products Modal -->
+    <div id="topSellingModal" class="fixed inset-0 bg-black/40 hidden items-center justify-center z-50">
+        <div class="bg-white rounded-lg shadow-lg w-full max-w-3xl mx-4 flex flex-col max-h-[90vh]">
+            <div class="flex items-center justify-between px-5 py-4 border-b border-gray-200">
+                <div>
+                    <h3 class="text-lg font-semibold text-gray-800">Top Selling Products</h3>
+                    <p class="text-xs text-gray-500 mt-0.5">Ranked by total quantity ordered</p>
+                </div>
+                <button id="topSellingClose" class="text-gray-400 hover:text-gray-600" aria-label="Close"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
+            <div class="p-4 overflow-y-auto">
+                <table class="w-full text-sm">
+                    <thead class="text-xs uppercase text-gray-500 bg-gray-50">
+                        <tr>
+                            <th class="py-2 px-3 text-left">#</th>
+                            <th class="py-2 px-3 text-left">Product</th>
+                            <th class="py-2 px-3 text-left">Times Ordered</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100">
+                        <?php if(empty($topSellingProducts)): ?>
+                            <tr><td colspan="3" class="py-6 text-center text-gray-500">No product orders yet.</td></tr>
+                        <?php else: $rank=1; foreach($topSellingProducts as $p): ?>
+                            <tr>
+                                <td class="py-2 px-3 font-medium text-gray-700"><?= $rank++ ?></td>
+                                <td class="py-2 px-3">
+                                    <div class="flex items-center gap-3">
+                                        <?php $img = htmlspecialchars($p['products_image_url'] ?? '',ENT_QUOTES); ?>
+                                        <div class="w-12 h-12 rounded-md overflow-hidden bg-gray-100 flex items-center justify-center border border-gray-200">
+                                            <?php if($img): ?>
+                                                <img src="<?= htmlspecialchars(resolveImageUrl($img),ENT_QUOTES) ?>" alt="<?= htmlspecialchars($p['products_name'],ENT_QUOTES) ?>" class="w-full h-full object-cover"/>
+                                            <?php else: ?>
+                                                <i data-lucide="image" class="w-5 h-5 text-gray-400"></i>
+                                            <?php endif; ?>
+                                        </div>
+                                        <span class="font-medium text-gray-800 leading-tight"><?= htmlspecialchars($p['products_name'],ENT_QUOTES) ?></span>
+                                    </div>
+                                </td>
+                                <td class="py-2 px-3 text-gray-700 font-semibold"><?= (int)$p['total_qty'] ?></td>
+                            </tr>
+                        <?php endforeach; endif; ?>
+                    </tbody>
+                </table>
+            </div>
+            <div class="px-5 py-3 border-t border-gray-200 flex justify-end">
+                <button id="topSellingClose2" class="px-4 py-2 text-sm rounded-md bg-gray-100 hover:bg-gray-200 text-gray-700">Close</button>
+            </div>
+        </div>
+    </div>
     
     <!-- Edit Appointment Modal -->
     <div id="editAppointmentModal" class="fixed inset-0 bg-black bg-opacity-40 hidden items-center justify-center z-50">
@@ -2226,8 +2351,15 @@ function resolveImageUrl($path) {
         document.addEventListener('DOMContentLoaded', function() {
             lucide.createIcons();
             updateChart();
-            populateSubscribers();
+
+            // Initialize all interactive sections
             initProductFilters();
+            initOrdersSectionFilters();
+            initOwnersDirectory();
+            initAppointments();
+            initSubscribersFilters();
+            initSitters();
+            initTopSellingModal();
             // Section isolation logic: ensure only active section's UI is visible
             const sectionIds = ['dashboard','orders','sitters','appointments','owners','subscribers','products'];
             function showSection(id){
@@ -2261,7 +2393,7 @@ function resolveImageUrl($path) {
             if(!document.getElementById(currentActiveSection+'-section')) currentActiveSection='dashboard';
             showSection(currentActiveSection);
             // Orders edit/delete handlers
-            (function initOrders(){
+            function initOrders(){
                 const editModal = document.getElementById('orderEditModal');
                 const form = document.getElementById('orderEditForm');
                 const saveBtn = document.getElementById('orderEditSaveBtn');
@@ -2272,6 +2404,22 @@ function resolveImageUrl($path) {
                 const actualInput = document.getElementById('order_edit_actual');
                 const sigInput = document.getElementById('order_edit_signature');
                 const closeBtns = document.querySelectorAll('[data-close-order]');
+                // Toast helper
+                function showToast(msg,type='success'){
+                    let wrap = document.getElementById('adminToastWrap');
+                    if(!wrap){
+                        wrap = document.createElement('div');
+                        wrap.id='adminToastWrap';
+                        wrap.className='fixed z-[999] top-4 right-4 space-y-2 w-72';
+                        document.body.appendChild(wrap);
+                    }
+                    const el = document.createElement('div');
+                    el.className='px-4 py-3 rounded-md shadow border text-sm flex items-start gap-2 animate-fade-in '+(type==='error'?'bg-red-50 border-red-200 text-red-700':'bg-emerald-50 border-emerald-200 text-emerald-800');
+                    el.innerHTML = '<span class="flex-1">'+msg+'</span><button class="text-xs text-gray-400 hover:text-gray-700">&times;</button>';
+                    el.querySelector('button').onclick=()=>{ el.remove(); };
+                    wrap.appendChild(el);
+                    setTimeout(()=>{ el.classList.add('opacity-0','translate-x-2'); setTimeout(()=>el.remove(),300); }, 3500);
+                }
 
                 function open(){ editModal.classList.remove('hidden'); editModal.classList.add('flex'); }
                 function close(){ editModal.classList.add('hidden'); editModal.classList.remove('flex'); form.reset(); feedback.textContent=''; }
@@ -2305,7 +2453,31 @@ function resolveImageUrl($path) {
                     });
                 });
 
-                form?.addEventListener('submit', async e=>{
+                // AJAX delete for orders
+                const tbody = document.getElementById('ordersTableBody');
+                tbody?.addEventListener('click', async (e)=>{
+                    const delBtn = e.target.closest('form.order-delete-form button');
+                    if(!delBtn) return;
+                    const formEl = delBtn.closest('form.order-delete-form');
+                    if(!formEl) return;
+                    const tid = formEl.getAttribute('data-id');
+                    if(!confirm('Delete this order? This cannot be undone.')) return;
+                    try {
+                        const fd = new FormData();
+                        fd.append('action','delete');
+                        fd.append('transactions_id', tid);
+                        const res = await fetch('../../controllers/admin/ordercontroller.php', {method:'POST', body:fd, headers:{'Accept':'application/json'}});
+                        const data = await res.json();
+                        if(!data.success) throw new Error(data.error||'Delete failed');
+                        // remove row
+                        const row = formEl.closest('tr');
+                        if(row){ row.remove(); }
+                        showToast('Order #'+tid+' deleted');
+                    } catch(err){ showToast(err.message||'Delete failed','error'); }
+                });
+
+                if(form){
+                form.addEventListener('submit', async e=>{
                     e.preventDefault();
                     feedback.textContent='Saving...';
                     saveBtn.disabled=true;
@@ -2318,12 +2490,18 @@ function resolveImageUrl($path) {
                         // Optimistic update of row values
                         const row = document.querySelector(`#ordersTableBody tr td div.text-[11px]`); // fallback not used
                         const tid = tidInput.value;
-                        const targetRow = Array.from(document.querySelectorAll('#ordersTableBody tr')).find(r=> r.querySelector('input[name="transactions_id"]')?.value === tid || r.innerHTML.includes(`#${tid}`));
+                        const targetRow = document.querySelector(`#ordersTableBody tr[data-tid="${tid}"]`);
                         if(targetRow){
                             targetRow.setAttribute('data-status', statusSel.value);
                             const statusCell = targetRow.querySelector('td:nth-child(5)');
                             if(statusCell){
-                                statusCell.innerHTML = `<span class=\"px-2 py-1 rounded-full bg-gray-100 text-gray-700\">${statusSel.value.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase())}</span>`;
+                                const st = statusSel.value;
+                                let cls='bg-gray-100 text-gray-700';
+                                if(st==='delivered') cls='bg-green-100 text-green-700 border border-green-200';
+                                else if(st==='out_for_delivery') cls='bg-indigo-100 text-indigo-700 border border-indigo-200';
+                                else if(st==='cancelled') cls='bg-red-100 text-red-700 border border-red-200';
+                                else if(st==='processing') cls='bg-yellow-100 text-yellow-700 border border-yellow-200';
+                                statusCell.innerHTML = `<span class=\"px-2 py-1 rounded-full ${cls}\">${st.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase())}</span>`;
                             }
                             const etaCell = targetRow.querySelector('td:nth-child(6)');
                             if(etaCell) etaCell.textContent = etaInput.value;
@@ -2332,17 +2510,23 @@ function resolveImageUrl($path) {
                             const sigCell = targetRow.querySelector('td:nth-child(8)');
                             if(sigCell) sigCell.innerHTML = sigInput.checked? '<span class="text-emerald-600 font-semibold">Received</span>' : '<span class="text-gray-400">Pending</span>';
                         }
+                        showToast('Order updated');
                         setTimeout(()=>{ close(); }, 600);
                     } catch(err){
                         feedback.textContent='Error: '+err.message;
+                        showToast(err.message||'Update failed','error');
                     } finally {
                         saveBtn.disabled=false;
                     }
                 });
-            })();
+                }
+            }
+
+            // Invoke orders initialization (formerly self-invoked IIFE)
+            initOrders();
 
             // Orders Section: filtering (product names, status, payment method) + pagination (10/page)
-            (function initOrdersSectionFilters(){
+            function initOrdersSectionFilters(){
                 const tbody = document.querySelector('#ordersTableBody');
                 if(!tbody) return; // safety
                 const search = document.getElementById('ordersSearch'); // search over product names only
@@ -2366,9 +2550,11 @@ function resolveImageUrl($path) {
                         const rs = (r.dataset.status||'').toLowerCase();
                         const rp = (r.dataset.payment||'').toLowerCase();
                         const items = (r.dataset.items||'').toLowerCase();
+                        const buyer = (r.dataset.buyer||'').toLowerCase();
+                        const addr = (r.dataset.address||'').toLowerCase();
                         if(st && rs !== st) return false;
                         if(pm && rp !== pm) return false;
-                        if(q && !items.includes(q)) return false; // product names only
+                        if(q && !(items.includes(q) || buyer.includes(q) || addr.includes(q))) return false; // search over items, buyer, address
                         return true;
                     });
                     page = 1;
@@ -2431,10 +2617,10 @@ function resolveImageUrl($path) {
                 nextBtn?.addEventListener('click', ()=>{ if(page < Math.ceil(filtered.length / pageSize)){ page++; render(); }});
 
                 apply();
-            })();
+            }
 
             // Pet Owners directory: search + pagination (10/page)
-            (function initOwnersDirectory(){
+            function initOwnersDirectory(){
                 const list = document.getElementById('petOwnersList');
                 const search = document.getElementById('petOwnersSearch');
                 const prev = document.getElementById('ownersPrev');
@@ -2480,10 +2666,10 @@ function resolveImageUrl($path) {
                 if (next) next.addEventListener('click', ()=>{ page++; render(); });
 
                 applyFilter();
-            })();
+            }
 
             // Appointments filtering and actions (single All table)
-            (function initAppointments(){
+            function initAppointments(){
                 const table = document.getElementById('allAppointmentsTable');
                 const allRows = Array.from(table.querySelectorAll('tbody tr'));
                 const tabs = Array.from(document.querySelectorAll('#apptTabs .appt-tab'));
@@ -2627,6 +2813,14 @@ function resolveImageUrl($path) {
                 const editClose = document.getElementById('editApptClose');
                 const editCancel = document.getElementById('editApptCancel');
                 const editForm = document.getElementById('editAppointmentForm');
+                // Reuse toast from orders if exists; else lightweight local
+                function showApptToast(msg,type='success'){
+                    if(typeof showToast === 'function') return showToast(msg,type);
+                    let wrap = document.getElementById('adminToastWrap');
+                    if(!wrap){wrap=document.createElement('div');wrap.id='adminToastWrap';wrap.className='fixed z-[999] top-4 right-4 space-y-2 w-72';document.body.appendChild(wrap);}                    const el=document.createElement('div');
+                    el.className='px-4 py-3 rounded-md shadow border text-sm flex items-start gap-2 animate-fade-in '+(type==='error'?'bg-red-50 border-red-200 text-red-700':'bg-indigo-50 border-indigo-200 text-indigo-800');
+                    el.innerHTML='<span class="flex-1">'+msg+'</span><button class="text-xs text-gray-400 hover:text-gray-700">&times;</button>'; el.querySelector('button').onclick=()=>el.remove(); wrap.appendChild(el); setTimeout(()=>{ el.classList.add('opacity-0'); setTimeout(()=>el.remove(),300); },3500);
+                }
                 function openEdit(){ editModal.classList.remove('hidden'); editModal.classList.add('flex'); }
                 function closeEdit(){ editModal.classList.add('hidden'); editModal.classList.remove('flex'); editForm.reset(); }
                 if (editClose) editClose.addEventListener('click', closeEdit);
@@ -2678,7 +2872,8 @@ function resolveImageUrl($path) {
                                 document.getElementById('edit_appt_pet_breed').value = a.pet_breed||'';
                                 document.getElementById('edit_appt_pet_age').value = a.pet_age||'';
                                 document.getElementById('edit_appt_type').value = a.type||'pet_sitting';
-                                document.getElementById('edit_appt_datetime').value = a.datetime||'';
+                                // Ensure format yyyy-MM-ddTHH:MM (strip seconds if present)
+                                let dt = a.datetime||''; if(dt && dt.length>16) dt = dt.substring(0,16); document.getElementById('edit_appt_datetime').value = dt;
                                 document.getElementById('edit_appt_status').value = a.status||'pending';
                                 document.getElementById('edit_appt_notes').value = a.notes||'';
                             } else {
@@ -2700,6 +2895,7 @@ function resolveImageUrl($path) {
                             tr.remove();
                             allRows.splice(allRows.indexOf(tr),1);
                             applyFilters();
+                            showApptToast('Appointment deleted');
                         } catch(err){ alert('Network error deleting'); }
                     }
                 });
@@ -2713,6 +2909,10 @@ function resolveImageUrl($path) {
                         if (!data.success) { alert(data.error||'Update failed'); return; }
                         // Update row inline
                         const id = data.item.id;
+                        // Polyfill CSS.escape if not defined (older browsers)
+                        if(typeof CSS === 'undefined' || typeof CSS.escape !== 'function'){
+                            window.CSS = window.CSS||{}; CSS.escape = function(v){ return String(v).replace(/[^a-zA-Z0-9_-]/g, '_'); };
+                        }
                         const row = table.querySelector(`tbody tr[data-id="${CSS.escape(String(id))}"]`);
                         if (row) {
                             row.children[0].textContent = data.item.full_name || '';
@@ -2734,151 +2934,110 @@ function resolveImageUrl($path) {
                         }
                         closeEdit();
                         applyFilters();
+                        showApptToast('Appointment updated');
                     } catch(err){ alert('Network error updating'); }
                 });
 
                 // Initial apply
                 applyFilters();
-            })();
+            }
 
-            // ===== Split Orders (Pickup & Delivery) Filtering / Pagination / Modals =====
-            (function initSplitOrders(){
-                // Pickup elements
-                const pSearch = document.getElementById('pickupOrdersSearch');
-                const pStatus = document.getElementById('pickupStatusFilter');
-                const pBody = document.getElementById('pickupOrdersTableBody');
-                const pRows = Array.from(pBody ? pBody.querySelectorAll('tr[data-buyer]') : []);
-                const pPagWrap = document.getElementById('pickupOrdersPagination');
-                const pPrev = document.getElementById('pickupOrdersPrev');
-                const pNext = document.getElementById('pickupOrdersNext');
-                const pNums = document.getElementById('pickupOrdersPageNums');
-                const pInfo = document.getElementById('pickupOrdersPageInfo');
-                let pPage = 1; const pPageSize = 10; let pFiltered = pRows.slice();
+            function initSitters(){
+                const search = document.getElementById('sittersSearch');
+                const statusFilter = document.getElementById('sittersStatusFilter');
+                const specialtyFilter = document.getElementById('sittersSpecialtyFilter');
+                const tbody = document.getElementById('sittersTableBody');
+                const rows = Array.from(tbody ? tbody.querySelectorAll('tr[data-search]') : []);
+                const pagWrap = document.getElementById('sittersPagination');
+                const prevBtn = document.getElementById('sittersPrev');
+                const nextBtn = document.getElementById('sittersNext');
+                const pageNums = document.getElementById('sittersPageNums');
+                const pageInfo = document.getElementById('sittersPageInfo');
+                const pageSize = 10;
+                let page = 1;
+                let filtered = rows.slice();
 
-                function filterPickup(){
-                    const q = (pSearch?.value||'').trim().toLowerCase();
-                    const st = pStatus?.value || '';
-                    pFiltered = pRows.filter(r=>{
-                        if(!q && !st) return true;
-                        const buyer = r.dataset.buyer||'';
-                        const status = r.dataset.status||'';
-                        const itemsTxt = r.querySelector('td:nth-child(2)')?.innerText.toLowerCase()||'';
-                        if(q && !(buyer.includes(q) || itemsTxt.includes(q))) return false;
-                        if(st && status !== st) return false;
+                function apply(){
+                    const q = (search?.value || '').trim().toLowerCase();
+                    const status = (statusFilter?.value || '').toLowerCase();
+                    const specialty = (specialtyFilter?.value || '').toLowerCase();
+                    
+                    filtered = rows.filter(r => {
+                        const searchData = (r.dataset.search || '').toLowerCase();
+                        const r_status = (r.dataset.status || '').toLowerCase();
+                        const r_specialty = (r.dataset.specialty || '').toLowerCase();
+
+                        if (q && !searchData.includes(q)) return false;
+                        if (status && r_status !== status) return false;
+                        if (specialty && !r_specialty.split(',').includes(specialty)) return false;
+                        
                         return true;
                     });
-                    pPage=1; renderPickup();
+                    page = 1;
+                    render();
                 }
-                function renderPickup(){
-                    pRows.forEach(r=>r.classList.add('hidden'));
-                    const total = pFiltered.length;
-                    const pages = Math.max(1, Math.ceil(total / pPageSize));
-                    if(pPage>pages) pPage=pages;
-                    const start=(pPage-1)*pPageSize; const slice=pFiltered.slice(start,start+pPageSize);
-                    slice.forEach(r=>r.classList.remove('hidden'));
-                    if(total>pPageSize){
-                        pPagWrap?.classList.remove('hidden');
-                        if(pNums) pNums.innerHTML='';
-                        for(let i=1;i<=pages;i++){
-                            const b=document.createElement('button');
-                            b.textContent=i; b.className='px-2 py-1 text-xs rounded-md '+(i===pPage?'bg-emerald-600 text-white':'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50');
-                            b.addEventListener('click',()=>{pPage=i; renderPickup();});
-                            pNums.appendChild(b);
-                        }
-                        if(pPrev) pPrev.onclick=()=>{ if(pPage>1){pPage--; renderPickup();} };
-                        if(pNext) pNext.onclick=()=>{ if(pPage<pages){pPage++; renderPickup();} };
-                        if(pInfo) pInfo.textContent = `Showing ${start+1}-${start+slice.length} of ${total}`;
-                    } else { pPagWrap?.classList.add('hidden'); }
-                }
-                pSearch?.addEventListener('input', filterPickup);
-                pStatus?.addEventListener('change', filterPickup);
-                renderPickup();
 
-                // Delivery elements
-                const dSearch = document.getElementById('deliveryOrdersSearch');
-                const dStatus = document.getElementById('deliveryStatusFilter');
-                const dPayment = document.getElementById('deliveryPaymentFilter');
-                const dBody = document.getElementById('deliveryOrdersTableBody');
-                const dRows = Array.from(dBody ? dBody.querySelectorAll('tr[data-buyer]') : []);
-                const dPagWrap = document.getElementById('deliveryOrdersPagination');
-                const dPrev = document.getElementById('deliveryOrdersPrev');
-                const dNext = document.getElementById('deliveryOrdersNext');
-                const dNums = document.getElementById('deliveryOrdersPageNums');
-                const dInfo = document.getElementById('deliveryOrdersPageInfo');
-                let dPage = 1; const dPageSize = 10; let dFiltered = dRows.slice();
-                function filterDelivery(){
-                    const q=(dSearch?.value||'').trim().toLowerCase();
-                    const st=(dStatus?.value||'').toLowerCase();
-                    const pay=(dPayment?.value||'').toLowerCase();
-                    dFiltered = dRows.filter(r=>{
-                        const status=(r.dataset.status||'').toLowerCase();
-                        const payment=(r.dataset.payment||'').toLowerCase();
-                        const items=(r.dataset.items||'').toLowerCase();
-                        if(st && status!==st) return false;
-                        if(pay && payment!==pay) return false;
-                        if(q && !(items.includes(q) || status.includes(q) || payment.includes(q))) return false;
-                        return true;
-                    });
-                    dPage=1; renderDelivery();
-                }
-                function renderDelivery(){
-                    dRows.forEach(r=>r.classList.add('hidden'));
-                    const total=dFiltered.length; const pages=Math.max(1, Math.ceil(total/dPageSize)); if(dPage>pages) dPage=pages;
-                    const start=(dPage-1)*dPageSize; const slice=dFiltered.slice(start,start+dPageSize);
-                    slice.forEach(r=>r.classList.remove('hidden'));
-                    if(total>dPageSize){
-                        dPagWrap?.classList.remove('hidden');
-                        if(dNums) dNums.innerHTML='';
-                        for(let i=1;i<=pages;i++){
-                            const b=document.createElement('button'); b.textContent=i; b.className='px-2 py-1 text-xs rounded-md '+(i===dPage?'bg-blue-600 text-white':'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'); b.addEventListener('click',()=>{dPage=i; renderDelivery();}); dNums.appendChild(b);
-                        }
-                        if(dPrev) dPrev.onclick=()=>{ if(dPage>1){dPage--; renderDelivery();} };
-                        if(dNext) dNext.onclick=()=>{ if(dPage<pages){dPage++; renderDelivery();} };
-                        if(dInfo) dInfo.textContent=`Showing ${start+1}-${start+slice.length} of ${total}`;
-                    } else { dPagWrap?.classList.add('hidden'); }
-                }
-                dSearch?.addEventListener('input', filterDelivery);
-                dStatus?.addEventListener('change', filterDelivery);
-                dPayment?.addEventListener('change', filterDelivery);
-                renderDelivery();
+                function render(){
+                    rows.forEach(r => r.classList.add('hidden'));
+                    const total = filtered.length;
+                    const emptyRow = tbody.querySelector('tr[data-empty]');
 
-                // Modals
-                const pickupModal = document.getElementById('pickupEditModal');
-                const pickupCloseBtns = pickupModal? pickupModal.querySelectorAll('[data-close-pickup]'):[];
-                const deliveryModal = document.getElementById('deliveryEditModal');
-                const deliveryCloseBtns = deliveryModal? deliveryModal.querySelectorAll('[data-close-delivery]'):[];
-                function openModal(m){ m?.classList.remove('hidden'); m?.classList.add('flex'); }
-                function closeModal(m){ m?.classList.add('hidden'); m?.classList.remove('flex'); }
-                pickupCloseBtns.forEach(b=>b.addEventListener('click', ()=>closeModal(pickupModal)));
-                deliveryCloseBtns.forEach(b=>b.addEventListener('click', ()=>closeModal(deliveryModal)));
-                [pickupModal, deliveryModal].forEach(m=> m?.addEventListener('click', e=>{ if(e.target===m) closeModal(m); }));
-                window.addEventListener('keydown', e=>{ if(e.key==='Escape'){ closeModal(pickupModal); closeModal(deliveryModal);} });
-                document.addEventListener('click', e=>{
-                    const pBtn = e.target.closest('[data-edit-pickup]');
-                    if(pBtn){
-                        const tr = pBtn.closest('tr');
-                        const tid = pBtn.getAttribute('data-id');
-                        document.getElementById('pickup_edit_tid').value=tid;
-                        document.getElementById('pickup_edit_date').value = tr.querySelector('td:nth-child(3)')?.innerText.trim()||'';
-                        document.getElementById('pickup_edit_time').value = tr.querySelector('td:nth-child(4)')?.innerText.trim()||'';
-                        const st = tr.querySelector('td:nth-child(5) span')?.innerText.trim().toLowerCase().replace(/ /g,'_')||'scheduled';
-                        document.getElementById('pickup_edit_status').value = st;
-                        openModal(pickupModal);
+                    if(total === 0){
+                        pagWrap?.classList.add('hidden');
+                        if(pageInfo) pageInfo.textContent = 'No sitters found';
+                        if(pageNums) pageNums.innerHTML='';
+                        prevBtn && (prevBtn.disabled = true);
+                        nextBtn && (nextBtn.disabled = true);
+                        if(emptyRow) emptyRow.classList.remove('hidden');
+                        return;
                     }
-                    const dBtn = e.target.closest('[data-edit-delivery]');
-                    if(dBtn){
-                        const tr = dBtn.closest('tr');
-                        const tid = dBtn.getAttribute('data-id');
-                        document.getElementById('delivery_edit_tid').value=tid;
-                        document.getElementById('delivery_edit_status').value = (tr.querySelector('td:nth-child(4) span')?.innerText.trim().toLowerCase().replace(/ /g,'_'))||'processing';
-                        document.getElementById('delivery_edit_eta').value = tr.querySelector('td:nth-child(5)')?.innerText.trim()||'';
-                        document.getElementById('delivery_edit_actual').value = tr.querySelector('td:nth-child(6)')?.innerText.trim()||'';
-                        const rec = tr.querySelector('td:nth-child(7)')?.innerText.includes('Received');
-                        document.getElementById('delivery_edit_signature').checked = !!rec;
-                        openModal(deliveryModal);
+                    
+                    if(emptyRow) emptyRow.classList.add('hidden');
+
+                    const totalPages = Math.max(1, Math.ceil(total / pageSize));
+                    if(page > totalPages) page = totalPages;
+                    const start = (page - 1) * pageSize;
+                    const end = start + pageSize;
+                    filtered.slice(start, end).forEach(r => r.classList.remove('hidden'));
+
+                    pagWrap?.classList.remove('hidden');
+                    if(pageInfo){
+                        pageInfo.textContent = `Showing ${start+1}-${Math.min(end,total)} of ${total} sitters`;
                     }
-                });
-            })();
+
+                    if(pageNums){
+                        pageNums.innerHTML='';
+                        const range = paginationRange(page, totalPages, 5);
+                        range.forEach(n => {
+                            const btn = document.createElement('button');
+                            btn.className = 'px-2 py-1 text-xs rounded-md border';
+                            if(n === '...'){
+                                btn.textContent = '...';
+                                btn.disabled = true;
+                            } else {
+                                btn.textContent = n;
+                                if(n === page) btn.classList.add('bg-blue-600','text-white','border-blue-600');
+                                btn.addEventListener('click', ()=>{ page = n; render(); });
+                            }
+                            pageNums.appendChild(btn);
+                        });
+                    }
+
+                    if(prevBtn){ prevBtn.disabled = page <= 1; prevBtn.classList.toggle('opacity-50', prevBtn.disabled); }
+                    if(nextBtn){ nextBtn.disabled = page >= totalPages; nextBtn.classList.toggle('opacity-50', nextBtn.disabled); }
+                }
+
+                search?.addEventListener('input', apply);
+                statusFilter?.addEventListener('change', apply);
+                specialtyFilter?.addEventListener('change', apply);
+                prevBtn?.addEventListener('click', ()=>{ if(page>1){ page--; render(); }});
+                nextBtn?.addEventListener('click', ()=>{ if(page < Math.ceil(filtered.length / pageSize)){ page++; render(); }});
+
+                apply();
+            }
+
+            // ===== Orders (Delivery Only) Filtering / Pagination / Modal ====
+            
         });
 
         // Sidebar functions
@@ -3009,12 +3168,7 @@ function resolveImageUrl($path) {
             document.getElementById('addProductForm').reset();
         }
 
-        // Removed legacy sitters modal helpers; replaced by new inline JS
-
-        // Data population functions
-        // Removed populateProducts(); products now server-rendered.
-
-        // Removed populateSitters; sitters are server-rendered
+        
 
         function populateAppointments() {
             const tbody = document.getElementById('appointmentsTableBody');
@@ -3545,8 +3699,8 @@ function resolveImageUrl($path) {
             const half=Math.floor(maxButtons/2); let start=Math.max(1,current-half); let end=start+maxButtons-1; if(end>total){end=total; start=end-maxButtons+1;} if(start>1){ range.push(1); if(start>2) range.push('...'); } for(let i=start;i<=end;i++) range.push(i); if(end<total){ if(end<total-1) range.push('...'); range.push(total);} return range;
         }
 
-        // ================= Subscribers Filtering & Search (Isolated) =================
-        (function initSubscribersFilters(){
+    // ================= Subscribers Filtering & Search (Isolated) =================
+    function initSubscribersFilters(){
             const tbody = document.getElementById('subsTableBody');
             if(!tbody) return; // safety if section removed
             const searchInput = document.getElementById('subsSearch');
@@ -3642,7 +3796,20 @@ function resolveImageUrl($path) {
             nextBtn?.addEventListener('click', () => { page++; apply(); });
 
             apply();
-        })();
+        }
+
+        // ===== Top Selling Modal (Lightweight, no conflicts) =====
+        function initTopSellingModal(){
+            const card = document.getElementById('totalSalesCard');
+            const modal = document.getElementById('topSellingModal');
+            const closeBtns = [document.getElementById('topSellingClose'), document.getElementById('topSellingClose2')];
+            if(!card || !modal) return;
+            function open(){ modal.classList.remove('hidden'); modal.classList.add('flex'); }
+            function close(){ modal.classList.add('hidden'); modal.classList.remove('flex'); }
+            card.addEventListener('click', open);
+            closeBtns.forEach(btn=> btn && btn.addEventListener('click', close));
+            modal.addEventListener('click', (e)=>{ if(e.target===modal) close(); });
+        }
     </script>
     <!-- Tailwind safelist (hidden) to ensure dynamic specialty classes are included by CDN JIT -->
     <div class="hidden">

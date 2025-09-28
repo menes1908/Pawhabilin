@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Sep 28, 2025 at 09:11 AM
+-- Generation Time: Sep 28, 2025 at 07:57 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.0.30
 
@@ -18,7 +18,7 @@ SET time_zone = "+00:00";
 /*!40101 SET NAMES utf8mb4 */;
 
 --
--- Database: `pawdb`
+-- Database: `pawdbf`
 --
 
 -- --------------------------------------------------------
@@ -114,6 +114,13 @@ CREATE TABLE `deliveries` (
   `deliveries_recipient_signature` varchar(100) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+--
+-- Dumping data for table `deliveries`
+--
+
+INSERT INTO `deliveries` (`deliveries_id`, `transactions_id`, `location_id`, `deliveries_delivery_status`, `deliveries_estimated_delivery_date`, `deliveries_actual_delivery_date`, `deliveries_recipient_signature`) VALUES
+(1, 3, 1, 'processing', '2025-09-30', NULL, NULL);
+
 -- --------------------------------------------------------
 
 --
@@ -136,6 +143,13 @@ CREATE TABLE `locations` (
   `location_created_at` datetime NOT NULL DEFAULT current_timestamp(),
   `location_updated_at` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `locations`
+--
+
+INSERT INTO `locations` (`location_id`, `users_id`, `location_label`, `location_recipient_name`, `location_phone`, `location_address_line1`, `location_address_line2`, `location_barangay`, `location_city`, `location_province`, `location_is_default`, `location_active`, `location_created_at`, `location_updated_at`) VALUES
+(1, 2, 'Home', 'Angel Curtis', '09127836123', '012, Residence', 'Highway lang tabi ng shell', 'hendo', 'lipa', 'batangas', 0, 1, '2025-09-29 01:32:45', '2025-09-29 01:32:45');
 
 --
 -- Triggers `locations`
@@ -181,27 +195,6 @@ CREATE TABLE `pets` (
 INSERT INTO `pets` (`pets_id`, `users_id`, `pets_name`, `pets_species`, `pets_breed`, `pets_gender`, `pets_image_url`, `pets_created_at`) VALUES
 (1, 2, 'Fred', 'Dog', 'Shih Tzu', 'male', NULL, '2025-09-23 17:49:35'),
 (2, 2, 'Kitty', 'Cat', 'Egyptian', 'female', NULL, '2025-09-23 17:50:19');
-
--- --------------------------------------------------------
-
---
--- Table structure for table `pickups`
---
-
-CREATE TABLE `pickups` (
-  `pickups_id` int(11) NOT NULL,
-  `transactions_id` int(11) NOT NULL,
-  `pickups_pickup_date` date NOT NULL,
-  `pickups_pickup_time` time NOT NULL CHECK (`pickups_pickup_time` between '08:00:00' and '17:00:00'),
-  `pickups_pickup_status` enum('scheduled','picked_up','cancelled') DEFAULT 'scheduled'
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
--- Dumping data for table `pickups`
---
-
-INSERT INTO `pickups` (`pickups_id`, `transactions_id`, `pickups_pickup_date`, `pickups_pickup_time`, `pickups_pickup_status`) VALUES
-(1, 1, '2025-09-26', '10:00:00', 'scheduled');
 
 -- --------------------------------------------------------
 
@@ -285,6 +278,13 @@ CREATE TABLE `subscriptions` (
   `subscriptions_created_at` datetime DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+--
+-- Dumping data for table `subscriptions`
+--
+
+INSERT INTO `subscriptions` (`subscriptions_id`, `subscriptions_name`, `subscriptions_description`, `subscriptions_price`, `subscriptions_duration_days`, `subscriptions_active`, `subscriptions_created_at`) VALUES
+(1, 'Premium', 'Premium Plan: Priority booking, premium sitters, support, and discounts', 299.00, 30, 1, '2025-09-29 01:38:18');
+
 -- --------------------------------------------------------
 
 --
@@ -295,8 +295,7 @@ CREATE TABLE `transactions` (
   `transactions_id` int(11) NOT NULL,
   `users_id` int(11) NOT NULL,
   `transactions_amount` decimal(10,2) NOT NULL,
-  `transactions_type` enum('product','appointment','subscription') NOT NULL,
-  `transactions_fulfillment_type` enum('delivery','pickup') DEFAULT NULL,
+  `transactions_type` enum('product','subscription') NOT NULL,
   `transactions_payment_method` enum('cod','gcash','maya') DEFAULT NULL,
   `transactions_created_at` datetime DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
@@ -305,8 +304,10 @@ CREATE TABLE `transactions` (
 -- Dumping data for table `transactions`
 --
 
-INSERT INTO `transactions` (`transactions_id`, `users_id`, `transactions_amount`, `transactions_type`, `transactions_fulfillment_type`, `transactions_payment_method`, `transactions_created_at`) VALUES
-(1, 2, 70.00, 'product', 'pickup', 'cod', '2025-09-26 01:10:30');
+INSERT INTO `transactions` (`transactions_id`, `users_id`, `transactions_amount`, `transactions_type`, `transactions_payment_method`, `transactions_created_at`) VALUES
+(1, 2, 70.00, 'product', 'cod', '2025-09-26 01:10:30'),
+(2, 2, 299.00, 'subscription', 'gcash', '2025-09-29 01:39:02'),
+(3, 2, 320.00, 'product', 'gcash', '2025-09-29 01:39:38');
 
 -- --------------------------------------------------------
 
@@ -326,7 +327,8 @@ CREATE TABLE `transaction_products` (
 --
 
 INSERT INTO `transaction_products` (`tp_id`, `transactions_id`, `products_id`, `tp_quantity`) VALUES
-(1, 1, 1, '1');
+(1, 1, 1, '1'),
+(2, 3, 3, '1');
 
 -- --------------------------------------------------------
 
@@ -339,6 +341,13 @@ CREATE TABLE `transaction_subscriptions` (
   `transactions_id` int(11) NOT NULL,
   `us_id` int(11) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `transaction_subscriptions`
+--
+
+INSERT INTO `transaction_subscriptions` (`ts_id`, `transactions_id`, `us_id`) VALUES
+(1, 2, 1);
 
 -- --------------------------------------------------------
 
@@ -381,6 +390,13 @@ CREATE TABLE `user_subscriptions` (
   `us_end_date` datetime DEFAULT NULL,
   `us_status` enum('active','expired','cancelled') DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `user_subscriptions`
+--
+
+INSERT INTO `user_subscriptions` (`us_id`, `users_id`, `subscriptions_id`, `us_start_date`, `us_end_date`, `us_status`) VALUES
+(1, 2, 1, '2025-09-28 19:39:02', '2025-10-28 19:39:02', 'active');
 
 --
 -- Indexes for dumped tables
@@ -431,13 +447,6 @@ ALTER TABLE `locations`
 ALTER TABLE `pets`
   ADD PRIMARY KEY (`pets_id`),
   ADD KEY `users_id` (`users_id`);
-
---
--- Indexes for table `pickups`
---
-ALTER TABLE `pickups`
-  ADD PRIMARY KEY (`pickups_id`),
-  ADD UNIQUE KEY `transactions_id` (`transactions_id`);
 
 --
 -- Indexes for table `products`
@@ -522,25 +531,19 @@ ALTER TABLE `appointment_address`
 -- AUTO_INCREMENT for table `deliveries`
 --
 ALTER TABLE `deliveries`
-  MODIFY `deliveries_id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `deliveries_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT for table `locations`
 --
 ALTER TABLE `locations`
-  MODIFY `location_id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `location_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT for table `pets`
 --
 ALTER TABLE `pets`
   MODIFY `pets_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
-
---
--- AUTO_INCREMENT for table `pickups`
---
-ALTER TABLE `pickups`
-  MODIFY `pickups_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT for table `products`
@@ -558,25 +561,25 @@ ALTER TABLE `sitters`
 -- AUTO_INCREMENT for table `subscriptions`
 --
 ALTER TABLE `subscriptions`
-  MODIFY `subscriptions_id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `subscriptions_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT for table `transactions`
 --
 ALTER TABLE `transactions`
-  MODIFY `transactions_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `transactions_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- AUTO_INCREMENT for table `transaction_products`
 --
 ALTER TABLE `transaction_products`
-  MODIFY `tp_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `tp_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- AUTO_INCREMENT for table `transaction_subscriptions`
 --
 ALTER TABLE `transaction_subscriptions`
-  MODIFY `ts_id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `ts_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT for table `users`
@@ -588,7 +591,7 @@ ALTER TABLE `users`
 -- AUTO_INCREMENT for table `user_subscriptions`
 --
 ALTER TABLE `user_subscriptions`
-  MODIFY `us_id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `us_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- Constraints for dumped tables
@@ -632,12 +635,6 @@ ALTER TABLE `locations`
 --
 ALTER TABLE `pets`
   ADD CONSTRAINT `pets_ibfk_1` FOREIGN KEY (`users_id`) REFERENCES `users` (`users_id`) ON DELETE CASCADE;
-
---
--- Constraints for table `pickups`
---
-ALTER TABLE `pickups`
-  ADD CONSTRAINT `pickups_ibfk_1` FOREIGN KEY (`transactions_id`) REFERENCES `transactions` (`transactions_id`) ON DELETE CASCADE;
 
 --
 -- Constraints for table `transactions`

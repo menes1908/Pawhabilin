@@ -682,7 +682,8 @@ function resolveImageUrl($path) {
                                 <?php if(empty($orders)): ?>
                                     <tr><td colspan="9" class="px-4 py-6 text-center text-gray-500">No orders found.</td></tr>
                                 <?php else: foreach($orders as $ord): $tid=(int)$ord['transactions_id']; $buyer=trim(($ord['users_firstname']??'').' '.($ord['users_lastname']??'')); $items=$itemsByTxn[$tid]??[]; $status=$ord['deliveries_delivery_status']??''; $addressParts=array_filter([$ord['location_address_line1']??'', $ord['location_barangay']??'', $ord['location_city']??'', $ord['location_province']??'']); $address=implode(', ',$addressParts); $eta=$ord['deliveries_estimated_delivery_date']??''; ?>
-                                    <tr data-buyer="<?php echo o_e(strtolower($buyer)); ?>" data-status="<?php echo o_e($status); ?>" data-payment="<?php echo o_e(strtolower($ord['transactions_payment_method']??'')); ?>" data-address="<?php echo o_e(strtolower($address)); ?>">
+                                    <?php $itemsSearch = strtolower(implode(' ', array_map(fn($x)=>$x['products_name'],$items))); ?>
+                                    <tr data-buyer="<?php echo o_e(strtolower($buyer )); ?>" data-status="<?php echo o_e($status); ?>" data-payment="<?php echo o_e(strtolower($ord['transactions_payment_method']??'')); ?>" data-address="<?php echo o_e(strtolower($address)); ?>" data-items="<?php echo o_e($itemsSearch); ?>">
                                         <td class="px-4 py-3 align-top">
                                             <div class="font-medium text-gray-800"><?php echo o_e($buyer ?: 'User #'.$ord['users_id']); ?></div>
                                             <div class="text-[11px] text-gray-500">#<?php echo $tid; ?> • ₱<?php echo number_format((float)$ord['transactions_amount'],2); ?></div>
@@ -703,7 +704,19 @@ function resolveImageUrl($path) {
                                         <td class="px-4 py-3 text-xs"><?php if($status): ?><span class="px-2 py-1 rounded-full bg-gray-100 text-gray-700"><?php echo o_e(ucwords(str_replace('_',' ',$status))); ?></span><?php endif; ?></td>
                                         <td class="px-4 py-3 text-xs text-gray-700"><?php echo o_e($eta); ?></td>
                                         <td class="px-4 py-3 text-xs text-gray-700"><?php echo o_e($ord['deliveries_actual_delivery_date'] ?? ''); ?></td>
-                                        <td class="px-4 py-3 text-xs text-gray-700"><?php echo ($ord['deliveries_recipient_signature']??'')?'<span class="text-emerald-600 font-semibold">Received</span>':'<span class="text-gray-400">Pending</span>'; ?></td>
+                                        <td class="px-4 py-3 text-xs text-gray-700">
+                                            <?php
+                                            $sig = $ord['deliveries_recipient_signature'] ?? '';
+                                            $st  = strtolower($ord['deliveries_delivery_status'] ?? '');
+                                            if ($sig) {
+                                                echo '<span class="text-emerald-600 font-semibold">Received</span>';
+                                            } elseif ($st === 'cancelled') {
+                                                echo '<span class="text-red-600 font-semibold">Cancelled</span>';
+                                            } else {
+                                                echo '<span class="text-gray-400">Pending</span>';
+                                            }
+                                            ?>
+                                        </td>
                                         <td class="px-4 py-3 text-xs">
                                             <div class="flex items-center gap-2">
                                                 <button type="button" class="text-blue-600 hover:text-blue-700 order-edit-btn" data-id="<?php echo $tid; ?>" title="Edit"><i data-lucide="edit" class="w-4 h-4"></i></button>
@@ -2141,8 +2154,9 @@ function resolveImageUrl($path) {
                         if(!data.success) throw new Error(data.error||'Failed');
                         const o = data.order;
                         statusSel.value = o.deliveries_delivery_status || 'processing';
-                        etaInput.value = (o.deliveries_estimated_delivery_date||'').substring(0,10);
-                        actualInput.value = (o.deliveries_actual_delivery_date||'').substring(0,10);
+                        etaInput.value = o.deliveries_estimated_delivery_date ? o.deliveries_estimated_delivery_date.substring(0,10) : '';
+                        // Leave blank if no actual date yet so submitting without change keeps it NULL
+                        actualInput.value = o.deliveries_actual_delivery_date ? o.deliveries_actual_delivery_date.substring(0,10) : '';
                         sigInput.checked = !!parseInt(o.deliveries_recipient_signature||0);
                         feedback.textContent='';
                     } catch(err){
@@ -2193,6 +2207,98 @@ function resolveImageUrl($path) {
                         saveBtn.disabled=false;
                     }
                 });
+            })();
+
+            // Orders Section: filtering (product names, status, payment method) + pagination (10/page)
+            (function initOrdersSectionFilters(){
+                const tbody = document.querySelector('#ordersTableBody');
+                if(!tbody) return; // safety
+                const search = document.getElementById('ordersSearch'); // search over product names only
+                const statusFilter = document.getElementById('ordersStatusFilter');
+                const paymentFilter = document.getElementById('ordersPaymentFilter');
+                const rows = Array.from(tbody.querySelectorAll('tr[data-status]'));
+                const pagWrap = document.getElementById('ordersPagination');
+                const prevBtn = document.getElementById('ordersPrev');
+                const nextBtn = document.getElementById('ordersNext');
+                const pageNums = document.getElementById('ordersPageNums');
+                const pageInfo = document.getElementById('ordersPageInfo');
+                const pageSize = 10;
+                let page = 1;
+                let filtered = rows.slice();
+
+                function apply(){
+                    const q = (search?.value || '').trim().toLowerCase();
+                    const st = (statusFilter?.value || '').toLowerCase();
+                    const pm = (paymentFilter?.value || '').toLowerCase();
+                    filtered = rows.filter(r => {
+                        const rs = (r.dataset.status||'').toLowerCase();
+                        const rp = (r.dataset.payment||'').toLowerCase();
+                        const items = (r.dataset.items||'').toLowerCase();
+                        if(st && rs !== st) return false;
+                        if(pm && rp !== pm) return false;
+                        if(q && !items.includes(q)) return false; // product names only
+                        return true;
+                    });
+                    page = 1;
+                    render();
+                }
+
+                function render(){
+                    rows.forEach(r => r.classList.add('hidden'));
+                    const total = filtered.length;
+                    if(total === 0){
+                        pagWrap?.classList.add('hidden');
+                        if(pageInfo) pageInfo.textContent = 'No orders found';
+                        if(pageNums) pageNums.innerHTML='';
+                        prevBtn && (prevBtn.disabled = true);
+                        nextBtn && (nextBtn.disabled = true);
+                        return;
+                    }
+                    const totalPages = Math.max(1, Math.ceil(total / pageSize));
+                    if(page > totalPages) page = totalPages;
+                    const start = (page - 1) * pageSize;
+                    const end = start + pageSize;
+                    filtered.slice(start, end).forEach(r => r.classList.remove('hidden'));
+
+                    pagWrap?.classList.remove('hidden');
+                    if(pageInfo){
+                        pageInfo.textContent = `Showing ${start+1}-${Math.min(end,total)} of ${total} orders`;
+                    }
+
+                    if(pageNums){
+                        pageNums.innerHTML='';
+                        const totalPagesFinal = Math.ceil(total / pageSize);
+                        if(totalPagesFinal > 1){
+                            const range = typeof paginationRange === 'function' ? paginationRange(page, totalPagesFinal, 5) : Array.from({length: totalPagesFinal}, (_,i)=>i+1);
+                            range.forEach(n => {
+                                const btn = document.createElement('button');
+                                btn.className = 'px-2 py-1 text-xs rounded-md border';
+                                if(n === '...'){
+                                    btn.textContent = '...';
+                                    btn.disabled = true;
+                                    btn.classList.add('opacity-50','cursor-default');
+                                } else {
+                                    btn.textContent = n;
+                                    if(n === page) btn.classList.add('bg-blue-600','text-white','border-blue-600');
+                                    btn.addEventListener('click', ()=>{ page = n; render(); });
+                                }
+                                pageNums.appendChild(btn);
+                            });
+                        }
+                    }
+
+                    if(prevBtn){ prevBtn.disabled = page <= 1; prevBtn.classList.toggle('opacity-50', prevBtn.disabled); }
+                    if(nextBtn){ nextBtn.disabled = page >= Math.ceil(total / pageSize); nextBtn.classList.toggle('opacity-50', nextBtn.disabled); }
+                }
+
+                // Event bindings
+                search?.addEventListener('input', apply);
+                statusFilter?.addEventListener('change', apply);
+                paymentFilter?.addEventListener('change', apply);
+                prevBtn?.addEventListener('click', ()=>{ if(page>1){ page--; render(); }});
+                nextBtn?.addEventListener('click', ()=>{ if(page < Math.ceil(filtered.length / pageSize)){ page++; render(); }});
+
+                apply();
             })();
 
             // Pet Owners directory: search + pagination (10/page)
@@ -2570,12 +2676,15 @@ function resolveImageUrl($path) {
                 let dPage = 1; const dPageSize = 10; let dFiltered = dRows.slice();
                 function filterDelivery(){
                     const q=(dSearch?.value||'').trim().toLowerCase();
-                    const st=dStatus?.value||''; const pay=dPayment?.value||'';
+                    const st=(dStatus?.value||'').toLowerCase();
+                    const pay=(dPayment?.value||'').toLowerCase();
                     dFiltered = dRows.filter(r=>{
-                        const buyer=r.dataset.buyer||''; const status=r.dataset.status||''; const payment=r.dataset.payment||''; const addr=r.dataset.address||''; const items=r.querySelector('td:nth-child(2)')?.innerText.toLowerCase()||'';
-                        if(q && !(buyer.includes(q)||addr.includes(q)||items.includes(q))) return false;
+                        const status=(r.dataset.status||'').toLowerCase();
+                        const payment=(r.dataset.payment||'').toLowerCase();
+                        const items=(r.dataset.items||'').toLowerCase();
                         if(st && status!==st) return false;
                         if(pay && payment!==pay) return false;
+                        if(q && !(items.includes(q) || status.includes(q) || payment.includes(q))) return false;
                         return true;
                     });
                     dPage=1; renderDelivery();

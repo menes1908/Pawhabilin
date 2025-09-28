@@ -52,8 +52,35 @@ if ($action === 'update_delivery') {
     $allowedStatus = ['processing','out_for_delivery','delivered','cancelled'];
     if(!in_array($status,$allowedStatus,true)) $status='processing';
     $eta = $_POST['deliveries_estimated_delivery_date'] ?? '';
-    $actual = $_POST['deliveries_actual_delivery_date'] ?? '';
+    $actualInput = $_POST['deliveries_actual_delivery_date'] ?? '';
     $signature = isset($_POST['signature_received']) ? 1 : 0;
+
+    // Fetch current actual & signature so we don't overwrite with empty
+    $curActual = null; $curSig = 0;
+    if($rsCur = mysqli_query($connections, "SELECT deliveries_actual_delivery_date, deliveries_recipient_signature FROM deliveries WHERE transactions_id=$tid LIMIT 1")){
+        if($rowCur = mysqli_fetch_assoc($rsCur)){
+            $curActual = $rowCur['deliveries_actual_delivery_date'];
+            $curSig = (int)$rowCur['deliveries_recipient_signature'];
+        }
+        mysqli_free_result($rsCur);
+    }
+
+    // Determine final actual date: keep existing unless admin provided a new date OR status set to delivered with no existing actual and no user signature yet.
+    $finalActual = $curActual; // default preserve
+    $actualInput = trim($actualInput);
+    if($actualInput !== '') {
+        $finalActual = $actualInput; // admin explicitly set
+    } else {
+        // if admin leaves blank and status moved to delivered AND there is a signature checkbox (admin marks received) then set to today if not already set
+        if($status === 'delivered' && $signature && !$curActual){
+            $finalActual = date('Y-m-d');
+        }
+    }
+
+    // If signature checkbox not ticked, but existing signature exists, keep it; else pass 0
+    if(!$signature && $curSig){
+        $signature = $curSig; // preserve previous signature flag (may be 1 with string)
+    }
 
     // Ensure delivery row exists
     $existsRes = mysqli_query($connections, "SELECT deliveries_id FROM deliveries WHERE transactions_id=$tid LIMIT 1");
@@ -64,7 +91,7 @@ if ($action === 'update_delivery') {
     if($existsRes) mysqli_free_result($existsRes);
 
     $stmt = mysqli_prepare($connections, "UPDATE deliveries SET deliveries_delivery_status=?, deliveries_estimated_delivery_date=?, deliveries_actual_delivery_date=?, deliveries_recipient_signature=? WHERE transactions_id=?");
-    mysqli_stmt_bind_param($stmt,'sssii',$status,$eta,$actual,$signature,$tid);
+    mysqli_stmt_bind_param($stmt,'sssii',$status,$eta,$finalActual,$signature,$tid);
     mysqli_stmt_execute($stmt);
     $affected = mysqli_stmt_affected_rows($stmt);
     mysqli_stmt_close($stmt);

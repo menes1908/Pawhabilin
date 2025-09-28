@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Ge-- Generation Time: Sep 28, 2025 at 07:05 AM
+-- Generation Time: Sep 28, 2025 at 09:58 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.0.30
 
@@ -119,8 +119,15 @@ CREATE TABLE `deliveries` (
 --
 
 INSERT INTO `deliveries` (`deliveries_id`, `transactions_id`, `location_id`, `deliveries_delivery_status`, `deliveries_estimated_delivery_date`, `deliveries_actual_delivery_date`, `deliveries_recipient_signature`) VALUES
-(1, 3, 2, 'processing', '2025-09-28', NULL, NULL),
-(2, 4, 1, 'delivered', '2025-09-29', '2025-09-29', '1');
+(1, 3, 2, 'cancelled', '2025-09-28', NULL, NULL),
+(2, 4, 1, 'delivered', '2025-09-29', '2025-09-29', '1'),
+(3, 5, 1, 'delivered', '2025-09-30', '2025-09-28', 'Received 2025-09-28 14:05:05'),
+(4, 6, 2, 'delivered', '2025-09-30', NULL, 'Received 2025-09-28 14:09:58'),
+(5, 7, 2, 'delivered', '2025-09-30', '2025-09-28', 'Received 2025-09-28 14:21:28'),
+(6, 8, 2, 'cancelled', '2025-09-30', NULL, 'cancelled'),
+(7, 9, 2, 'cancelled', '2025-09-30', NULL, 'cancelled'),
+(8, 10, 2, 'cancelled', '2025-09-30', NULL, NULL),
+(9, 11, 2, 'delivered', '2025-09-30', '2025-09-28', 'Received 2025-09-28 15:55:50');
 
 -- --------------------------------------------------------
 
@@ -254,26 +261,28 @@ CREATE TABLE `sitters` (
   `sitters_image_url` varchar(255) DEFAULT NULL,
   `sitters_active` tinyint(1) DEFAULT 1,
   `sitters_created_at` datetime DEFAULT current_timestamp(),
-  `years_experience` int(11) DEFAULT NULL
+  `years_experience` int(11) DEFAULT NULL,
+  `sitters_verified` tinyint(1) NOT NULL DEFAULT 0
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `sitters`
 --
 
-INSERT INTO `sitters` (`sitters_id`, `si  `sitters_verified` tinyint(1) NOT NULL DEFAULT 0,
-  `sitters_created_at` datetime DEFAULT current_timestamp(),
-  `years_experience` int(11) DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+INSERT INTO `sitters` (`sitters_id`, `sitters_name`, `sitters_bio`, `sitter_email`, `sitters_contact`, `sitter_specialty`, `sitters_image_url`, `sitters_active`, `sitters_created_at`, `years_experience`, `sitters_verified`) VALUES
+(1, 'John Ricardo', 'qw3aed', 'jr@gmail.com', '0956 789 0999', '', 'pictures/sitters/images-1758347866-6335.jpg', 1, '2025-09-20 13:57:46', 2, 0),
+(2, 'Jastin', 'asewdawd', 'ja@gmail.com', '09283946727', 'Dog, Cat, Fish', 'pictures/sitters/luffy-1758964723-6685.png', 1, '2025-09-27 17:18:43', 3, 0);
+
+-- --------------------------------------------------------
 
 --
--- Dumping data for table `sitters`
+-- Table structure for table `subscriptions`
 --
 
-INSERT INTO `sitters` (`sitters_id`, `sitters_name`, `sitters_bio`, `sitter_email`, `sitters_contact`, `sitter_specialty`, `sitters_image_url`, `sitters_active`, `sitters_verified`, `sitters_created_at`, `years_experience`) VALUES
-(1, 'John Ricardo', 'qw3aed', 'jr@gmail.com', '0956 789 0999', '', 'pictures/sitters/images-1758347866-6335.jpg', 1, 0, '2025-09-20 13:57:46', 2),
-(2, 'Jastin', 'asewdawd', 'ja@gmail.com', '09283946727', 'Dog, Cat, Fish', 'pictures/sitters/luffy-1758964723-6685.png', 1, 1, '2025-09-27 17:18:43', 3);
-EFAULT NULL,
+CREATE TABLE `subscriptions` (
+  `subscriptions_id` int(11) NOT NULL,
+  `subscriptions_name` varchar(100) NOT NULL,
+  `subscriptions_description` text DEFAULT NULL,
   `subscriptions_price` decimal(10,2) NOT NULL,
   `subscriptions_duration_days` int(11) NOT NULL,
   `subscriptions_active` tinyint(1) DEFAULT 1,
@@ -301,7 +310,14 @@ CREATE TABLE `transactions` (
 
 INSERT INTO `transactions` (`transactions_id`, `users_id`, `transactions_amount`, `transactions_type`, `transactions_payment_method`, `transactions_created_at`) VALUES
 (3, 2, 4165.00, 'product', 'gcash', '2025-09-26 21:26:52'),
-(4, 2, 740.00, 'product', 'cod', '2025-09-27 17:34:43');
+(4, 2, 740.00, 'product', 'cod', '2025-09-27 17:34:43'),
+(5, 2, 120.00, 'product', 'gcash', '2025-09-28 13:51:08'),
+(6, 2, 350.00, 'product', 'cod', '2025-09-28 14:08:41'),
+(7, 2, 120.00, 'product', 'cod', '2025-09-28 14:20:43'),
+(8, 2, 350.00, 'product', 'cod', '2025-09-28 14:25:37'),
+(9, 2, 395.00, 'product', 'cod', '2025-09-28 14:27:33'),
+(10, 2, 395.00, 'product', 'cod', '2025-09-28 14:34:17'),
+(11, 2, 3545.00, 'product', 'gcash', '2025-09-28 15:55:01');
 
 -- --------------------------------------------------------
 
@@ -324,7 +340,15 @@ INSERT INTO `transaction_products` (`tp_id`, `transactions_id`, `products_id`, `
 (3, 3, 9, '1'),
 (4, 3, 10, '1'),
 (5, 3, 11, '1'),
-(6, 4, 9, '2');
+(6, 4, 9, '2'),
+(7, 5, 1, '1'),
+(8, 6, 3, '1'),
+(9, 7, 1, '1'),
+(10, 8, 3, '1'),
+(11, 9, 9, '1'),
+(12, 10, 9, '1'),
+(13, 11, 10, '1'),
+(14, 11, 1, '1');
 
 -- --------------------------------------------------------
 
@@ -513,7 +537,7 @@ ALTER TABLE `appointment_address`
 -- AUTO_INCREMENT for table `deliveries`
 --
 ALTER TABLE `deliveries`
-  MODIFY `deliveries_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `deliveries_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
 
 --
 -- AUTO_INCREMENT for table `locations`
@@ -549,13 +573,13 @@ ALTER TABLE `subscriptions`
 -- AUTO_INCREMENT for table `transactions`
 --
 ALTER TABLE `transactions`
-  MODIFY `transactions_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+  MODIFY `transactions_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=12;
 
 --
 -- AUTO_INCREMENT for table `transaction_products`
 --
 ALTER TABLE `transaction_products`
-  MODIFY `tp_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
+  MODIFY `tp_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=15;
 
 --
 -- AUTO_INCREMENT for table `transaction_subscriptions`
@@ -617,7 +641,24 @@ ALTER TABLE `locations`
 --
 ALTER TABLE `pets`
   ADD CONSTRAINT `pets_ibfk_1` FOREIGN KEY (`users_id`) REFERENCES `users` (`users_id`) ON DELETE CASCADE;
-saction_subscriptions`
+
+--
+-- Constraints for table `transactions`
+--
+ALTER TABLE `transactions`
+  ADD CONSTRAINT `transactions_ibfk_1` FOREIGN KEY (`users_id`) REFERENCES `users` (`users_id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `transaction_products`
+--
+ALTER TABLE `transaction_products`
+  ADD CONSTRAINT `transaction_products_ibfk_1` FOREIGN KEY (`transactions_id`) REFERENCES `transactions` (`transactions_id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `transaction_products_ibfk_2` FOREIGN KEY (`products_id`) REFERENCES `products` (`products_id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `transaction_subscriptions`
+--
+ALTER TABLE `transaction_subscriptions`
   ADD CONSTRAINT `transaction_subscriptions_ibfk_1` FOREIGN KEY (`transactions_id`) REFERENCES `transactions` (`transactions_id`) ON DELETE CASCADE,
   ADD CONSTRAINT `transaction_subscriptions_ibfk_2` FOREIGN KEY (`us_id`) REFERENCES `user_subscriptions` (`us_id`) ON DELETE CASCADE;
 
@@ -627,3 +668,8 @@ saction_subscriptions`
 ALTER TABLE `user_subscriptions`
   ADD CONSTRAINT `user_subscriptions_ibfk_1` FOREIGN KEY (`users_id`) REFERENCES `users` (`users_id`) ON DELETE CASCADE,
   ADD CONSTRAINT `user_subscriptions_ibfk_2` FOREIGN KEY (`subscriptions_id`) REFERENCES `subscriptions` (`subscriptions_id`) ON DELETE CASCADE;
+COMMIT;
+
+/*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
+/*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
+/*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;

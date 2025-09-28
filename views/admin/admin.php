@@ -2547,8 +2547,6 @@ function resolveImageUrl($path) {
                         const data = await res.json();
                         if(!data.success) throw new Error(data.error||'Update failed');
                         feedback.textContent='Saved. Refreshing row...';
-                        // Optimistic update of row values
-                        const row = document.querySelector(`#ordersTableBody tr td div.text-[11px]`); // fallback not used
                         const tid = tidInput.value;
                         const targetRow = document.querySelector(`#ordersTableBody tr[data-tid="${tid}"]`);
                         if(targetRow){

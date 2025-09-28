@@ -186,8 +186,61 @@ if ($__currentUser) {
         }
     </style>
 </head>
-<body class="min-h-screen bg-background">
-    <?php include __DIR__ . '/utils/header.php'; ?>
+<body class="min-h-screen bg-gray-50">
+    <!-- Header (shared guest/auth) -->
+    <?php $basePrefix = ''; include __DIR__ . '/utils/header.php'; ?>
+
+    <!-- Hero Section -->
+    <section class="relative py-16 overflow-hidden gradient-bg">
+        <!-- Floating background elements -->
+        <div class="absolute inset-0 overflow-hidden pointer-events-none">
+            <div class="floating-element absolute top-20 left-10 opacity-20">
+                <i data-lucide="crown" class="w-20 h-20 text-white transform rotate-12 sparkle-animation"></i>
+            </div>
+            <div class="floating-element absolute top-32 right-20 opacity-20">
+                <i data-lucide="star" class="w-16 h-16 text-white transform -rotate-12 sparkle-animation"></i>
+            </div>
+            <div class="floating-element absolute bottom-20 left-1/4 opacity-20">
+                <i data-lucide="sparkles" class="w-18 h-18 text-white transform rotate-45 sparkle-animation"></i>
+            </div>
+        </div>
+        
+        <div class="container mx-auto px-4 relative z-10">
+            <div class="max-w-4xl mx-auto text-center text-white">
+                <div class="space-y-6 slide-in-up">
+                    <!-- Sign In Call-to-Action -->
+                    <div class="inline-flex items-center rounded-full border border-white/20 px-6 py-3 text-lg font-medium glass-effect">
+                        <i data-lucide="lock" class="w-5 h-5 mr-3"></i>
+                        Sign in to unlock premium pet care features
+                    </div>
+                    
+                    <h1 class="text-4xl md:text-6xl lg:text-7xl font-bold">
+                        Choose Your
+                        <span class="block brand-font text-5xl md:text-7xl lg:text-8xl text-yellow-200">Pet Care Plan</span>
+                    </h1>
+                    
+                    <p class="text-xl md:text-2xl text-white/90 max-w-3xl mx-auto leading-relaxed">
+                        Join thousands of pet parents who trust pawhabilin for exceptional pet care. 
+                        From basic essentials to luxury services, we have the perfect plan for every pet family.
+                    </p>
+                    
+                    <div class="flex flex-col sm:flex-row gap-6 justify-center items-center pt-6">
+                        <a href="registration.php" class="group inline-flex items-center justify-center gap-3 whitespace-nowrap rounded-full text-lg font-semibold transition-all duration-300 bg-white text-orange-600 hover:bg-orange-50 h-14 px-8 transform hover:scale-105 hover:shadow-2xl">
+                            <i data-lucide="user-plus" class="w-6 h-6 group-hover:rotate-12 transition-transform duration-300"></i>
+                            Sign Up for Premium
+                            <i data-lucide="arrow-right" class="w-5 h-5 group-hover:translate-x-1 transition-transform duration-300"></i>
+                        </a>
+                        
+                        <a href="login.php" class="group inline-flex items-center justify-center gap-3 whitespace-nowrap rounded-full text-lg font-medium transition-all duration-300 border-2 border-white text-white hover:bg-white hover:text-orange-600 h-14 px-8 transform hover:scale-105">
+                            <i data-lucide="log-in" class="w-5 h-5 group-hover:scale-110 transition-transform duration-300"></i>
+                            Already a Member? Sign In
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
     <!-- Pricing Plans -->
     <section class="py-20 bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-50">
         <div class="container mx-auto px-4">
@@ -243,7 +296,7 @@ if ($__currentUser) {
                         </div>
                         <div class="flex items-center gap-3">
                             <i data-lucide="x" class="w-5 h-5 feature-cross"></i>
-                            <span class="text-gray-500 line-through">Promos</span>
+                            <span class="text-gray-500 line-through">Priority booking</span>
                         </div>
                         <div class="flex items-center gap-3">
                             <i data-lucide="x" class="w-5 h-5 feature-cross"></i>
@@ -259,9 +312,9 @@ if ($__currentUser) {
                         </div>
                     </div>
 
-                    <a href="login.php" class="w-full inline-flex items-center justify-center bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-4 px-6 rounded-xl transition-all duration-300 text-center">
+                    <a href="registration.php" class="w-full inline-flex items-center justify-center bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-4 px-6 rounded-xl transition-all duration-300 text-center">
                         <i data-lucide="user-plus" class="w-5 h-5 mr-2"></i>
-                        Log in to subscribe
+                        Sign Up to Subscribe
                     </a>
                 </div>
 
@@ -296,7 +349,7 @@ if ($__currentUser) {
                         </div>
                         <div class="flex items-center gap-3">
                             <i data-lucide="zap" class="w-5 h-5 text-yellow-300"></i>
-                            <span class="text-white">Promos</span>
+                            <span class="text-white">Priority booking & scheduling</span>
                         </div>
                         <div class="flex items-center gap-3">
                             <i data-lucide="star" class="w-5 h-5 text-yellow-300"></i>
@@ -324,9 +377,9 @@ if ($__currentUser) {
                         </div>
                     </div>
 
-                    <a href="login.php" class="w-full inline-flex items-center justify-center bg-white text-orange-600 font-semibold py-4 px-6 rounded-xl hover:bg-orange-50 transition-all duration-300 transform hover:scale-105 pulse-glow text-center">
+                    <a href="registration.php" class="w-full inline-flex items-center justify-center bg-white text-orange-600 font-semibold py-4 px-6 rounded-xl hover:bg-orange-50 transition-all duration-300 transform hover:scale-105 pulse-glow text-center">
                         <i data-lucide="crown" class="w-5 h-5 mr-2"></i>
-                        Log in to upgrade
+                        Sign Up to Subscribe
                     </a>
                 </div>
             </div>
@@ -358,15 +411,15 @@ if ($__currentUser) {
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
-                <!-- Promo -->
+                <!-- Priority Booking -->
                 <div class="text-center p-8 bg-gradient-to-br from-orange-50 to-amber-50 rounded-2xl border border-orange-100 hover:shadow-lg transition-all duration-300 hover:-translate-y-2">
                     <div class="w-16 h-16 bg-gradient-to-br from-orange-500 to-amber-600 rounded-full flex items-center justify-center mx-auto mb-6">
                         <i data-lucide="zap" class="w-8 h-8 text-white"></i>
                     </div>
-                    <h3 class="text-xl font-bold text-gray-800 mb-4">Promos</h3>
+                    <h3 class="text-xl font-bold text-gray-800 mb-4">Priority Booking</h3>
                     <p class="text-gray-600 leading-relaxed">
-                        Earn points every visit, enjoy exclusive discounts, and
-                        redeem free services because your fur baby deserves more!
+                        Skip the wait and get instant access to the best appointment slots. 
+                        Your pet's needs come first with priority scheduling.
                     </p>
                 </div>
 
@@ -464,7 +517,7 @@ if ($__currentUser) {
                             </div>
                         </div>
                     </div>
-                    <p class="text-gray-700 italic">"Being Premium really pays off. The exclusive discounts help me save on regular services while still giving my pet the best care."</p>
+                    <p class="text-gray-700 italic">"The priority booking is a game-changer! I can always get appointments when I need them, and the premium sitters are incredibly professional. Worth every peso!"</p>
                 </div>
                 
                 <div class="bg-white rounded-2xl p-8 shadow-lg">
@@ -505,12 +558,16 @@ if ($__currentUser) {
                 <div class="max-w-2xl mx-auto bg-gradient-to-r from-orange-500 to-amber-600 rounded-3xl p-8 text-white">
                     <h3 class="text-2xl font-bold mb-4">Ready to Get Started?</h3>
                     <p class="text-lg mb-6 text-orange-100">
-                        Log in to your account to subscribe or upgrade to premium!
+                        Join thousands of pet parents who trust pawhabilin for exceptional pet care
                     </p>
                     <div class="flex flex-col sm:flex-row gap-4 justify-center">
-                        <a href="login" class="inline-flex items-center justify-center bg-white text-orange-600 font-semibold py-3 px-8 rounded-xl hover:bg-orange-50 transition-all duration-300 transform hover:scale-105">
+                        <a href="login.php" class="inline-flex items-center justify-center bg-white text-orange-600 font-semibold py-3 px-8 rounded-xl hover:bg-orange-50 transition-all duration-300 transform hover:scale-105">
                             <i data-lucide="crown" class="w-5 h-5 mr-2"></i>
-                            Log in to upgrade
+                            Start Premium Today
+                        </a>
+                        <a href="login.php" class="inline-flex items-center justify-center border-2 border-white text-white font-semibold py-3 px-8 rounded-xl hover:bg-white hover:text-orange-600 transition-all duration-300">
+                            <i data-lucide="user-plus" class="w-5 h-5 mr-2"></i>
+                            Create Free Account
                         </a>
                     </div>
                 </div>
@@ -532,13 +589,13 @@ if ($__currentUser) {
 
             <div class="space-y-6">
                 <div class="bg-gray-50 rounded-2xl p-6">
-                    <h3 class="text-lg font-semibold text-gray-800 mb-3">How do I subscribe or upgrade to premium?</h3>
-                    <p class="text-gray-600">You need to log in first. Click any "Log in to subscribe" or "Log in to upgrade" button and sign in to your account to continue.</p>
+                    <h3 class="text-lg font-semibold text-gray-800 mb-3">How do I sign up for a premium subscription?</h3>
+                    <p class="text-gray-600">Simply click any "Sign In to Subscribe" button, create your account or log in, and you'll be guided through the subscription process. You can start with a free trial!</p>
                 </div>
 
                 <div class="bg-gray-50 rounded-2xl p-6">
                     <h3 class="text-lg font-semibold text-gray-800 mb-3">Can I cancel my premium subscription anytime?</h3>
-                    <p class="text-gray-600">Yes! After logging in and subscribing, you can cancel your premium subscription at any time. You'll continue to have premium access until the end of your billing period.</p>
+                    <p class="text-gray-600">Yes! You can cancel your premium subscription at any time. You'll continue to have premium access until the end of your billing period.</p>
                 </div>
 
                 <div class="bg-gray-50 rounded-2xl p-6">
@@ -548,12 +605,12 @@ if ($__currentUser) {
 
                 <div class="bg-gray-50 rounded-2xl p-6">
                     <h3 class="text-lg font-semibold text-gray-800 mb-3">How do I access premium sitters?</h3>
-                    <p class="text-gray-600">Log in and upgrade to premium. You'll see a "Premium" badge on select sitters in your search results. These sitters have undergone additional background checks and training.</p>
+                    <p class="text-gray-600">Once you upgrade, you'll see a "Premium" badge on select sitters in your search results. These sitters have undergone additional background checks and training.</p>
                 </div>
 
                 <div class="bg-gray-50 rounded-2xl p-6">
-                    <h3 class="text-lg font-semibold text-gray-800 mb-3">Can I use the free plan features?</h3>
-                    <p class="text-gray-600">Yes! All users have access to free plan features. Log in to upgrade anytime for more benefits.</p>
+                    <h3 class="text-lg font-semibold text-gray-800 mb-3">Can I start with a free account first?</h3>
+                    <p class="text-gray-600">Absolutely! You can create a free account and explore our basic features. Upgrade to premium anytime to unlock all the exclusive benefits.</p>
                 </div>
             </div>
         </div>
@@ -623,6 +680,44 @@ if ($__currentUser) {
             </div>
         </div>
     </footer>
+
+    <script>
+        // Initialize Lucide icons
+        document.addEventListener('DOMContentLoaded', function() {
+            lucide.createIcons();
+            
+            // Intersection Observer for animations
+            const observerOptions = {
+                threshold: 0.1,
+                rootMargin: '0px 0px -50px 0px'
+            };
+            
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('slide-in-up');
+                    }
+                });
+            }, observerOptions);
+            
+            // Observe elements for animation
+            document.querySelectorAll('.pricing-card').forEach(el => {
+                observer.observe(el);
+            });
+        });
+
+        // Parallax effect for background elements
+        window.addEventListener('scroll', () => {
+            const scrolled = window.pageYOffset;
+            const parallaxElements = document.querySelectorAll('.floating-element');
+            
+            parallaxElements.forEach((element, index) => {
+                const speed = 0.1 + (index * 0.05);
+                const yPos = -(scrolled * speed);
+                element.style.transform = `translate3d(0, ${yPos}px, 0)`;
+            });
+        });
+    </script>
 
     <!-- Header initializes icons and dropdowns -->
 </body>

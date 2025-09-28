@@ -26,12 +26,12 @@ if (!$user['email']) {
 // Load existing sitter by email (try with new columns; fallback if not available)
 $existing_sitter = null;
 if (isset($connections) && $connections) {
-    $query_new = "SELECT sitters_id, sitters_name, sitters_bio, sitter_email, sitters_contact, sitter_specialty, sitter_experience, sitters_image_url, sitters_active, years_experience FROM sitters WHERE sitter_email = ? LIMIT 1";
+    $query_new = "SELECT sitters_id, sitters_name, sitters_bio, sitter_email, sitters_contact, sitter_specialty, sitter_experience, sitters_image_url, sitters_active, years_experience, sitters_verified FROM sitters WHERE sitter_email = ? LIMIT 1";
     $stmt = @mysqli_prepare($connections, $query_new);
     if ($stmt) {
         mysqli_stmt_bind_param($stmt, 's', $user['email']);
         mysqli_stmt_execute($stmt);
-        mysqli_stmt_bind_result($stmt, $sid, $sname, $sbio, $semail, $scontact, $sspec, $sexp, $simg, $sactive, $syears);
+    mysqli_stmt_bind_result($stmt, $sid, $sname, $sbio, $semail, $scontact, $sspec, $sexp, $simg, $sactive, $syears, $sverified);
         if (mysqli_stmt_fetch($stmt)) {
             $existing_sitter = [
                 'db_id'      => (int)$sid,
@@ -43,7 +43,8 @@ if (isset($connections) && $connections) {
                 'years'      => (int)$syears,
                 'bio'        => (string)$sbio,
                 'image_url'  => (string)$simg,
-                'active'     => (int)$sactive
+                'active'     => (int)$sactive,
+                'verified'   => isset($sverified) ? (int)$sverified : 0
             ];
         }
         mysqli_stmt_close($stmt);
@@ -64,7 +65,8 @@ if (isset($connections) && $connections) {
                     'years'      => 0,
                     'bio'        => (string)$sbio,
                     'image_url'  => (string)$simg,
-                    'active'     => (int)$sactive
+                    'active'     => (int)$sactive,
+                    'verified'   => 0
                 ];
             }
             mysqli_stmt_close($stmt2);
@@ -330,23 +332,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             color: #f97316;
         }
         
-        /* Sticky actions bar */
-        .sticky-actions {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            border-top: 1px solid rgba(0, 0, 0, 0.1);
-            z-index: 50;
-            transform: translateY(100%);
-            transition: transform 0.3s ease;
-        }
-        
-        .sticky-actions.visible {
-            transform: translateY(0);
-        }
+        /* Removed sticky action bar */
         
         /* Form enhancements */
         .form-group {
@@ -427,15 +413,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             background: #e5e7eb;
             color: #6b7280;
             font-weight: 600;
-            transition: all 0.3s ease;
+            transition: transform 0.25s ease, background-color 0.25s ease, color 0.25s ease, box-shadow 0.25s ease;
             position: relative;
         }
+        .progress-step i { transition: transform 0.25s ease; }
+        .progress-step:hover { background: #f3f4f6; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+        .progress-step:focus-visible { outline: 2px solid #f97316; outline-offset: 2px; }
         
         .progress-step.active {
             background: linear-gradient(135deg, #f97316, #ea580c);
             color: white;
-            transform: scale(1.1);
+            transform: scale(1.08);
+            box-shadow: 0 6px 16px rgba(249, 115, 22, 0.25);
         }
+        .progress-step.active i { transform: scale(1.08); }
         
         .progress-step.completed {
             background: #10b981;
@@ -443,11 +434,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         
         .progress-connector {
-            height: 2px;
+            height: 3px;
             background: #e5e7eb;
             flex: 1;
-            margin: 0 8px;
-            transition: all 0.3s ease;
+            margin: 0 10px;
+            border-radius: 9999px;
+            transition: background-color 0.25s ease;
         }
         
         .progress-connector.completed {
@@ -551,99 +543,44 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <main class="container mx-auto px-4 py-8">
         <!-- Progress Header -->
         <div class="max-w-4xl mx-auto mb-8">
-            <div class="text-center mb-8">
-                <div class="inline-flex items-center rounded-full border border-orange-200 px-6 py-2 text-sm font-medium bg-orange-50 text-orange-600 mb-4">
-                    <i data-lucide="paw-print" class="w-4 h-4 mr-2 paw-step"></i>
-                    PawSteps™ Sitter Onboarding
-                </div>
-                
-                <h1 class="text-4xl md:text-5xl font-bold mb-4">
-                    <?php if ($is_update_mode): ?>
-                        Update Your
-                        <span class="bg-gradient-to-r from-orange-600 to-amber-600 bg-clip-text text-transparent">Sitter Profile</span>
-                    <?php else: ?>
-                        Become a Professional
-                        <span class="bg-gradient-to-r from-orange-600 to-amber-600 bg-clip-text text-transparent">Pet Sitter</span>
-                    <?php endif; ?>
-                </h1>
-                
-                <p class="text-xl text-gray-600 max-w-3xl mx-auto">
-                    <?php if ($is_update_mode): ?>
-                        Update your sitter information to keep your profile current and attract more pet parents.
-                    <?php else: ?>
-                        You're signed in! We'll use your profile details for your sitter account. 
-                        Just provide your sitter-specific information below.
-                    <?php endif; ?>
-                </p>
-            </div>
+            <div class="flex flex-col md:flex-row md:items-start md:justify-between gap-6">
+                <!-- Header text -->
+                <div class="md:max-w-2xl">
+                    <div class="inline-flex items-center rounded-full border border-orange-200 px-6 py-2 text-sm font-medium bg-orange-50 text-orange-600 mb-4">
+                        <i data-lucide="paw-print" class="w-4 h-4 mr-2 paw-step"></i>
+                        PawSteps™ Sitter Onboarding
+                    </div>
 
-            <!-- Progress Steps -->
-            <div class="flex items-center justify-center mb-8" id="progress-bar">
-                <div class="flex items-center">
-                    <div class="progress-step active" data-step="1">
-                        <i data-lucide="user-check" class="w-5 h-5"></i>
-                    </div>
-                    <div class="progress-connector"></div>
-                    <div class="progress-step" data-step="2">
-                        <i data-lucide="heart" class="w-5 h-5"></i>
-                    </div>
-                    <div class="progress-connector"></div>
-                    <div class="progress-step" data-step="3">
-                        <i data-lucide="camera" class="w-5 h-5"></i>
-                    </div>
-                    <div class="progress-connector"></div>
-                    <div class="progress-step" data-step="4">
-                        <i data-lucide="check-circle" class="w-5 h-5"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
+                    <h1 class="text-4xl md:text-5xl font-bold mb-3">
+                        <?php if ($is_update_mode): ?>
+                            Update Your
+                            <span class="bg-gradient-to-r from-orange-600 to-amber-600 bg-clip-text text-transparent">Sitter Profile</span>
+                        <?php else: ?>
+                            Become a Professional
+                            <span class="bg-gradient-to-r from-orange-600 to-amber-600 bg-clip-text text-transparent">Pet Sitter</span>
+                        <?php endif; ?>
+                    </h1>
 
-        <!-- Profile Reuse Banner -->
-        <div class="max-w-4xl mx-auto mb-8">
-            <div class="profile-banner p-6">
-                <div class="flex items-center justify-between mb-4">
-                    <h2 class="text-lg font-semibold text-blue-700 flex items-center gap-2">
-                        <i data-lucide="shield-check" class="w-5 h-5"></i>
-                        Your Account Information
-                    </h2>
-                    <div class="inline-flex items-center rounded-full border border-blue-200 px-3 py-1 text-xs font-medium bg-blue-50 text-blue-600">
-                        <i data-lucide="lock" class="w-3 h-3 mr-1"></i>
-                        Verified Account
-                    </div>
-                </div>
-                
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                    <div class="bg-white/80 backdrop-blur-sm rounded-lg p-4 border border-blue-100">
-                        <div class="text-sm text-blue-600 font-medium mb-1">Full Name</div>
-                        <div class="font-semibold text-gray-800"><?php echo htmlspecialchars($user['name']); ?></div>
-                    </div>
-                    <div class="bg-white/80 backdrop-blur-sm rounded-lg p-4 border border-blue-100">
-                        <div class="text-sm text-blue-600 font-medium mb-1">Email Address</div>
-                        <div class="font-semibold text-gray-800"><?php echo htmlspecialchars($user['email']); ?></div>
-                    </div>
-                    <div class="bg-white/80 backdrop-blur-sm rounded-lg p-4 border border-blue-100">
-                        <div class="text-sm text-blue-600 font-medium mb-1">Phone Number</div>
-                        <div class="font-semibold text-gray-800"><?php echo htmlspecialchars(($is_update_mode && !empty($existing_sitter['contact'])) ? $existing_sitter['contact'] : $user['phone']); ?></div>
-                    </div>
-                </div>
-                
-                <div class="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                    <p class="text-sm text-blue-700">
-                        <i data-lucide="info" class="w-4 h-4 inline mr-1"></i>
-                        This information is automatically linked to your sitter profile. To update these details, 
-                        <a href="user-profile.php" class="underline hover:no-underline font-medium">visit your profile page</a>.
+                    <p class="text-lg md:text-xl text-gray-600">
+                        <?php if ($is_update_mode): ?>
+                            Update your sitter information to keep your profile current and attract more pet parents.
+                        <?php else: ?>
+                            You're signed in! We'll use your profile details for your sitter account.
+                            Just provide your sitter-specific information below.
+                        <?php endif; ?>
                     </p>
                 </div>
+
+                
             </div>
         </div>
 
-        <!-- Sitter Application Form -->
-        <?php if ($is_update_mode): ?>
-        <!-- Already a Sitter: Profile Overview -->
+        <!-- Combined Profile Banner (Profile at top, then Account Information with note at bottom) -->
         <div class="max-w-4xl mx-auto mb-8">
-            <div class="glass-card rounded-3xl p-6">
-                <div class="flex items-start justify-between gap-4 mb-4">
+            <div class="profile-banner p-6">
+                <?php if ($is_update_mode): ?>
+                <!-- Sitter Profile Header Row -->
+                <div class="flex items-start justify-between gap-4 mb-6">
                     <div class="flex items-center gap-4">
                         <div class="w-14 h-14 rounded-full overflow-hidden bg-orange-100 text-orange-700 flex items-center justify-center text-xl font-bold">
                             <?php if (!empty($existing_sitter['image_url'])): ?>
@@ -661,19 +598,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <?php endif; ?>
                         </div>
                         <div>
-                            <div class="flex items-center gap-2">
-                                <h2 class="text-2xl font-bold text-gray-800"><?php echo htmlspecialchars($user['name'] ?: 'Sitter'); ?></h2>
-                                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-700 border border-green-200">
-                                    <i data-lucide="shield-check" class="w-3 h-3"></i>
-                                    Verified Sitter
-                                </span>
-                            </div>
+                            <h2 class="text-2xl font-bold text-gray-800"><?php echo htmlspecialchars($user['name'] ?: 'Sitter'); ?></h2>
                             <div class="mt-1 text-sm text-gray-500">
                                 Sitter ID: <span class="font-medium"><?php echo htmlspecialchars($existing_sitter['sitter_id']); ?></span>
                             </div>
                         </div>
                     </div>
                     <div class="flex items-center gap-2">
+                        <?php $isVerified = (int)($existing_sitter['verified'] ?? 0) === 1; ?>
+                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold <?php echo $isVerified ? 'bg-green-100 text-green-700 border border-green-200' : 'bg-gray-100 text-gray-700 border'; ?>">
+                            <i data-lucide="<?php echo $isVerified ? 'shield-check' : 'shield'; ?>" class="w-3 h-3"></i>
+                            <?php echo $isVerified ? 'Verified Sitter' : 'Unverified'; ?>
+                        </span>
                         <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium <?php echo ($existing_sitter['active'] ?? 1) ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-gray-100 text-gray-600 border'; ?>">
                             <i data-lucide="activity" class="w-3 h-3"></i>
                             <?php echo ($existing_sitter['active'] ?? 1) ? 'Active' : 'Inactive'; ?>
@@ -686,16 +622,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <?php endif; ?>
                     </div>
                 </div>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div class="p-4 rounded-xl border border-gray-200 bg-white/80">
-                        <div class="text-xs text-gray-500 mb-1">Contact</div>
-                        <div class="font-medium text-gray-800 flex items-center gap-2">
-                            <i data-lucide="phone" class="w-4 h-4 text-gray-500"></i>
-                            <?php echo htmlspecialchars($existing_sitter['contact'] ?: ($user['phone'] ?? '')); ?>
-                        </div>
-                    </div>
-                    <div class="p-4 rounded-xl border border-gray-200 bg-white/80 md:col-span-2">
-                        <div class="text-xs text-gray-500 mb-2">Specialties</div>
+
+                <!-- Sitter Summary (Specialties + Bio) -->
+                <div class="grid grid-cols-1 gap-4 mb-6">
+                    <div class="p-4 rounded-xl border border-blue-100 bg-white/80">
+                        <div class="text-xs text-blue-600 mb-2">Specialties</div>
                         <div class="flex flex-wrap gap-2">
                             <?php if (!empty($existing_sitter['specialty'])): foreach ($existing_sitter['specialty'] as $sp): ?>
                                 <span class="px-3 py-1 bg-orange-50 text-orange-700 border border-orange-200 rounded-full text-xs font-medium"><?php echo htmlspecialchars($sp); ?></span>
@@ -704,22 +635,80 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <?php endif; ?>
                         </div>
                     </div>
+                    <div class="p-4 rounded-xl border border-blue-100 bg-white/80">
+                        <div class="text-xs text-blue-600 mb-1">Bio</div>
+                        <div class="text-gray-800"><?php echo nl2br(htmlspecialchars(($existing_sitter['bio'] ?? '') !== '' ? $existing_sitter['bio'] : 'No bio provided.')); ?></div>
+                    </div>
                 </div>
-                <div class="mt-4 p-4 rounded-xl border border-gray-200 bg-white/80">
-                    <div class="text-xs text-gray-500 mb-1">Bio</div>
-                    <div class="text-gray-800"><?php echo nl2br(htmlspecialchars(($existing_sitter['bio'] ?? '') !== '' ? $existing_sitter['bio'] : 'No bio provided.')); ?></div>
+                <?php endif; ?>
+
+                <!-- Account Information Section -->
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-lg font-semibold text-blue-700 flex items-center gap-2">
+                        <i data-lucide="shield-check" class="w-5 h-5"></i>
+                        Your Account Information
+                    </h2>
+                    <div class="inline-flex items-center rounded-full border border-blue-200 px-3 py-1 text-xs font-medium bg-blue-50 text-blue-600">
+                        <i data-lucide="lock" class="w-3 h-3 mr-1"></i>
+                        Verified Account
+                    </div>
                 </div>
-                <div class="mt-6 flex flex-wrap gap-3 justify-end">
-                    <a href="#" id="edit-profile-btn" class="px-6 py-2 bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white rounded-lg font-semibold inline-flex items-center gap-2">
-                        <i data-lucide="pencil" class="w-4 h-4"></i>
-                        Edit Profile
-                    </a>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="bg-white/80 backdrop-blur-sm rounded-lg p-4 border border-blue-100">
+                        <div class="text-sm text-blue-600 font-medium mb-1">Email Address</div>
+                        <div class="font-semibold text-gray-800"><?php echo htmlspecialchars($user['email']); ?></div>
+                    </div>
+                    <div class="bg-white/80 backdrop-blur-sm rounded-lg p-4 border border-blue-100">
+                        <div class="text-sm text-blue-600 font-medium mb-1">Phone Number</div>
+                        <div class="font-semibold text-gray-800"><?php echo htmlspecialchars(($is_update_mode && !empty($existing_sitter['contact'])) ? $existing_sitter['contact'] : $user['phone']); ?></div>
+                    </div>
+                </div>
+
+                <div class="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                    <p class="text-sm text-blue-700">
+                        <i data-lucide="info" class="w-4 h-4 inline mr-1"></i>
+                        This information is automatically linked to your sitter profile. To update these details, 
+                        <a href="profile.php" class="underline hover:no-underline font-medium">visit your profile page</a>.
+                    </p>
                 </div>
             </div>
         </div>
-        <?php endif; ?>
+
+        <!-- Sitter Application Form -->
+        <?php /* Removed separate overview since it's now combined into the banner above */ ?>
 
         <div class="max-w-4xl mx-auto" id="edit-profile-start">
+            <!-- Steps at the top of edit section -->
+            <div class="mb-6" id="form-progress">
+                <div class="flex items-center gap-4 justify-between">
+                    <div class="flex items-center gap-3">
+                        <div class="progress-step active" data-step="1">
+                            <i data-lucide="user-check" class="w-5 h-5"></i>
+                        </div>
+                        <div class="progress-connector"></div>
+                        <div class="progress-step" data-step="2">
+                            <i data-lucide="heart" class="w-5 h-5"></i>
+                        </div>
+                        <div class="progress-connector"></div>
+                        <div class="progress-step" data-step="3">
+                            <i data-lucide="camera" class="w-5 h-5"></i>
+                        </div>
+                        <div class="progress-connector"></div>
+                        <div class="progress-step" data-step="4">
+                            <i data-lucide="check-circle" class="w-5 h-5"></i>
+                        </div>
+                    </div>
+                    <div class="flex-1 mx-4">
+                        <div class="w-full bg-gray-200 rounded-full h-2">
+                            <div id="progress-fill" class="h-2 bg-gradient-to-r from-orange-500 to-amber-600 rounded-full transition-all duration-300" style="width: 25%"></div>
+                        </div>
+                    </div>
+                    <div class="flex items-center text-sm text-gray-600">
+                        <span class="font-medium">Step <span id="current-step">1</span> of 4</span>
+                    </div>
+                </div>
+            </div>
             <form id="sitter-form" class="space-y-8">
                 <?php if ($is_update_mode): ?>
                     <input type="hidden" name="sitters_contact" value="<?php echo htmlspecialchars($existing_sitter['contact'] ?: $user['phone']); ?>">
@@ -855,11 +844,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         
                     </div>
 
-                    <div class="flex justify-between mt-8">
-                        <button type="button" class="prev-step px-8 py-3 border-2 border-gray-300 text-gray-700 font-semibold rounded-lg transition-all duration-300 hover:border-orange-500 hover:text-orange-600 flex items-center gap-2">
-                            <i data-lucide="arrow-left" class="w-4 h-4"></i>
-                            <span>Back</span>
-                        </button>
+                    <div class="flex justify-end mt-8">
                         <button type="button" class="next-step px-8 py-3 bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white font-semibold rounded-lg transition-all duration-300 transform hover:scale-105 flex items-center gap-2">
                             <span>Next: Experience & Photo</span>
                             <i data-lucide="arrow-right" class="w-4 h-4"></i>
@@ -983,8 +968,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <!-- Sitter Profile Preview -->
                     <div class="bg-gradient-to-br from-orange-50 to-amber-50 rounded-2xl p-6 border-2 border-orange-200 mb-8" id="profile-preview">
                         <div class="flex items-center gap-6 mb-6">
-                            <div class="w-24 h-24 bg-gradient-to-br from-orange-400 to-amber-500 rounded-full flex items-center justify-center text-white text-2xl font-bold" id="preview-avatar">
-                                <?php echo strtoupper(substr($user['name'], 0, 1)); ?>
+                            <div class="w-24 h-24 bg-gradient-to-br from-orange-400 to-amber-500 rounded-full flex items-center justify-center text-white text-2xl font-bold overflow-hidden" id="preview-avatar">
+                                <?php if (!empty($existing_sitter['image_url'])): ?>
+                                    <?php
+                                        $imgR = $existing_sitter['image_url'];
+                                        $isAbsR = preg_match('/^https?:\/\//i', $imgR);
+                                        $scriptR = $_SERVER['SCRIPT_NAME'] ?? '';
+                                        $posR = strpos($scriptR, '/views/');
+                                        $basePrefixR = $posR !== false ? substr($scriptR, 0, $posR) : '';
+                                        $srcR = $isAbsR ? $imgR : rtrim($basePrefixR, '/') . '/' . ltrim($imgR, '/');
+                                    ?>
+                                    <img src="<?php echo htmlspecialchars($srcR); ?>" alt="Profile" class="w-full h-full object-cover rounded-full">
+                                <?php else: ?>
+                                    <?php echo strtoupper(substr($user['name'], 0, 1)); ?>
+                                <?php endif; ?>
                             </div>
                             <div>
                                 <h3 class="text-2xl font-bold text-gray-800"><?php echo htmlspecialchars($user['name']); ?></h3>
@@ -1105,29 +1102,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </div>
     </main>
 
-    <!-- Sticky Actions Bar -->
-    <div class="sticky-actions" id="sticky-actions">
-        <div class="container mx-auto px-4">
-            <div class="flex items-center justify-between py-4">
-                <div class="flex items-center gap-4">
-                    <div class="text-sm text-gray-600">
-                        <span class="font-medium">Step <span id="current-step">1</span> of 4</span>
-                    </div>
-                    <div class="w-48 bg-gray-200 rounded-full h-2">
-                        <div id="progress-fill" class="h-2 bg-gradient-to-r from-orange-500 to-amber-600 rounded-full transition-all duration-300" style="width: 25%"></div>
-                    </div>
-                </div>
-                <div class="flex items-center gap-3">
-                    <button type="button" id="sticky-save" class="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:border-orange-500 hover:text-orange-600 transition-colors duration-300">
-                        Save Draft
-                    </button>
-                    <button type="button" id="sticky-next" class="px-6 py-2 bg-gradient-to-r from-orange-500 to-amber-600 text-white rounded-lg hover:from-orange-600 hover:to-amber-700 transition-all duration-300">
-                        Next Step
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
+    
 
     <!-- Success Modal -->
     <div id="success-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
@@ -1142,7 +1117,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <!-- Populated by JavaScript -->
             </p>
             <div class="flex gap-3">
-                <a href="user-profile.php" class="flex-1 px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors duration-300">
+                <a href="profile.php" class="flex-1 px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors duration-300">
                     View Profile
                 </a>
                 <a href="index.php" class="flex-1 px-6 py-3 bg-gradient-to-r from-orange-500 to-amber-600 text-white rounded-lg hover:from-orange-600 hover:to-amber-700 transition-all duration-300">
@@ -1170,12 +1145,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     let currentStep = <?php echo $is_update_mode ? '2' : '1'; ?>;
         const totalSteps = 4;
 
-        function initializeSitterForm() {
+    function initializeSitterForm() {
             // Update mode detection
             const isUpdateMode = <?php echo $is_update_mode ? 'true' : 'false'; ?>;
             
             // Initialize step navigation
             setupStepNavigation();
+            // Prevent accidental form submits via Enter key on intermediate steps
+            setupEnterKeyProgression();
             
             // Initialize specialty selection
             setupSpecialtySelection();
@@ -1189,8 +1166,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // Initialize form validation
             setupFormValidation();
             
-            // Show sticky actions when scrolling
-            setupStickyActions();
+            // Sticky actions were removed; no setup needed
             
             // Auto-save functionality
             setupAutoSave();
@@ -1200,19 +1176,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             
             // Populate existing data if in update mode and ensure correct step visibility
             if (isUpdateMode) {
-                // Make sure step 2 is visible and step 1 is hidden (removed in PHP too)
+                // Force the UI to start on Step 2 (Pet Care Specialties) for edit mode
+                currentStep = 2;
                 const s2 = document.getElementById('step-2');
                 if (s2) s2.classList.remove('hidden');
                 const s1 = document.getElementById('step-1');
                 if (s1) s1.classList.add('hidden');
+                // Make sure other steps are hidden until navigated to
+                const s3 = document.getElementById('step-3');
+                const s4 = document.getElementById('step-4');
+                if (s3) s3.classList.add('hidden');
+                if (s4) s4.classList.add('hidden');
                 populateExistingData();
+                // Reflect progress and labels
+                updateProgress();
+                updateProgressBar();
             }
         }
 
         function setupStepNavigation() {
             // Next step buttons
             document.querySelectorAll('.next-step').forEach(button => {
-                button.addEventListener('click', () => {
+                button.addEventListener('click', (e) => {
+                    // Ensure no implicit form submission
+                    e.preventDefault();
                     if (validateCurrentStep()) {
                         nextStep();
                     }
@@ -1221,44 +1208,63 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             // Previous step buttons
             document.querySelectorAll('.prev-step').forEach(button => {
-                button.addEventListener('click', prevStep);
+                button.addEventListener('click', (e) => {
+                    // Ensure no implicit form submission
+                    e.preventDefault();
+                    prevStep();
+                });
             });
 
-            // Sticky navigation
-            document.getElementById('sticky-next').addEventListener('click', () => {
+            // Toolbar navigation
+            const tbNext = document.getElementById('toolbar-next');
+            if (tbNext) tbNext.addEventListener('click', () => {
                 if (currentStep < totalSteps) {
-                    if (validateCurrentStep()) {
-                        nextStep();
-                    }
+                    if (validateCurrentStep()) nextStep();
                 } else {
-                    document.getElementById('submit-profile').click();
+                    const submit = document.getElementById('submit-profile');
+                    if (submit) submit.click();
                 }
             });
+
+            // Allow clicking on completed steps to navigate back
+            document.querySelectorAll('.progress-step').forEach(stepEl => {
+                stepEl.setAttribute('tabindex', '0');
+                stepEl.addEventListener('click', () => {
+                    const target = parseInt(stepEl.getAttribute('data-step'));
+                    if (!isNaN(target) && target <= currentStep) {
+                        setCurrentStep(target);
+                    }
+                });
+                stepEl.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        const target = parseInt(stepEl.getAttribute('data-step'));
+                        if (!isNaN(target) && target <= currentStep) {
+                            setCurrentStep(target);
+                        }
+                    }
+                });
+            });
         }
 
-        function nextStep() {
-            if (currentStep < totalSteps) {
-                // Hide current step
-                document.getElementById(`step-${currentStep}`).classList.add('hidden');
-                
-                // Show next step
-                currentStep++;
-                const nextStepElement = document.getElementById(`step-${currentStep}`);
-                nextStepElement.classList.remove('hidden');
-                
-                // Update progress
-                updateProgress();
-                
-                // Update sticky actions
-                updateStickyActions();
-                
-                // Scroll to top
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-                
-                // Update progress bar visual
-                updateProgressBar();
-            }
+        function setCurrentStep(step) {
+            if (step < 1 || step > totalSteps) return;
+            // Hide current
+            const currentEl = document.getElementById(`step-${currentStep}`);
+            if (currentEl) currentEl.classList.add('hidden');
+            // Update index
+            currentStep = step;
+            // Show target
+            const targetEl = document.getElementById(`step-${currentStep}`);
+            if (targetEl) targetEl.classList.remove('hidden');
+            // Update visuals
+            updateProgress();
+            updateProgressBar();
+            // Scroll to top for visual continuity
+            window.scrollTo({ top: 0, behavior: 'smooth' });
         }
+
+    function nextStep() { if (currentStep < totalSteps) setCurrentStep(currentStep + 1); }
 
         function prevStep() {
             if (currentStep > 1) {
@@ -1273,15 +1279,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 // Update progress
                 updateProgress();
                 
-                // Update sticky actions
-                updateStickyActions();
-                
                 // Scroll to top
                 window.scrollTo({ top: 0, behavior: 'smooth' });
                 
                 // Update progress bar visual
                 updateProgressBar();
             }
+        }
+
+        // Prevent Enter key from submitting the form before the final step
+        function setupEnterKeyProgression() {
+            const form = document.getElementById('sitter-form');
+            if (!form) return;
+            form.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    const target = e.target;
+                    const tag = (target && target.tagName) ? target.tagName.toUpperCase() : '';
+                    const isTextarea = tag === 'TEXTAREA';
+                    const isButton = tag === 'BUTTON';
+                    const isSubmitButton = isButton && (target.type === 'submit');
+                    // Allow Enter in textarea and on the final submit button
+                    if (isTextarea || isSubmitButton) return;
+                    // If not on final step, prevent default submit and go to next step if valid
+                    if (currentStep < totalSteps) {
+                        e.preventDefault();
+                        if (validateCurrentStep()) nextStep();
+                    }
+                }
+            });
         }
 
         function updateProgress() {
@@ -1310,22 +1335,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         function updateProgressBar() {
             const progressFill = document.getElementById('progress-fill');
-            const percentage = (currentStep / totalSteps) * 100;
-            progressFill.style.width = percentage + '%';
-        }
-
-        function updateStickyActions() {
             const currentStepSpan = document.getElementById('current-step');
-            const stickyNext = document.getElementById('sticky-next');
-            
-            currentStepSpan.textContent = currentStep;
-            
-            if (currentStep === totalSteps) {
-                stickyNext.innerHTML = '<i data-lucide="check-circle" class="w-4 h-4 mr-2"></i>Submit Profile';
-                lucide.createIcons();
-            } else {
-                stickyNext.innerHTML = 'Next Step';
-            }
+            const percentage = (currentStep / totalSteps) * 100;
+            if (progressFill) progressFill.style.width = percentage + '%';
+            if (currentStepSpan) currentStepSpan.textContent = String(currentStep);
         }
 
         function setupSpecialtySelection() {
@@ -1583,27 +1596,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             
             // Confetti effect (simple version)
             setTimeout(() => {
-                window.location.href = 'user-profile.php';
+                window.location.href = 'profile.php';
             }, 3000);
         }
 
-        function setupStickyActions() {
-            const stickyActions = document.getElementById('sticky-actions');
-            let isVisible = false;
-            
-            window.addEventListener('scroll', () => {
-                const scrollPosition = window.scrollY;
-                const shouldShow = scrollPosition > 200;
-                
-                if (shouldShow && !isVisible) {
-                    stickyActions.classList.add('visible');
-                    isVisible = true;
-                } else if (!shouldShow && isVisible) {
-                    stickyActions.classList.remove('visible');
-                    isVisible = false;
-                }
-            });
-        }
+        // Removed setupStickyActions
 
         function setupAutoSave() {
             // Auto-save functionality
@@ -1615,8 +1612,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             });
             
             // Manual save buttons
-            document.getElementById('save-draft').addEventListener('click', saveFormData);
-            document.getElementById('sticky-save').addEventListener('click', saveFormData);
+            const btnSave = document.getElementById('save-draft');
+            if (btnSave) btnSave.addEventListener('click', saveFormData);
+            const tbSave = document.getElementById('toolbar-save');
+            if (tbSave) tbSave.addEventListener('click', saveFormData);
         }
 
         function saveFormData() {

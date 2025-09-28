@@ -824,9 +824,18 @@ function resolveImageUrl($path) {
                                     <?php
                                     $sitterRows = [];
                                     if (isset($connections) && $connections) {
-                                        $qs = "SELECT sitters_id, sitters_name, sitters_bio, sitter_email, sitters_contact, sitter_specialty, sitters_image_url, sitters_active, years_experience FROM sitters ORDER BY sitters_id DESC";
+                                        $hasVerified = false;
+                                        if ($chk = @mysqli_query($connections, "SHOW COLUMNS FROM sitters LIKE 'sitters_verified'")) {
+                                            $hasVerified = mysqli_num_rows($chk) > 0; mysqli_free_result($chk);
+                                        }
+                                        $qs = $hasVerified
+                                            ? "SELECT sitters_id, sitters_name, sitters_bio, sitter_email, sitters_contact, sitter_specialty, sitters_image_url, sitters_active, years_experience, sitters_verified FROM sitters ORDER BY sitters_id DESC"
+                                            : "SELECT sitters_id, sitters_name, sitters_bio, sitter_email, sitters_contact, sitter_specialty, sitters_image_url, sitters_active, years_experience FROM sitters ORDER BY sitters_id DESC";
                                         if ($res = mysqli_query($connections, $qs)) {
-                                            while ($r = mysqli_fetch_assoc($res)) { $sitterRows[] = $r; }
+                                            while ($r = mysqli_fetch_assoc($res)) { 
+                                                if (!isset($r['sitters_verified'])) { $r['sitters_verified'] = 0; }
+                                                $sitterRows[] = $r; 
+                                            }
                                             mysqli_free_result($res);
                                         }
                                     }
@@ -905,7 +914,11 @@ function resolveImageUrl($path) {
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900"><?php echo htmlspecialchars($experience ?: '-'); ?></td>
                                             <td class="px-6 py-4 whitespace-nowrap">
-                                                <span class="px-2 py-1 text-xs rounded-full <?php echo (int)$s['sitters_active'] === 1 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'; ?>"><?php echo (int)$s['sitters_active'] === 1 ? 'Active' : 'Inactive'; ?></span>
+                                                <?php $verified = isset($s['sitters_verified']) ? (int)$s['sitters_verified'] : 0; ?>
+                                                <div class="flex items-center gap-2">
+                                                    <span class="px-2 py-1 text-xs rounded-full <?php echo (int)$s['sitters_active'] === 1 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'; ?>"><?php echo (int)$s['sitters_active'] === 1 ? 'Active' : 'Inactive'; ?></span>
+                                                    <span class="px-2 py-1 text-xs rounded-full <?php echo $verified===1 ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'; ?>"><?php echo $verified===1 ? 'Verified' : 'Unverified'; ?></span>
+                                                </div>
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                                 <div class="flex items-center gap-2">
@@ -981,10 +994,15 @@ function resolveImageUrl($path) {
                                         </div>
                                     </div>
                                 </div>
-                                <div class="flex items-center justify-between gap-2 pt-2">
-                                    <label class="inline-flex items-center gap-2 text-sm">
-                                        <input type="checkbox" name="sitters_active" value="1" class="rounded border-gray-300"> Active
-                                    </label>
+                                    <div class="flex items-center justify-between gap-2 pt-2">
+                                    <div class="flex items-center gap-4">
+                                        <label class="inline-flex items-center gap-2 text-sm">
+                                            <input type="checkbox" name="sitters_active" value="1" class="rounded border-gray-300"> Active
+                                        </label>
+                                        <label class="inline-flex items-center gap-2 text-sm">
+                                            <input type="checkbox" name="sitters_verified" value="1" class="rounded border-gray-300"> Verified
+                                        </label>
+                                    </div>
                                     <div class="flex items-center gap-2">
                                         <button type="button" id="cancelAddSitter" class="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50">Cancel</button>
                                         <button type="submit" class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700">Save Sitter</button>
@@ -1043,10 +1061,16 @@ function resolveImageUrl($path) {
                                     <textarea name="sitters_bio" id="edit_sitters_bio" rows="3" class="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2" placeholder="Short profile shown to pet owners"></textarea>
                                 </div>
                                 <div class="flex items-center justify-between gap-2 pt-2">
-                                    <label class="inline-flex items-center gap-2">
-                                        <input type="checkbox" name="sitters_active" id="edit_sitters_active" value="1" class="rounded border-gray-300">
-                                        <span>Active</span>
-                                    </label>
+                                    <div class="flex items-center gap-4">
+                                        <label class="inline-flex items-center gap-2">
+                                            <input type="checkbox" name="sitters_active" id="edit_sitters_active" value="1" class="rounded border-gray-300">
+                                            <span>Active</span>
+                                        </label>
+                                        <label class="inline-flex items-center gap-2">
+                                            <input type="checkbox" name="sitters_verified" id="edit_sitters_verified" value="1" class="rounded border-gray-300">
+                                            <span>Verified</span>
+                                        </label>
+                                    </div>
                                     <div class="flex gap-2">
                                         <button type="button" id="cancelEditSitter" class="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50">Cancel</button>
                                         <button type="submit" class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700">Update Sitter</button>
@@ -1082,6 +1106,7 @@ function resolveImageUrl($path) {
                             const editBio = document.getElementById('edit_sitters_bio');
                             const editDescription = document.getElementById('edit_description');
                             const editActive = document.getElementById('edit_sitters_active');
+                            const editVerified = document.getElementById('edit_sitters_verified');
                             // Specialties elements (add)
                             const addOtherSpec = document.getElementById('addOtherSpec');
                             const addOtherWrapper = document.getElementById('addOtherWrapper');
@@ -1195,9 +1220,14 @@ function resolveImageUrl($path) {
                                     tr.appendChild(addr(bio ? `<span title="${esc(bio)}">${esc(bioShort)}</span>` : '-'));
                                     // Experience
                                     tr.appendChild(addr(esc((s.years_experience? (String(s.years_experience)+ ' yrs') : (s.experience||'')))))
-                                    // Status
+                                    // Status (merged: Active + Verified)
                                     const active = String(s.active)==='1' || s.active===1 || s.active===true;
-                                    tr.appendChild(addr(`<span class="px-2 py-1 text-xs rounded-full ${active?'bg-green-100 text-green-800':'bg-red-100 text-red-800'}">${active?'Active':'Inactive'}</span>`));
+                                    const verified = String(s.verified)==='1' || s.verified===1 || s.verified===true;
+                                    tr.appendChild(addr(`
+                                        <div class="flex items-center gap-2">
+                                            <span class="px-2 py-1 text-xs rounded-full ${active?'bg-green-100 text-green-800':'bg-red-100 text-red-800'}">${active?'Active':'Inactive'}</span>
+                                            <span class="px-2 py-1 text-xs rounded-full ${verified?'bg-blue-100 text-blue-800':'bg-gray-100 text-gray-800'}">${verified?'Verified':'Unverified'}</span>
+                                        </div>`));
                                     // Actions
                                     const actions = document.createElement('td');
                                     actions.className='px-6 py-4 whitespace-nowrap text-sm text-gray-500';
@@ -1237,6 +1267,7 @@ function resolveImageUrl($path) {
                                         editYears.value = s.years_experience||0;
                                         editBio.value = s.bio||'';
                                         editActive.checked = String(s.active)==='1' || s.active===1 || s.active===true;
+                                        if (editVerified) editVerified.checked = String(s.verified)==='1' || s.verified===1 || s.verified===true;
                                         // Populate specialties checkboxes in edit form
                                         try {
                                             const specBoxes = editModal.querySelectorAll('#editSpecialtiesGroup input[type="checkbox"][name="sitters_specialty[]"]');
@@ -1317,8 +1348,14 @@ function resolveImageUrl($path) {
                                         tds[3].innerHTML = bio2 ? `<span title="${esc(bio2)}">${esc(bioShort2)}</span>` : '-';
                                         // Experience years (4)
                                         tds[4].textContent = (s.years_experience && Number(s.years_experience)>0) ? `${Number(s.years_experience)} yrs` : (s.experience||'-');
-                                        // Status (5)
-                                        tds[5].innerHTML = `<span class="px-2 py-1 text-xs rounded-full ${ (String(s.active)==='1'||s.active===1||s.active===true) ? 'bg-green-100 text-green-800':'bg-red-100 text-red-800'}">${ (String(s.active)==='1'||s.active===1||s.active===true) ? 'Active':'Inactive' }</span>`;
+                                        // Status (5) merged: Active + Verified
+                                        const isActive2 = (String(s.active)==='1'||s.active===1||s.active===true);
+                                        const isVerified2 = (String(s.verified)==='1'||s.verified===1||s.verified===true);
+                                        tds[5].innerHTML = `
+                                            <div class="flex items-center gap-2">
+                                                <span class="px-2 py-1 text-xs rounded-full ${ isActive2 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800' }">${ isActive2 ? 'Active' : 'Inactive' }</span>
+                                                <span class="px-2 py-1 text-xs rounded-full ${ isVerified2 ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800' }">${ isVerified2 ? 'Verified' : 'Unverified' }</span>
+                                            </div>`;
                                         if (window.lucide && lucide.createIcons) lucide.createIcons();
                                     }
                                     closeEdit();

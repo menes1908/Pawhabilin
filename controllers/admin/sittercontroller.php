@@ -42,6 +42,11 @@ function ensure_sitter_columns_admin(mysqli $conn) {
     if (mysqli_errno($conn) === 1064) {
         @mysqli_query($conn, "ALTER TABLE sitters ADD COLUMN years_experience INT NULL");
     }
+    // Add verified flag if missing
+    @mysqli_query($conn, "ALTER TABLE sitters ADD COLUMN IF NOT EXISTS sitters_verified TINYINT(1) NOT NULL DEFAULT 0");
+    if (mysqli_errno($conn) === 1064) {
+        @mysqli_query($conn, "ALTER TABLE sitters ADD COLUMN sitters_verified TINYINT(1) NOT NULL DEFAULT 0");
+    }
 }
 
 $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
@@ -54,7 +59,7 @@ if ($method === 'GET' && $action === 'get') {
     global $connections;
     if (!$connections) json_response(['success' => false, 'error' => 'Database connection error.'], 500);
     ensure_sitter_columns_admin($connections);
-    $sql = "SELECT sitters_id, sitters_name, sitters_bio, sitter_email, sitters_contact, sitter_specialty, sitter_experience, sitters_image_url, sitters_active, years_experience FROM sitters WHERE sitters_id = ? LIMIT 1";
+    $sql = "SELECT sitters_id, sitters_name, sitters_bio, sitter_email, sitters_contact, sitter_specialty, sitter_experience, sitters_image_url, sitters_active, years_experience, sitters_verified FROM sitters WHERE sitters_id = ? LIMIT 1";
     if (!$stmt = mysqli_prepare($connections, $sql)) json_response(['success' => false, 'error' => 'Failed to prepare select.'], 500);
     mysqli_stmt_bind_param($stmt, 'i', $id);
     mysqli_stmt_execute($stmt);
@@ -77,6 +82,7 @@ if ($method === 'GET' && $action === 'get') {
             'specialties' => $specs,
             'specialties_str' => $specStr,
             'active' => (int)$row['sitters_active'],
+            'verified' => isset($row['sitters_verified']) ? (int)$row['sitters_verified'] : 0,
             'db_image_url' => $row['sitters_image_url'],
             'image' => web_path_from_db($row['sitters_image_url'])
         ]
@@ -103,6 +109,7 @@ if ($method === 'POST' && $action === 'add') {
     $allSpecs = array_values(array_filter(array_map(function($s){ return trim($s); }, array_merge($specialties, $extras)), function($s){ return $s !== ''; }));
     $specStr = implode(', ', $allSpecs);
     $active = isset($_POST['sitters_active']) ? 1 : 0;
+    $verified = isset($_POST['sitters_verified']) ? 1 : 0;
 
     if ($name === '') json_response(['success' => false, 'error' => 'Sitter name is required.'], 400);
 
@@ -132,9 +139,9 @@ if ($method === 'POST' && $action === 'add') {
 
     // Keep sitter_experience populated for compatibility with older views
     $experienceToStore = $experience;
-    $sql = "INSERT INTO sitters (years_experience, sitters_name, sitters_bio, sitter_email, sitters_contact, sitter_specialty, sitter_experience, sitters_image_url, sitters_active) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+    $sql = "INSERT INTO sitters (years_experience, sitters_name, sitters_bio, sitter_email, sitters_contact, sitter_specialty, sitter_experience, sitters_image_url, sitters_active, sitters_verified) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
     if (!$stmt = mysqli_prepare($connections, $sql)) json_response(['success' => false, 'error' => 'Failed to prepare insert.'], 500);
-    mysqli_stmt_bind_param($stmt, 'isssssssi', $years, $name, $bio, $email, $phone, $specStr, $experienceToStore, $dbImagePath, $active);
+    mysqli_stmt_bind_param($stmt, 'issssssssi', $years, $name, $bio, $email, $phone, $specStr, $experienceToStore, $dbImagePath, $active, $verified);
     $ok = mysqli_stmt_execute($stmt);
     if (!$ok) {
         $err = mysqli_error($connections);
@@ -158,6 +165,7 @@ if ($method === 'POST' && $action === 'add') {
             'specialties_str' => $specStr,
             'active' => $active,
             'status' => $active ? 'active' : 'inactive',
+            'verified' => $verified,
             'db_image_url' => $dbImagePath,
             'image' => $webImagePath
         ]
@@ -185,6 +193,7 @@ if ($method === 'POST' && $action === 'update') {
     $allSpecs = array_values(array_filter(array_map('trim', array_merge($specialties, $extras)), function($s){ return $s !== ''; }));
     $specStr = implode(', ', $allSpecs);
     $active = isset($_POST['sitters_active']) ? 1 : 0;
+    $verified = isset($_POST['sitters_verified']) ? 1 : 0;
     $removeImage = isset($_POST['remove_image']) ? 1 : 0;
 
     global $connections;
@@ -229,9 +238,9 @@ if ($method === 'POST' && $action === 'update') {
     }
 
     $experienceToStore = $experience;
-    $sql = "UPDATE sitters SET years_experience = ?, sitters_name = ?, sitters_bio = ?, sitter_email = ?, sitters_contact = ?, sitter_specialty = ?, sitter_experience = ?, sitters_image_url = ?, sitters_active = ? WHERE sitters_id = ?";
+    $sql = "UPDATE sitters SET years_experience = ?, sitters_name = ?, sitters_bio = ?, sitter_email = ?, sitters_contact = ?, sitter_specialty = ?, sitter_experience = ?, sitters_image_url = ?, sitters_active = ?, sitters_verified = ? WHERE sitters_id = ?";
     if (!$stmt = mysqli_prepare($connections, $sql)) json_response(['success' => false, 'error' => 'Failed to prepare update.'], 500);
-    mysqli_stmt_bind_param($stmt, 'isssssssii', $years, $name, $bio, $email, $phone, $specStr, $experienceToStore, $dbImagePath, $active, $id);
+    mysqli_stmt_bind_param($stmt, 'isssssssiii', $years, $name, $bio, $email, $phone, $specStr, $experienceToStore, $dbImagePath, $active, $verified, $id);
     $ok = mysqli_stmt_execute($stmt);
     if (!$ok) { $err = mysqli_error($connections); mysqli_stmt_close($stmt); json_response(['success' => false, 'error' => 'Update failed: ' . $err], 500); }
     mysqli_stmt_close($stmt);
@@ -250,6 +259,7 @@ if ($method === 'POST' && $action === 'update') {
             'specialties_str' => $specStr,
             'active' => $active,
             'status' => $active ? 'active' : 'inactive',
+            'verified' => $verified,
             'db_image_url' => $dbImagePath,
             'image' => $webImagePath
         ]

@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Ge-- Generation Time: Sep 28, 2025 at 07:05 AM
+-- Generation Time: Sep 28, 2025 at 09:11 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.0.30
 
@@ -114,14 +114,6 @@ CREATE TABLE `deliveries` (
   `deliveries_recipient_signature` varchar(100) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
---
--- Dumping data for table `deliveries`
---
-
-INSERT INTO `deliveries` (`deliveries_id`, `transactions_id`, `location_id`, `deliveries_delivery_status`, `deliveries_estimated_delivery_date`, `deliveries_actual_delivery_date`, `deliveries_recipient_signature`) VALUES
-(1, 3, 2, 'processing', '2025-09-28', NULL, NULL),
-(2, 4, 1, 'delivered', '2025-09-29', '2025-09-29', '1');
-
 -- --------------------------------------------------------
 
 --
@@ -144,14 +136,6 @@ CREATE TABLE `locations` (
   `location_created_at` datetime NOT NULL DEFAULT current_timestamp(),
   `location_updated_at` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
--- Dumping data for table `locations`
---
-
-INSERT INTO `locations` (`location_id`, `users_id`, `location_label`, `location_recipient_name`, `location_phone`, `location_address_line1`, `location_address_line2`, `location_barangay`, `location_city`, `location_province`, `location_is_default`, `location_active`, `location_created_at`, `location_updated_at`) VALUES
-(1, 2, 'Home', 'Accel John', '09023347823', '012, Residence', 'beside alfamart', 'poblacion', 'lipa', 'batangas', 0, 1, '2025-09-26 21:12:41', '2025-09-26 21:12:41'),
-(2, 2, 'Office', 'Angel Curtis', '09328942394', '56', 'Highway lang tabi ng shell', 'purok 2', 'lian', 'batangas', 0, 1, '2025-09-26 21:13:53', '2025-09-26 21:13:53');
 
 --
 -- Triggers `locations`
@@ -196,9 +180,28 @@ CREATE TABLE `pets` (
 
 INSERT INTO `pets` (`pets_id`, `users_id`, `pets_name`, `pets_species`, `pets_breed`, `pets_gender`, `pets_image_url`, `pets_created_at`) VALUES
 (1, 2, 'Fred', 'Dog', 'Shih Tzu', 'male', NULL, '2025-09-23 17:49:35'),
-(2, 2, 'Kitty', 'Cat', 'Egyptian', 'female', NULL, '2025-09-23 17:50:19'),
-(10, 2, 'Jen', 'Horse', '', 'male', NULL, '2025-09-26 20:13:48'),
-(13, 2, 'Uno', 'Bird', 'Vulture', 'male', NULL, '2025-09-26 21:23:43');
+(2, 2, 'Kitty', 'Cat', 'Egyptian', 'female', NULL, '2025-09-23 17:50:19');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `pickups`
+--
+
+CREATE TABLE `pickups` (
+  `pickups_id` int(11) NOT NULL,
+  `transactions_id` int(11) NOT NULL,
+  `pickups_pickup_date` date NOT NULL,
+  `pickups_pickup_time` time NOT NULL CHECK (`pickups_pickup_time` between '08:00:00' and '17:00:00'),
+  `pickups_pickup_status` enum('scheduled','picked_up','cancelled') DEFAULT 'scheduled'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `pickups`
+--
+
+INSERT INTO `pickups` (`pickups_id`, `transactions_id`, `pickups_pickup_date`, `pickups_pickup_time`, `pickups_pickup_status`) VALUES
+(1, 1, '2025-09-26', '10:00:00', 'scheduled');
 
 -- --------------------------------------------------------
 
@@ -235,8 +238,7 @@ INSERT INTO `products` (`products_id`, `products_name`, `products_pet_type`, `pr
 (8, '23qwra', 'Cat', 'waqdc', 'necessity', 234.00, NULL, '234', NULL, 1, '2025-09-20 12:05:36'),
 (9, 'q3awr3weqr', 'Cat', '23wetfesdf', 'necessity', 345.00, NULL, '234', NULL, 1, '2025-09-20 12:05:50'),
 (10, 't43wegdxz', 'Bird', 'sdregsdfg', 'necessity', 3425.00, NULL, '324', NULL, 1, '2025-09-20 12:06:20'),
-(11, '345rt', 'Bird', '6346', 'necessity', 345.00, NULL, '234', NULL, 1, '2025-09-20 12:06:36'),
-(12, 'feswd', 'Dog', 'rewdfeasdf', 'accessory', 23.00, NULL, '33', NULL, 0, '2025-09-27 21:44:22');
+(11, '345rt', 'Bird', '6346', 'necessity', 345.00, NULL, '234', NULL, 1, '2025-09-20 12:06:36');
 
 -- --------------------------------------------------------
 
@@ -251,9 +253,11 @@ CREATE TABLE `sitters` (
   `sitter_email` varchar(255) NOT NULL,
   `sitters_contact` varchar(255) DEFAULT NULL,
   `sitter_specialty` varchar(255) NOT NULL,
+  `sitter_experience` varchar(255) NOT NULL,
   `sitters_image_url` varchar(255) DEFAULT NULL,
   `sitters_active` tinyint(1) DEFAULT 1,
   `sitters_created_at` datetime DEFAULT current_timestamp(),
+  `sitters_verified` tinyint(1) NOT NULL DEFAULT 0,
   `years_experience` int(11) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
@@ -261,19 +265,20 @@ CREATE TABLE `sitters` (
 -- Dumping data for table `sitters`
 --
 
-INSERT INTO `sitters` (`sitters_id`, `si  `sitters_verified` tinyint(1) NOT NULL DEFAULT 0,
-  `sitters_created_at` datetime DEFAULT current_timestamp(),
-  `years_experience` int(11) DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+INSERT INTO `sitters` (`sitters_id`, `sitters_name`, `sitters_bio`, `sitter_email`, `sitters_contact`, `sitter_specialty`, `sitter_experience`, `sitters_image_url`, `sitters_active`, `sitters_created_at`, `sitters_verified`, `years_experience`) VALUES
+(1, 'John Ricardo', 'qw3aed', 'jr@gmail.com', '0956 789 0999', 'Dog, Cat, Fish', '4 years', 'pictures/sitters/images-1758347866-6335.jpg', 1, '2025-09-20 13:57:46', 0, NULL),
+(2, 'ampuiti amputi', 'aaaa', 'amaputie@gmail.com', '0956159882', 'Dogs, Cats, Birds', '', 'pictures/sitters/amaputie-gmail-com-1759042950-8787.png', 1, '2025-09-28 15:02:36', 1, 2);
+
+-- --------------------------------------------------------
 
 --
--- Dumping data for table `sitters`
+-- Table structure for table `subscriptions`
 --
 
-INSERT INTO `sitters` (`sitters_id`, `sitters_name`, `sitters_bio`, `sitter_email`, `sitters_contact`, `sitter_specialty`, `sitters_image_url`, `sitters_active`, `sitters_verified`, `sitters_created_at`, `years_experience`) VALUES
-(1, 'John Ricardo', 'qw3aed', 'jr@gmail.com', '0956 789 0999', '', 'pictures/sitters/images-1758347866-6335.jpg', 1, 0, '2025-09-20 13:57:46', 2),
-(2, 'Jastin', 'asewdawd', 'ja@gmail.com', '09283946727', 'Dog, Cat, Fish', 'pictures/sitters/luffy-1758964723-6685.png', 1, 1, '2025-09-27 17:18:43', 3);
-EFAULT NULL,
+CREATE TABLE `subscriptions` (
+  `subscriptions_id` int(11) NOT NULL,
+  `subscriptions_name` varchar(100) NOT NULL,
+  `subscriptions_description` text DEFAULT NULL,
   `subscriptions_price` decimal(10,2) NOT NULL,
   `subscriptions_duration_days` int(11) NOT NULL,
   `subscriptions_active` tinyint(1) DEFAULT 1,
@@ -290,7 +295,8 @@ CREATE TABLE `transactions` (
   `transactions_id` int(11) NOT NULL,
   `users_id` int(11) NOT NULL,
   `transactions_amount` decimal(10,2) NOT NULL,
-  `transactions_type` enum('product','subscription') NOT NULL,
+  `transactions_type` enum('product','appointment','subscription') NOT NULL,
+  `transactions_fulfillment_type` enum('delivery','pickup') DEFAULT NULL,
   `transactions_payment_method` enum('cod','gcash','maya') DEFAULT NULL,
   `transactions_created_at` datetime DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
@@ -299,9 +305,8 @@ CREATE TABLE `transactions` (
 -- Dumping data for table `transactions`
 --
 
-INSERT INTO `transactions` (`transactions_id`, `users_id`, `transactions_amount`, `transactions_type`, `transactions_payment_method`, `transactions_created_at`) VALUES
-(3, 2, 4165.00, 'product', 'gcash', '2025-09-26 21:26:52'),
-(4, 2, 740.00, 'product', 'cod', '2025-09-27 17:34:43');
+INSERT INTO `transactions` (`transactions_id`, `users_id`, `transactions_amount`, `transactions_type`, `transactions_fulfillment_type`, `transactions_payment_method`, `transactions_created_at`) VALUES
+(1, 2, 70.00, 'product', 'pickup', 'cod', '2025-09-26 01:10:30');
 
 -- --------------------------------------------------------
 
@@ -321,10 +326,7 @@ CREATE TABLE `transaction_products` (
 --
 
 INSERT INTO `transaction_products` (`tp_id`, `transactions_id`, `products_id`, `tp_quantity`) VALUES
-(3, 3, 9, '1'),
-(4, 3, 10, '1'),
-(5, 3, 11, '1'),
-(6, 4, 9, '2');
+(1, 1, 1, '1');
 
 -- --------------------------------------------------------
 
@@ -362,7 +364,7 @@ CREATE TABLE `users` (
 
 INSERT INTO `users` (`users_id`, `users_firstname`, `users_lastname`, `users_username`, `users_email`, `users_password_hash`, `users_role`, `users_image_url`, `users_created_at`) VALUES
 (1, 'Admin', '', 'ADMIN', 'admin256@admin.com', 'Abcd@1234', '1', NULL, '2025-09-18 21:52:11'),
-(2, 'Accel', 'John', 'ajo23', 'ajo23@gmail.com', 'Acejohn123@', '0', 'pictures/users/u2_1758863948_5683265be4.png', '2025-09-20 16:12:45'),
+(2, 'Accel', 'John', 'ajo23', 'ajo23@gmail.com', 'Acejohn123@', '0', NULL, '2025-09-20 16:12:45'),
 (3, 'Grade', 'Lat', 'glat', 'glat21@gmail.com', 'Glat1234!', '0', NULL, '2025-09-23 13:23:55');
 
 -- --------------------------------------------------------
@@ -429,6 +431,13 @@ ALTER TABLE `locations`
 ALTER TABLE `pets`
   ADD PRIMARY KEY (`pets_id`),
   ADD KEY `users_id` (`users_id`);
+
+--
+-- Indexes for table `pickups`
+--
+ALTER TABLE `pickups`
+  ADD PRIMARY KEY (`pickups_id`),
+  ADD UNIQUE KEY `transactions_id` (`transactions_id`);
 
 --
 -- Indexes for table `products`
@@ -513,25 +522,31 @@ ALTER TABLE `appointment_address`
 -- AUTO_INCREMENT for table `deliveries`
 --
 ALTER TABLE `deliveries`
-  MODIFY `deliveries_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `deliveries_id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `locations`
 --
 ALTER TABLE `locations`
-  MODIFY `location_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `location_id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `pets`
 --
 ALTER TABLE `pets`
-  MODIFY `pets_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=14;
+  MODIFY `pets_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
+
+--
+-- AUTO_INCREMENT for table `pickups`
+--
+ALTER TABLE `pickups`
+  MODIFY `pickups_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT for table `products`
 --
 ALTER TABLE `products`
-  MODIFY `products_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
+  MODIFY `products_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=12;
 
 --
 -- AUTO_INCREMENT for table `sitters`
@@ -549,13 +564,13 @@ ALTER TABLE `subscriptions`
 -- AUTO_INCREMENT for table `transactions`
 --
 ALTER TABLE `transactions`
-  MODIFY `transactions_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+  MODIFY `transactions_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT for table `transaction_products`
 --
 ALTER TABLE `transaction_products`
-  MODIFY `tp_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
+  MODIFY `tp_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT for table `transaction_subscriptions`
@@ -617,7 +632,30 @@ ALTER TABLE `locations`
 --
 ALTER TABLE `pets`
   ADD CONSTRAINT `pets_ibfk_1` FOREIGN KEY (`users_id`) REFERENCES `users` (`users_id`) ON DELETE CASCADE;
-saction_subscriptions`
+
+--
+-- Constraints for table `pickups`
+--
+ALTER TABLE `pickups`
+  ADD CONSTRAINT `pickups_ibfk_1` FOREIGN KEY (`transactions_id`) REFERENCES `transactions` (`transactions_id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `transactions`
+--
+ALTER TABLE `transactions`
+  ADD CONSTRAINT `transactions_ibfk_1` FOREIGN KEY (`users_id`) REFERENCES `users` (`users_id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `transaction_products`
+--
+ALTER TABLE `transaction_products`
+  ADD CONSTRAINT `transaction_products_ibfk_1` FOREIGN KEY (`transactions_id`) REFERENCES `transactions` (`transactions_id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `transaction_products_ibfk_2` FOREIGN KEY (`products_id`) REFERENCES `products` (`products_id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `transaction_subscriptions`
+--
+ALTER TABLE `transaction_subscriptions`
   ADD CONSTRAINT `transaction_subscriptions_ibfk_1` FOREIGN KEY (`transactions_id`) REFERENCES `transactions` (`transactions_id`) ON DELETE CASCADE,
   ADD CONSTRAINT `transaction_subscriptions_ibfk_2` FOREIGN KEY (`us_id`) REFERENCES `user_subscriptions` (`us_id`) ON DELETE CASCADE;
 
@@ -627,3 +665,8 @@ saction_subscriptions`
 ALTER TABLE `user_subscriptions`
   ADD CONSTRAINT `user_subscriptions_ibfk_1` FOREIGN KEY (`users_id`) REFERENCES `users` (`users_id`) ON DELETE CASCADE,
   ADD CONSTRAINT `user_subscriptions_ibfk_2` FOREIGN KEY (`subscriptions_id`) REFERENCES `subscriptions` (`subscriptions_id`) ON DELETE CASCADE;
+COMMIT;
+
+/*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
+/*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
+/*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;

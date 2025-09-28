@@ -1,12 +1,3 @@
-<?php
-// Guard: prevent guests from accessing the authenticated subscriptions page directly
-require_once __DIR__ . '/../../utils/session.php';
-session_start_if_needed();
-if (!get_current_user_session()) {
-    header('Location: ../../subscriptions.php');
-    exit; // Stop rendering the user-only version
-}
-?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -15,8 +6,8 @@ if (!get_current_user_session()) {
     <title>Subscription Plans - pawhabilin</title>
     
     <!-- Tailwind CSS v4.0 -->
-     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="../../globals.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="globals.css">
     
     <!-- Google Fonts - La Belle Aurore -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -25,7 +16,7 @@ if (!get_current_user_session()) {
     
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
-    
+
     <style>
         /* Custom animations */
         @keyframes float {
@@ -177,6 +168,19 @@ if (!get_current_user_session()) {
             background: linear-gradient(45deg, #ea580c, #f97316);
         }
         
+        .current-plan-badge {
+            position: absolute;
+            top: -10px;
+            right: 20px;
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+        }
+        
         @media (max-width: 768px) {
             .pricing-card {
                 margin-bottom: 20px;
@@ -184,9 +188,102 @@ if (!get_current_user_session()) {
         }
     </style>
 </head>
-<body class="min-h-screen bg-background">
-    <!-- Header (shared include) -->
-    <?php $basePrefix = '../..'; include __DIR__ . '/../../utils/header-users.php'; ?>
+<body class="min-h-screen bg-gray-50">
+    <!-- Header -->
+    <header class="sticky top-0 z-50 border-b bg-white/80 backdrop-blur-sm">
+        <div class="container mx-auto px-4">
+            <div class="flex h-16 items-center justify-between">
+                <a href="../index.php" class="flex items-center space-x-2 group">
+                    <div class="w-10 h-10 rounded-lg overflow-hidden transform group-hover:rotate-12 transition-transform duration-300">
+                        <img src="https://images.unsplash.com/photo-1601758228041-f3b2795255f1?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxwdXBweSUyMGtpdCUyMGFjY2Vzc29yaWVzfGVufDF8fHx8MTc1NjU0MzcxNXww&ixlib=rb-4.1.0&q=80&w=1080" alt="pawhabilin Logo" class="w-full h-full object-contain">
+                    </div>
+                    <span class="text-xl font-semibold brand-font">pawhabilin</span>
+                </a>
+                
+                <nav class="hidden md:flex items-center space-x-8">
+                    <a href="../index.php" class="text-muted-foreground hover:text-foreground transition-colors">Home</a>
+                    <a href="../find-sitter.php" class="text-muted-foreground hover:text-foreground transition-colors">Find Sitter</a>
+                    <a href="../shop.php" class="text-muted-foreground hover:text-foreground transition-colors">Shop</a>
+                    <a href="../appointment.php" class="text-muted-foreground hover:text-foreground transition-colors">Appointments</a>
+                    <a href="subscription.php" class="text-orange-600 font-medium">Subscription</a>
+                </nav>
+
+                <div class="flex items-center gap-3">
+                    <a href="../user-profile.php" class="hidden sm:inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 hover:bg-accent hover:text-accent-foreground h-9 px-3">
+                        <i data-lucide="user" class="w-4 h-4"></i>
+                        Profile
+                    </a>
+                    <button class="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white h-9 px-4">
+                        <i data-lucide="log-out" class="w-4 h-4"></i>
+                        Sign Out
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="relative py-16 overflow-hidden gradient-bg">
+        <!-- Floating background elements -->
+        <div class="absolute inset-0 overflow-hidden pointer-events-none">
+            <div class="floating-element absolute top-20 left-10 opacity-20">
+                <i data-lucide="crown" class="w-20 h-20 text-white transform rotate-12 sparkle-animation"></i>
+            </div>
+            <div class="floating-element absolute top-32 right-20 opacity-20">
+                <i data-lucide="star" class="w-16 h-16 text-white transform -rotate-12 sparkle-animation"></i>
+            </div>
+            <div class="floating-element absolute bottom-20 left-1/4 opacity-20">
+                <i data-lucide="sparkles" class="w-18 h-18 text-white transform rotate-45 sparkle-animation"></i>
+            </div>
+        </div>
+        
+        <div class="container mx-auto px-4 relative z-10">
+            <div class="max-w-4xl mx-auto text-center text-white">
+                <div class="space-y-6 slide-in-up">
+                    <!-- User Greeting -->
+                    <div class="inline-flex items-center rounded-full border border-white/20 px-6 py-3 text-lg font-medium glass-effect">
+                        <i data-lucide="heart" class="w-5 h-5 mr-3"></i>
+                        Hello, User! Welcome to your pet care journey
+                    </div>
+                    
+                    <h1 class="text-4xl md:text-6xl lg:text-7xl font-bold">
+                        Choose Your
+                        <span class="block brand-font text-5xl md:text-7xl lg:text-8xl text-yellow-200">Pet Care Plan</span>
+                    </h1>
+                    
+                    <p class="text-xl md:text-2xl text-white/90 max-w-3xl mx-auto leading-relaxed">
+                        Unlock premium features and give your beloved pets the best care possible. 
+                        From basic essentials to luxury services, we have the perfect plan for every pet family.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Current Plan Status -->
+    <section class="py-12 bg-white">
+        <div class="container mx-auto px-4">
+            <div class="max-w-4xl mx-auto">
+                <div class="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-2xl p-6 mb-12">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-4">
+                            <div class="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center">
+                                <i data-lucide="check-circle" class="w-6 h-6 text-white"></i>
+                            </div>
+                            <div>
+                                <h3 class="text-xl font-bold text-green-800">Current Plan: Free</h3>
+                                <p class="text-green-600">You're currently enjoying our basic pet care features</p>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-2xl font-bold text-green-700">₱0</div>
+                            <div class="text-sm text-green-600">per month</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
 
     <!-- Pricing Plans -->
     <section class="py-20 bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-50">
@@ -212,6 +309,11 @@ if (!get_current_user_session()) {
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 max-w-5xl mx-auto">
                 <!-- Free Plan -->
                 <div class="pricing-card free-card rounded-3xl p-8 relative">
+                    <div class="current-plan-badge">
+                        <i data-lucide="check" class="w-3 h-3 mr-1 inline"></i>
+                        Current Plan
+                    </div>
+                    
                     <div class="text-center mb-8">
                         <div class="w-16 h-16 bg-gradient-to-br from-gray-400 to-gray-600 rounded-full flex items-center justify-center mx-auto mb-4">
                             <i data-lucide="heart" class="w-8 h-8 text-white"></i>
@@ -243,7 +345,7 @@ if (!get_current_user_session()) {
                         </div>
                         <div class="flex items-center gap-3">
                             <i data-lucide="x" class="w-5 h-5 feature-cross"></i>
-                            <span class="text-gray-500 line-through">Promos/span>
+                            <span class="text-gray-500 line-through">Priority booking</span>
                         </div>
                         <div class="flex items-center gap-3">
                             <i data-lucide="x" class="w-5 h-5 feature-cross"></i>
@@ -259,10 +361,10 @@ if (!get_current_user_session()) {
                         </div>
                     </div>
 
-                    <a href="subscribe.php" class="w-full inline-flex items-center justify-center bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-4 px-6 rounded-xl transition-all duration-300 text-center">
-                        </i>
-                        Your current plan
-                    </a>
+                    <button disabled class="w-full bg-gray-200 text-gray-500 font-semibold py-4 px-6 rounded-xl cursor-not-allowed transition-all duration-300">
+                        <i data-lucide="check-circle" class="w-5 h-5 mr-2 inline"></i>
+                        Current Plan
+                    </button>
                 </div>
 
                 <!-- Premium Plan -->
@@ -296,7 +398,7 @@ if (!get_current_user_session()) {
                         </div>
                         <div class="flex items-center gap-3">
                             <i data-lucide="zap" class="w-5 h-5 text-yellow-300"></i>
-                            <span class="text-white">Promos</span>
+                            <span class="text-white">Priority booking & scheduling</span>
                         </div>
                         <div class="flex items-center gap-3">
                             <i data-lucide="star" class="w-5 h-5 text-yellow-300"></i>
@@ -324,10 +426,10 @@ if (!get_current_user_session()) {
                         </div>
                     </div>
 
-                    <a href="subscribe.php" class="w-full inline-flex items-center justify-center bg-white text-orange-600 font-semibold py-4 px-6 rounded-xl hover:bg-orange-50 transition-all duration-300 transform hover:scale-105 pulse-glow text-center">
-                        <i data-lucide="crown" class="w-5 h-5 mr-2"></i>
+                    <button onclick="upgradeToPremium()" class="w-full bg-white text-orange-600 font-semibold py-4 px-6 rounded-xl hover:bg-orange-50 transition-all duration-300 transform hover:scale-105 pulse-glow">
+                        <i data-lucide="crown" class="w-5 h-5 mr-2 inline"></i>
                         Upgrade to Premium
-                    </a>
+                    </button>
                 </div>
             </div>
 
@@ -346,7 +448,7 @@ if (!get_current_user_session()) {
         <div class="container mx-auto px-4">
             <div class="text-center mb-16">
                 <h2 class="text-4xl md:text-5xl font-bold mb-6">
-                    Why Choose 
+                    Why Upgrade to 
                     <span class="bg-gradient-to-r from-orange-600 to-amber-600 bg-clip-text text-transparent brand-font">
                         Premium?
                     </span>
@@ -358,15 +460,15 @@ if (!get_current_user_session()) {
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
-               <!-- Promo -->
+                <!-- Priority Booking -->
                 <div class="text-center p-8 bg-gradient-to-br from-orange-50 to-amber-50 rounded-2xl border border-orange-100 hover:shadow-lg transition-all duration-300 hover:-translate-y-2">
                     <div class="w-16 h-16 bg-gradient-to-br from-orange-500 to-amber-600 rounded-full flex items-center justify-center mx-auto mb-6">
                         <i data-lucide="zap" class="w-8 h-8 text-white"></i>
                     </div>
-                    <h3 class="text-xl font-bold text-gray-800 mb-4">Promos</h3>
+                    <h3 class="text-xl font-bold text-gray-800 mb-4">Priority Booking</h3>
                     <p class="text-gray-600 leading-relaxed">
-                        Earn points every visit, enjoy exclusive discounts, and
-                        redeem free services because your fur baby deserves more!
+                        Skip the wait and get instant access to the best appointment slots. 
+                        Your pet's needs come first with priority scheduling.
                     </p>
                 </div>
 
@@ -433,20 +535,19 @@ if (!get_current_user_session()) {
         </div>
     </section>
 
-    <!-- Join Thousands Section -->
+    <!-- Testimonials from Premium Users -->
     <section class="py-20 bg-gradient-to-br from-gray-50 to-gray-100">
         <div class="container mx-auto px-4">
             <div class="text-center mb-16">
                 <div class="inline-flex items-center rounded-md border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 bg-orange-50 text-orange-600 border-orange-200 mb-6">
-                    <i data-lucide="users" class="w-3 h-3 mr-1"></i>
-                    Join the Community
+                    <i data-lucide="heart" class="w-3 h-3 mr-1"></i>
+                    Premium Member Stories
                 </div>
                 <h2 class="text-4xl md:text-5xl font-bold mb-6">
-                    Join 25,000+ Happy Pet Parents
+                    What Premium Members Say
                 </h2>
                 <p class="text-xl text-gray-700 max-w-3xl mx-auto">
-                    Be part of the Philippines' largest and most trusted pet care community. 
-                    Start your premium journey today and give your pets the care they deserve.
+                    Hear from pet parents who upgraded to premium and transformed their pet care experience.
                 </p>
             </div>
             
@@ -464,7 +565,7 @@ if (!get_current_user_session()) {
                             </div>
                         </div>
                     </div>
-                    <p class="text-gray-700 italic">"Being Premium really pays off. The exclusive discounts help me save on regular services while still giving my pet the best care."</p>
+                    <p class="text-gray-700 italic">"The priority booking is a game-changer! I can always get appointments when I need them, and the premium sitters are incredibly professional. Worth every peso!"</p>
                 </div>
                 
                 <div class="bg-white rounded-2xl p-8 shadow-lg">
@@ -499,22 +600,6 @@ if (!get_current_user_session()) {
                     <p class="text-gray-700 italic">"The monthly checkups and shop discounts have saved me so much money. My cats are healthier than ever, and I love the exclusive premium products!"</p>
                 </div>
             </div>
-
-            <!-- Call to Action -->
-            <div class="text-center mt-16">
-                <div class="max-w-2xl mx-auto bg-gradient-to-r from-orange-500 to-amber-600 rounded-3xl p-8 text-white">
-                    <h3 class="text-2xl font-bold mb-4">Ready to Get Started?</h3>
-                    <p class="text-lg mb-6 text-orange-100">
-                        Enjoy all the benefits of your account. Upgrade to premium for the best experience!
-                    </p>
-                    <div class="flex flex-col sm:flex-row gap-4 justify-center">
-                        <a href="subscribe.php" class="inline-flex items-center justify-center bg-white text-orange-600 font-semibold py-3 px-8 rounded-xl hover:bg-orange-50 transition-all duration-300 transform hover:scale-105">
-                            <i data-lucide="crown" class="w-5 h-5 mr-2"></i>
-                            Upgrade to Premium
-                        </a>
-                    </div>
-                </div>
-            </div>
         </div>
     </section>
 
@@ -532,13 +617,13 @@ if (!get_current_user_session()) {
 
             <div class="space-y-6">
                 <div class="bg-gray-50 rounded-2xl p-6">
-                    <h3 class="text-lg font-semibold text-gray-800 mb-3">How do I upgrade to premium?</h3>
-                    <p class="text-gray-600">Just click any "Upgrade to Premium" button and follow the steps to complete your subscription. Enjoy instant access to premium features!</p>
+                    <h3 class="text-lg font-semibold text-gray-800 mb-3">Can I cancel my premium subscription anytime?</h3>
+                    <p class="text-gray-600">Yes! You can cancel your premium subscription at any time. You'll continue to have premium access until the end of your billing period.</p>
                 </div>
 
                 <div class="bg-gray-50 rounded-2xl p-6">
-                    <h3 class="text-lg font-semibold text-gray-800 mb-3">Can I cancel my premium subscription anytime?</h3>
-                    <p class="text-gray-600">Yes! You can cancel your premium subscription at any time. You'll continue to have premium access until the end of your billing period.</p>
+                    <h3 class="text-lg font-semibold text-gray-800 mb-3">What happens to my data if I downgrade?</h3>
+                    <p class="text-gray-600">All your pet profiles and booking history will be preserved. You'll simply lose access to premium features but retain all your basic functionality.</p>
                 </div>
 
                 <div class="bg-gray-50 rounded-2xl p-6">
@@ -549,11 +634,6 @@ if (!get_current_user_session()) {
                 <div class="bg-gray-50 rounded-2xl p-6">
                     <h3 class="text-lg font-semibold text-gray-800 mb-3">How do I access premium sitters?</h3>
                     <p class="text-gray-600">Once you upgrade, you'll see a "Premium" badge on select sitters in your search results. These sitters have undergone additional background checks and training.</p>
-                </div>
-
-                <div class="bg-gray-50 rounded-2xl p-6">
-                    <h3 class="text-lg font-semibold text-gray-800 mb-3">Can I use the free plan features?</h3>
-                    <p class="text-gray-600">Yes! All users have access to free plan features. Upgrade anytime for more benefits.</p>
                 </div>
             </div>
         </div>
@@ -588,10 +668,10 @@ if (!get_current_user_session()) {
                 <div class="space-y-4">
                     <h4 class="font-semibold">Account</h4>
                     <ul class="space-y-2 text-gray-400">
-                        <li><a href="login.php" class="hover:text-white transition-colors">Sign In</a></li>
-                        <li><a href="subscription.php" class="hover:text-white transition-colors">Premium Plans</a></li>
-                        <li><a href="shop.php" class="hover:text-white transition-colors">Shop</a></li>
-                        <li><a href="appointment.php" class="hover:text-white transition-colors">Book Appointment</a></li>
+                        <li><a href="../user-profile.php" class="hover:text-white transition-colors">My Profile</a></li>
+                        <li><a href="subscription.php" class="hover:text-white transition-colors">Subscription</a></li>
+                        <li><a href="../shop.php" class="hover:text-white transition-colors">Shop</a></li>
+                        <li><a href="../appointment.php" class="hover:text-white transition-colors">Book Appointment</a></li>
                     </ul>
                 </div>
 
@@ -648,6 +728,90 @@ if (!get_current_user_session()) {
                 observer.observe(el);
             });
         });
+
+        // Upgrade to Premium function
+        function upgradeToPremium() {
+            // Show loading state
+            const upgradeBtn = document.querySelector('button[onclick="upgradeToPremium()"]');
+            const originalContent = upgradeBtn.innerHTML;
+            upgradeBtn.innerHTML = `
+                <div class="flex items-center justify-center gap-2">
+                    <div class="w-5 h-5 border-2 border-orange-600 border-t-transparent rounded-full animate-spin"></div>
+                    <span>Processing...</span>
+                </div>
+            `;
+            upgradeBtn.disabled = true;
+            
+            // Simulate upgrade process
+            setTimeout(() => {
+                // Show success message
+                alert('🎉 Welcome to Premium! Your subscription has been activated successfully. You now have access to all premium features!');
+                
+                // Update UI to show premium status
+                updateUIToPremium();
+                
+                upgradeBtn.innerHTML = originalContent;
+                upgradeBtn.disabled = false;
+            }, 2000);
+        }
+
+        // Update UI to show premium status
+        function updateUIToPremium() {
+            // Update current plan section
+            const currentPlanSection = document.querySelector('.bg-gradient-to-r.from-green-50');
+            if (currentPlanSection) {
+                currentPlanSection.innerHTML = `
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-4">
+                            <div class="w-12 h-12 bg-gradient-to-br from-orange-500 to-amber-600 rounded-full flex items-center justify-center">
+                                <i data-lucide="crown" class="w-6 h-6 text-white"></i>
+                            </div>
+                            <div>
+                                <h3 class="text-xl font-bold text-orange-800">Current Plan: Premium</h3>
+                                <p class="text-orange-600">You're enjoying all premium pet care features</p>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-2xl font-bold text-orange-700">₱299</div>
+                            <div class="text-sm text-orange-600">per month</div>
+                        </div>
+                    </div>
+                `;
+                currentPlanSection.className = 'bg-gradient-to-r from-orange-50 to-amber-50 border border-orange-200 rounded-2xl p-6 mb-12';
+            }
+
+            // Update plan badges
+            const freePlanBadge = document.querySelector('.current-plan-badge');
+            if (freePlanBadge) {
+                freePlanBadge.remove();
+            }
+
+            // Add premium badge to premium card
+            const premiumCard = document.querySelector('.premium-card');
+            if (premiumCard && !premiumCard.querySelector('.current-plan-badge')) {
+                const badge = document.createElement('div');
+                badge.className = 'current-plan-badge';
+                badge.innerHTML = '<i data-lucide="check" class="w-3 h-3 mr-1 inline"></i>Current Plan';
+                premiumCard.appendChild(badge);
+            }
+
+            // Update buttons
+            const freeBtn = document.querySelector('button[disabled]');
+            if (freeBtn) {
+                freeBtn.innerHTML = '<i data-lucide="check-circle" class="w-5 h-5 mr-2 inline"></i>Previous Plan';
+            }
+
+            const premiumBtn = document.querySelector('button[onclick="upgradeToPremium()"]');
+            if (premiumBtn) {
+                premiumBtn.innerHTML = '<i data-lucide="check-circle" class="w-5 h-5 mr-2 inline"></i>Current Plan';
+                premiumBtn.disabled = true;
+                premiumBtn.className = 'w-full bg-green-100 text-green-700 font-semibold py-4 px-6 rounded-xl cursor-not-allowed';
+                premiumBtn.removeAttribute('onclick');
+            }
+
+            // Reinitialize icons
+            lucide.createIcons();
+        }
 
         // Parallax effect for background elements
         window.addEventListener('scroll', () => {

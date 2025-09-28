@@ -21,18 +21,7 @@ if (!isset($currentUserName) && !isset($currentUserInitial)) { http_response_cod
       <nav class="hidden md:flex items-center space-x-8">
         <a href="<?= htmlspecialchars($asset('views/users/index.php')) ?>" class="text-gray-500 hover:text-gray-900 transition-colors">About</a>
 
-        <div class="relative" id="petsitterWrapper">
-          <button id="petsitterButton" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="petsitterMenu" class="text-gray-500 hover:text-gray-900 transition-colors inline-flex items-center gap-2">
-            Pet Sitter
-            <i data-lucide="chevron-down" class="w-4 h-4 transition-transform duration-200"></i>
-          </button>
-          <div id="petsitterMenu" class="absolute left-0 mt-2 w-56 origin-top-left rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 nav-dropdown opacity-0 translate-y-2 transition-all duration-200" role="menu" aria-hidden="true">
-            <div class="py-1">
-              <a href="<?= htmlspecialchars($asset('views/users/findsitters.php')) ?>" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50" role="menuitem">Find a Pet Sitter</a>
-              <a href="<?= htmlspecialchars($asset('views/users/become-sitter-logged.php')) ?>" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50" role="menuitem">Become a Sitter</a>
-            </div>
-          </div>
-        </div>
+        <a href="<?= htmlspecialchars($asset('views/users/become-sitter-logged.php')) ?>" class="text-gray-500 hover:text-gray-900 transition-colors">Become a Sitter</a>
 
         <a href="<?= htmlspecialchars($asset('views/users/buy_products.php')) ?>" class="text-gray-500 hover:text-gray-900 transition-colors">Shop</a>
 

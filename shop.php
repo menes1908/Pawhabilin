@@ -451,69 +451,8 @@ if(($_GET['partial']??'')==='1'){
     </style>
 </head>
 <body class="min-h-screen bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-50">
-    <!-- Header (revised per request: centered, larger, no wishlist, icon-only cart) -->
-    <header class="sticky top-0 z-50 border-b bg-white/80 backdrop-blur-sm">
-        <div class="mx-auto px-4 w-full max-w-7xl">
-            <div class="flex h-20 items-center justify-between">
-                <a href="index.php" class="flex items-center space-x-2 group">
-                    <div class="w-20 h-20 rounded-lg overflow-hidden flex items-center justify-center transition-transform duration-300 hover:rotate-12" style="width:77px; height:77px;">
-                        <img src="./pictures/Pawhabilin logo.png" alt="Pawhabilin Logo" class="w-full h-full object-contain" />
-                    </div>
-                    <span class="text-xl font-semibold bg-gradient-to-r from-orange-600 to-amber-600 bg-clip-text text-transparent" style="font-family: 'La Lou Big', cursive;">
-                        Pawhabilin
-                    </span>
-                </a>
-                
-                <nav class="hidden md:flex items-center space-x-8">
-                    <a href="index.php" class="text-muted-foreground hover:text-foreground transition-colors">About</a>
-                    <!-- Pet Sitter Dropdown -->
-                    <div class="relative" id="petsitterWrapper">
-                        <button id="petsitterButton" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="petsitterMenu" class="text-muted-foreground hover:text-foreground transition-colors inline-flex items-center gap-2">
-                            Pet Sitter
-                            <i data-lucide="chevron-down" class="w-4 h-4 transition-transform duration-200"></i>
-                        </button>
-                        <div id="petsitterMenu" class="absolute left-0 mt-2 w-56 origin-top-left rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 nav-dropdown transition-all duration-200" role="menu" aria-hidden="true">
-                            <div class="py-1">
-                                <a href="find-sitters.php" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">Find a Pet Sitter</a>
-                                <a href="become-sitter.php" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">Become a Sitter</a>
-                            </div>
-                        </div>
-                    </div>
-
-                    <a href="shop.php" class="text-muted-foreground hover:text-foreground transition-colors">Shop</a>
-                    
-                    <div class="relative" id="appointmentsWrapper">
-                        <button id="appointmentsButton" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="appointmentsMenu" class="text-muted-foreground hover:text-foreground transition-colors inline-flex items-center gap-2">
-                            Appointments
-                            <i data-lucide="chevron-down" class="w-4 h-4 transition-transform duration-200"></i>
-                        </button>
-                        <div id="appointmentsMenu" class="absolute right-0 mt-2 w-48 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 nav-dropdown transition-all duration-200" role="menu" aria-hidden="true">
-                            <div class="py-1">
-                                <a href="book_appointments.php" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">Grooming Appointment</a>
-                                <a href="appointments.php" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">Vet Appointment</a>
-                            </div>
-                        </div>
-                    </div>
-
-                    <a href="subscriptions.php" class="text-muted-foreground hover:text-foreground transition-colors">Subscription</a>
-                    <a href="#support" class="text-muted-foreground hover:text-foreground transition-colors">Support</a>
-                </nav>
-
-                <div class="flex items-center gap-4">
-                    <button onclick="toggleCart()" class="relative inline-flex items-center justify-center w-11 h-11 rounded-full bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-all">
-                        <i data-lucide="shopping-cart" class="w-5 h-5"></i>
-                        <span id="cart-count" class="absolute -top-1 -right-1 min-w-[20px] h-5 px-1 bg-red-500 text-[11px] leading-5 font-semibold rounded-full flex items-center justify-center"><?php echo (int)$cartCount; ?></span>
-                    </button>
-                    <a href="login.php" class="hidden lg:inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 hover:bg-accent hover:text-accent-foreground h-10 px-4">
-                        Log In
-                    </a>
-                    <a href="registration.php" class="hidden lg:inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white h-10 px-5">
-                        Sign Up
-                    </a>
-                </div>
-            </div>
-        </div>
-    </header>
+    <!-- Shared Header (guest/auth auto-detected) -->
+    <?php $basePrefix = ''; include __DIR__ . '/utils/header.php'; ?>
 
     <!-- Hero Section (updated per provided guide) -->
     <section id="shop-hero" class="relative py-16 overflow-hidden gradient-bg">

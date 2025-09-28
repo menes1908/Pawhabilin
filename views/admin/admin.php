@@ -1933,27 +1933,38 @@ function resolveImageUrl($path) {
                             </div>
                             <div class="text-xs text-gray-500" id="darkModeStatus">Theme: Light</div>
                         </div>
-                        <!-- Appointment Blocking Card -->
+                        <!-- Appointment Blocking Card (Single or Range) -->
                         <div class="bg-white border border-gray-200 rounded-lg shadow-sm p-5 flex flex-col gap-4" id="blockApptCard">
                             <div class="flex items-center justify-between">
                                 <div>
                                     <h3 class="font-medium text-gray-800 flex items-center gap-2"><i data-lucide="calendar-x" class="w-4 h-4 text-red-500"></i> Appointment Availability</h3>
-                                    <p class="text-xs text-gray-500">Block accepting new appointments for a selected date.</p>
+                                    <p class="text-xs text-gray-500">Block accepting new appointments for one day or a date range.</p>
                                 </div>
                             </div>
-                            <div class="flex flex-col md:flex-row gap-3 items-start md:items-end">
-                                <div class="flex flex-col gap-1">
-                                    <label for="blockDate" class="text-xs font-medium text-gray-600">Select Date</label>
-                                    <input type="date" id="blockDate" class="border border-gray-300 rounded-md px-2 py-1 text-sm" />
+                            <div class="flex flex-col gap-4">
+                                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                    <div class="flex flex-col gap-1">
+                                        <label for="blockDateStart" class="text-xs font-medium text-gray-600">Start Date</label>
+                                        <input type="date" id="blockDateStart" class="border border-gray-300 rounded-md px-2 py-1 text-sm" />
+                                    </div>
+                                    <div class="flex flex-col gap-1">
+                                        <label for="blockDateEnd" class="text-xs font-medium text-gray-600">End Date</label>
+                                        <input type="date" id="blockDateEnd" class="border border-gray-300 rounded-md px-2 py-1 text-sm" />
+                                    </div>
+                                    <div class="flex flex-col gap-1">
+                                        <label for="blockDate" class="text-xs font-medium text-gray-600">(Legacy) Single Date</label>
+                                        <input type="date" id="blockDate" class="border border-gray-300 rounded-md px-2 py-1 text-sm" />
+                                    </div>
                                 </div>
-                                <div class="flex gap-2">
+                                <div class="flex flex-wrap gap-2">
                                     <button id="blockTodayBtn" class="px-3 py-2 bg-red-600 hover:bg-red-700 text-white text-xs rounded-md">Block Today</button>
-                                    <button id="blockDateBtn" class="px-3 py-2 bg-orange-600 hover:bg-orange-700 text-white text-xs rounded-md">Block Date</button>
+                                    <button id="blockDateBtn" class="px-3 py-2 bg-orange-600 hover:bg-orange-700 text-white text-xs rounded-md">Block Single Date</button>
+                                    <button id="blockRangeBtn" class="px-3 py-2 bg-amber-600 hover:bg-amber-700 text-white text-xs rounded-md">Block Range</button>
                                     <button id="clearBlockBtn" class="px-3 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 text-xs rounded-md">Clear</button>
                                 </div>
                             </div>
-                            <div id="blockStatus" class="text-xs text-gray-500">No blocked date set.</div>
-                            <div class="text-[11px] text-gray-400">Users attempting to book on a blocked date will see a notice.</div>
+                            <div id="blockStatus" class="text-xs text-gray-500">No blocked dates set.</div>
+                            <div class="text-[11px] text-gray-400">Users selecting a blocked date (or any within a blocked range) will see a notice.</div>
                         </div>
                     </div>
                 </div>
@@ -3867,16 +3878,20 @@ function resolveImageUrl($path) {
             const slider = document.getElementById('darkModeSlider');
             const status = document.getElementById('darkModeStatus');
             const root = document.documentElement;
-            const blockDateInput = document.getElementById('blockDate');
+            const blockDateInput = document.getElementById('blockDate'); // legacy single
+            const blockDateStart = document.getElementById('blockDateStart');
+            const blockDateEnd = document.getElementById('blockDateEnd');
             const blockTodayBtn = document.getElementById('blockTodayBtn');
             const blockDateBtn = document.getElementById('blockDateBtn');
+            const blockRangeBtn = document.getElementById('blockRangeBtn');
             const clearBlockBtn = document.getElementById('clearBlockBtn');
             const blockStatus = document.getElementById('blockStatus');
             if(!toggle || !slider) return; // safety
 
             // Persistence keys
             const THEME_KEY = 'admin_theme_mode';
-            const BLOCK_KEY = 'appointments_block_date';
+            const BLOCK_KEY = 'appointments_block_date'; // legacy single date for backward compat
+            const BLOCK_RANGE_KEY = 'appointments_block_range'; // JSON: {start:'YYYY-MM-DD', end:'YYYY-MM-DD'}
 
             // Load persisted theme
             let saved = null; try { saved = localStorage.getItem(THEME_KEY); } catch(e){}
@@ -4020,17 +4035,30 @@ function resolveImageUrl($path) {
 
             // Appointment blocking logic (client-side + localStorage for now)
             function updateBlockStatus(){
-                let dateVal=null; try { dateVal = localStorage.getItem(BLOCK_KEY); } catch(e){}
-                if(dateVal){
-                    blockStatus.textContent = 'Blocked date: '+dateVal+' (users cannot book this day)';
+                let single=null; let range=null;
+                try { single = localStorage.getItem(BLOCK_KEY) || null; } catch(e){}
+                try {
+                    const raw = localStorage.getItem(BLOCK_RANGE_KEY);
+                    if(raw){ const obj = JSON.parse(raw); if(obj && obj.start && obj.end){ range = obj; } }
+                } catch(e){}
+                if(range){
+                    blockStatus.textContent = 'Blocked range: '+range.start+' to '+range.end+' (inclusive)';
                     blockStatus.classList.remove('text-gray-500');
                     blockStatus.classList.add('text-red-600');
-                    blockDateInput.value = dateVal;
+                    if(blockDateStart) blockDateStart.value = range.start;
+                    if(blockDateEnd) blockDateEnd.value = range.end;
+                } else if(single){
+                    blockStatus.textContent = 'Blocked date: '+single+' (users cannot book this day)';
+                    blockStatus.classList.remove('text-gray-500');
+                    blockStatus.classList.add('text-red-600');
+                    if(blockDateInput) blockDateInput.value = single;
                 } else {
-                    blockStatus.textContent = 'No blocked date set.';
+                    blockStatus.textContent = 'No blocked dates set.';
                     blockStatus.classList.add('text-gray-500');
                     blockStatus.classList.remove('text-red-600');
-                    blockDateInput.value = '';
+                    if(blockDateInput) blockDateInput.value = '';
+                    if(blockDateStart) blockDateStart.value='';
+                    if(blockDateEnd) blockDateEnd.value='';
                 }
             }
             updateBlockStatus();
@@ -4041,36 +4069,53 @@ function resolveImageUrl($path) {
                     const r = await fetch(API_URL + '?_=' + Date.now());
                     if(!r.ok) return;
                     const data = await r.json();
-                    if(data && data.blocked_date){
-                        try { localStorage.setItem(BLOCK_KEY, data.blocked_date); } catch(e){}
-                    } else {
-                        try { localStorage.removeItem(BLOCK_KEY); } catch(e){}
+                    // Server may send: blocked_date or blocked_range {start,end}
+                    if(data){
+                        if(data.blocked_range && data.blocked_range.start && data.blocked_range.end){
+                            try { localStorage.setItem(BLOCK_RANGE_KEY, JSON.stringify(data.blocked_range)); } catch(e){}
+                            try { localStorage.removeItem(BLOCK_KEY); } catch(e){}
+                        } else if(data.blocked_date){
+                            try { localStorage.setItem(BLOCK_KEY, data.blocked_date); } catch(e){}
+                            try { localStorage.removeItem(BLOCK_RANGE_KEY); } catch(e){}
+                        } else {
+                            try { localStorage.removeItem(BLOCK_KEY); localStorage.removeItem(BLOCK_RANGE_KEY); } catch(e){}
+                        }
                     }
                     updateBlockStatus();
                 } catch(e){ /* silent */ }
             }
-            async function persistBlock(dateStr){
+            async function persistBlock(payload){
                 try {
                     const fd = new FormData();
-                    fd.append('date', dateStr || '');
+                    if(payload.type==='single') fd.append('date', payload.date || '');
+                    if(payload.type==='range') { fd.append('start', payload.start||''); fd.append('end', payload.end||''); }
                     await fetch(API_URL, { method: 'POST', body: fd });
                 } catch(e){ /* silent */ }
             }
-            function setBlock(dateStr){
+            function setSingle(dateStr){
                 if(!dateStr) return;
-                try { localStorage.setItem(BLOCK_KEY, dateStr); } catch(e){}
+                try { localStorage.setItem(BLOCK_KEY, dateStr); localStorage.removeItem(BLOCK_RANGE_KEY); } catch(e){}
                 updateBlockStatus();
-                persistBlock(dateStr);
-                toast('Blocked appointments for '+dateStr, 'warn');
+                persistBlock({type:'single', date:dateStr});
+                toast('Blocked single date '+dateStr, 'warn');
+            }
+            function setRange(start,end){
+                if(!start || !end) return;
+                if(end < start){ toast('End date cannot be before start date','warn'); return; }
+                try { localStorage.setItem(BLOCK_RANGE_KEY, JSON.stringify({start,end})); localStorage.removeItem(BLOCK_KEY); } catch(e){}
+                updateBlockStatus();
+                persistBlock({type:'range', start, end});
+                toast('Blocked range '+start+' → '+end,'warn');
             }
             function clearBlock(){
-                try { localStorage.removeItem(BLOCK_KEY); } catch(e){}
+                try { localStorage.removeItem(BLOCK_KEY); localStorage.removeItem(BLOCK_RANGE_KEY); } catch(e){}
                 updateBlockStatus();
-                persistBlock('');
-                toast('Cleared blocked date','info');
+                persistBlock({type:'single', date:''});
+                toast('Cleared blocked dates','info');
             }
-            blockTodayBtn?.addEventListener('click', (e)=>{ e.preventDefault(); const today = new Date(); const ds=today.toISOString().substring(0,10); setBlock(ds); });
-            blockDateBtn?.addEventListener('click', (e)=>{ e.preventDefault(); if(blockDateInput.value) setBlock(blockDateInput.value); });
+            blockTodayBtn?.addEventListener('click', (e)=>{ e.preventDefault(); const today = new Date(); const ds=today.toISOString().substring(0,10); setSingle(ds); });
+            blockDateBtn?.addEventListener('click', (e)=>{ e.preventDefault(); if(blockDateInput.value) setSingle(blockDateInput.value); });
+            blockRangeBtn?.addEventListener('click', (e)=>{ e.preventDefault(); if(blockDateStart.value && blockDateEnd.value) setRange(blockDateStart.value, blockDateEnd.value); });
             clearBlockBtn?.addEventListener('click', (e)=>{ e.preventDefault(); clearBlock(); });
 
             // Lightweight toast (reuse existing if available)

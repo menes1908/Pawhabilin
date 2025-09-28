@@ -1520,14 +1520,19 @@ $currentUserImg = user_image_url($currentUser);
             });
         })();
 
-        // Blocked appointment date: fetch from server + localStorage fallback and validate user selection
+        // Blocked appointment date/range: fetch from server + localStorage fallback and validate user selection
         (function(){
-            const BLOCK_KEY = 'appointments_block_date';
+            const BLOCK_KEY = 'appointments_block_date'; // single date (legacy)
+            const RANGE_KEY = 'appointments_block_range'; // JSON string {start,end}
             const API_URL = '../../controllers/admin/blockdate.php';
             const dateInput = document.querySelector('input[name="appointmentDate"]');
             if(!dateInput) return;
-            let currentBlocked = null;
-            try { currentBlocked = localStorage.getItem(BLOCK_KEY); } catch(e){}
+            let currentBlocked = null; // string YYYY-MM-DD
+            let currentRange = null;   // {start:'YYYY-MM-DD', end:'YYYY-MM-DD'}
+            // Load from localStorage
+            try { currentBlocked = localStorage.getItem(BLOCK_KEY) || null; } catch(e){}
+            try { const rs = localStorage.getItem(RANGE_KEY); if(rs) currentRange = JSON.parse(rs); } catch(e){ currentRange = null; }
+
             function ensureNotice(msg){
                 let n = document.getElementById('blockedDateNotice');
                 if(!n){
@@ -1546,37 +1551,83 @@ $currentUserImg = user_image_url($currentUser);
                 submits.forEach(b=>{ b.disabled = disabled; b.classList.toggle('opacity-60',disabled); b.classList.toggle('cursor-not-allowed',disabled); });
             }
             function todayStr(){ return new Date().toISOString().substring(0,10); }
-            function checkTodayBlock(){
-                if(currentBlocked && currentBlocked === todayStr()){
-                    ensureNotice('Appointments are temporarily closed for today. Please select another date.');
-                    disableForm(true);
-                } else { removeNotice(); disableForm(false); }
+            function withinRange(dateStr){
+                if(!currentRange) return false;
+                return dateStr >= currentRange.start && dateStr <= currentRange.end; // inclusive
             }
-            function validateSelection(){
-                if(!currentBlocked) return;
-                if(dateInput.value === currentBlocked){
-                    ensureNotice('Selected date ('+currentBlocked+') is closed. Please choose another date.');
-                    disableForm(true);
-                } else {
-                    checkTodayBlock(); // revert to baseline state
+            function baseMessage(){
+                if(currentRange){
+                    return 'Appointments are closed from ' + currentRange.start + ' to ' + currentRange.end + '. Please select another date.';
                 }
+                if(currentBlocked){
+                    if(currentBlocked === todayStr()) return 'Appointments are temporarily closed for today. Please select another date.';
+                    return 'Selected date ('+currentBlocked+') is closed. Please choose another date.';
+                }
+                return '';
             }
-            dateInput.addEventListener('change', validateSelection);
-            // Initial local check
-            checkTodayBlock();
-            // Sync from server
+            function evaluate(dateStr){
+                // dateStr: selected date or today baseline
+                if(currentRange){
+                    if(withinRange(dateStr)){
+                        ensureNotice(baseMessage());
+                        disableForm(true);
+                        return true;
+                    }
+                } else if(currentBlocked){
+                    if(dateStr === currentBlocked){
+                        ensureNotice(baseMessage());
+                        disableForm(true);
+                        return true;
+                    }
+                }
+                return false;
+            }
+            function refreshState(){
+                // Priority: range over single
+                const today = todayStr();
+                if(evaluate(today)) return; // if today blocked, keep notice
+                // If selecting a blocked date that's not today
+                if(dateInput.value){
+                    if(evaluate(dateInput.value)) return;
+                }
+                // nothing blocked for current selection
+                removeNotice();
+                disableForm(false);
+            }
+            function onDateChange(){
+                refreshState();
+            }
+            dateInput.addEventListener('change', onDateChange);
+
+            // Initial evaluation using localStorage
+            refreshState();
+
+            // Sync from server (always authoritative)
             fetch(API_URL + '?_=' + Date.now())
                 .then(r=> r.ok ? r.json(): null)
                 .then(data=>{
-                    if(data && data.blocked_date){
-                        currentBlocked = data.blocked_date;
-                        try { localStorage.setItem(BLOCK_KEY, currentBlocked); } catch(e){}
-                    } else {
-                        currentBlocked = null;
-                        try { localStorage.removeItem(BLOCK_KEY); } catch(e){}
+                    let changed = false;
+                    if(data){
+                        if(data.blocked_range && data.blocked_range.start && data.blocked_range.end){
+                            currentRange = {start:data.blocked_range.start, end:data.blocked_range.end};
+                            currentBlocked = null; // range supersedes single
+                            try { localStorage.setItem(RANGE_KEY, JSON.stringify(currentRange)); } catch(e){}
+                            try { localStorage.removeItem(BLOCK_KEY); } catch(e){}
+                            changed = true;
+                        } else if(data.blocked_date){
+                            currentBlocked = data.blocked_date;
+                            currentRange = null;
+                            try { localStorage.setItem(BLOCK_KEY, currentBlocked); } catch(e){}
+                            try { localStorage.removeItem(RANGE_KEY); } catch(e){}
+                            changed = true;
+                        } else { // clear
+                            if(currentBlocked || currentRange) changed = true;
+                            currentBlocked = null; currentRange = null;
+                            try { localStorage.removeItem(BLOCK_KEY); } catch(e){}
+                            try { localStorage.removeItem(RANGE_KEY); } catch(e){}
+                        }
                     }
-                    checkTodayBlock();
-                    validateSelection();
+                    if(changed) refreshState(); else refreshState();
                 })
                 .catch(()=>{});
         })();

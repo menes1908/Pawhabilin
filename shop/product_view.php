@@ -13,7 +13,8 @@ if ($id <= 0) {
 }
 
 $p = product_get_by_id($connections, $id);
-if (!$p || empty($p['products_active'])) {
+// Allow inactive products to be viewed (so Quick View can show "Not Available")
+if (!$p) {
   http_response_code(404);
   echo json_encode(['error' => 'Not found']);
   exit;
@@ -24,6 +25,7 @@ $orig  = isset($p['products_original_price']) ? (float)$p['products_original_pri
 $price = (float)$p['products_price'];
 $discountPct = ($orig && $orig > $price) ? round((($orig - $price) / $orig) * 100) : 0;
 
+$active = (int)($p['products_active'] ?? 0);
 $out = [
   'id' => (int)$p['products_id'],
   'name' => $p['products_name'],
@@ -35,6 +37,8 @@ $out = [
   'discountPercent' => $discountPct,
   'stock' => $stock,
   'image' => $p['products_image_url'],
+  'products_active' => $active,
+  'active' => $active, // convenience alias for frontend logic
 ];
 
 echo json_encode($out);

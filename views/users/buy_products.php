@@ -15,7 +15,7 @@ $currentUserInitial = user_initial($currentUser);
 $currentUserImg = user_image_url($currentUser);
 // Derive cart count from session (after server add)
 $cartCount = 0; if(!empty($_SESSION['cart']) && is_array($_SESSION['cart'])){ foreach($_SESSION['cart'] as $c){ $cartCount += (int)($c['qty']??0); } }
-$filters=['q'=>$q,'cat'=>$cat,'page'=>$page,'limit'=>12,'sort'=>$sort];
+$filters=['q'=>$q,'cat'=>$cat,'page'=>$page,'limit'=>12,'sort'=>$sort,'include_inactive'=>true];
 $res=product_fetch_paginated($connections,$filters); $items=$res['items']; $total=$res['total']; $pages=$res['pages']; $page=$res['page'];
 // If partial request (?partial=1) return only the products grid + pagination fragments for AJAX
 if(($_GET['partial']??'')==='1'){
@@ -24,9 +24,11 @@ if(($_GET['partial']??'')==='1'){
     <div class="paw-grid" id="products-grid">
         <?php if($total===0): ?>
             <p class="text-center col-span-full text-sm text-gray-500">No products found.</p>
-    <?php else: foreach($items as $p): $stock=(int)($p['products_stock']??0); $img=$p['products_image_url']??''; if($img && !preg_match('/^https?:/i',$img)) $img='../../'.ltrim($img,'/'); $disabled=$stock<=0; ?>
-            <div class="product-card" data-product-id="<?= (int)$p['products_id'] ?>" data-category="<?= h($p['products_category']) ?>" data-name="<?= strtolower(h($p['products_name'])) ?>">
-                <?php if($stock<=0): ?><div class="product-badge" style="background:linear-gradient(135deg,#6b7280,#374151)">Out</div><?php endif; ?>
+    <?php else: foreach($items as $p): $stock=(int)($p['products_stock']??0); $img=$p['products_image_url']??''; if($img && !preg_match('/^https?:/i',$img)) $img='../../'.ltrim($img,'/'); $inactive = !(int)($p['products_active'] ?? 0); $disabled = $stock<=0 || $inactive; ?>
+            <div class="product-card relative" data-product-id="<?= (int)$p['products_id'] ?>" data-category="<?= h($p['products_category']) ?>" data-name="<?= strtolower(h($p['products_name'])) ?>">
+                <?php if($stock<=0): ?>
+                    <div class="product-badge" style="background:linear-gradient(135deg,#6b7280,#374151)">Out</div>
+                <?php endif; ?>
                 <div class="product-image">
                     <?php if($img): ?><img src="<?= h($img) ?>" alt="<?= h($p['products_name']) ?>" loading="lazy"><?php else: ?><span style="font-size:12px;color:#6b7280;display:flex;align-items:center;justify-content:center;height:100%;">No Image</span><?php endif; ?>
                     <div class="paw-print-hover" onclick="openQuickViewDb(<?= (int)$p['products_id'] ?>)"><i data-lucide="eye" class="w-4 h-4 text-white"></i></div>
@@ -46,10 +48,14 @@ if(($_GET['partial']??'')==='1'){
                                 </span>
                             <?php endif; ?>
                             <span class="text-[10px] text-gray-400">Stock: <?= $stock ?></span>
+                            <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold <?= $inactive ? 'bg-red-100 text-red-700 border border-red-300' : 'bg-green-100 text-green-700 border border-green-300' ?>"><?= $inactive ? 'Not Available' : 'Available' ?></span>
                         </div>
                     </div>
-                    <div class="flex items-center justify-between">
+                    <div class="flex items-center justify-between gap-2">
                         <span class="text-xl font-bold text-orange-600">₱<?= number_format((float)$p['products_price'],2) ?></span>
+                        <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold <?= $inactive ? 'bg-red-100 text-red-700 border border-red-300' : 'bg-green-100 text-green-700 border border-green-300' ?>">
+                            <?= $inactive ? 'Not Available' : 'Available' ?>
+                        </span>
                     </div>
                     <div class="flex gap-2">
                         <button type="button" data-qv="<?= (int)$p['products_id'] ?>" class="quick-view-btn flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-2 px-4 rounded-lg transition-all duration-200 flex items-center justify-center gap-2 text-sm">
@@ -59,7 +65,9 @@ if(($_GET['partial']??'')==='1'){
                             <input type="hidden" name="csrf" value="<?= h($csrf) ?>" />
                             <input type="hidden" name="product_id" value="<?= (int)$p['products_id'] ?>" />
                             <input type="number" name="qty" value="1" min="1" max="<?= max(1,$stock) ?>" class="w-20 rounded-lg border border-gray-300 px-2 py-2 text-sm" <?= $disabled?'disabled':''; ?> />
-                            <button type="submit" class="flex-1 bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white font-medium py-2 px-4 rounded-lg transition-all duration-200 flex items-center justify-center gap-2 text-sm" <?= $disabled?'disabled':''; ?>><i data-lucide="shopping-cart" class="w-4 h-4"></i> Add</button>
+                            <button type="submit" class="flex-1 <?= $disabled?'bg-gray-300 cursor-not-allowed':'bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700' ?> text-white font-medium py-2 px-4 rounded-lg transition-all duration-200 flex items-center justify-center gap-2 text-sm" <?= $disabled?'disabled':''; ?>>
+                                <i data-lucide="shopping-cart" class="w-4 h-4"></i> <?= $inactive ? 'Unavailable' : 'Add' ?>
+                            </button>
                         </form>
                     </div>
                 </div>
@@ -774,7 +782,8 @@ if(($_GET['partial']??'')==='1'){
         const catLabel = catLabelMap[p.category] || (p.category || '').toString();
         // Rating, badge, and variant options removed (columns dropped from DB)
         const discount=(typeof p.discountPercent==='number')?p.discountPercent:((p.originalPrice&&p.originalPrice>p.price)?Math.round(((p.originalPrice-p.price)/p.originalPrice)*100):0);
-        const outOfStock = !p.stock || p.stock<=0;
+    const outOfStock = !p.stock || p.stock<=0;
+    const inactive = (p.active===0) || (p.products_active===0) || (!p.active && p.products_active===0);
         const imgSrc = normalizeImageUrl(p.image); // NEW: normalize DB image path
         const content=`<div class="space-y-6">
             <div class=\"aspect-square w-full rounded-lg overflow-hidden bg-gray-100 flex items-center justify-center\">${imgSrc?`<img src=\"${imgSrc}\" alt=\"${escapeHtml(p.name)}\" class=\"w-full h-full object-cover\">`:'<div class=\"text-xs text-gray-400\">No Image</div>'}</div>
@@ -784,11 +793,12 @@ if(($_GET['partial']??'')==='1'){
                     ${catLabel?`<span class=\"inline-flex items-center gap-1 px-2 py-1 rounded-full bg-orange-50 text-orange-700 border border-orange-200\"><i data-lucide=\"tags\" class=\"w-3 h-3\"></i>${escapeHtml(catLabel)}</span>`:''}
                     ${p.pet_type?`<span class=\"inline-flex items-center gap-1 px-2 py-1 rounded-full bg-amber-50 text-amber-700 border border-amber-200\"><i data-lucide=\"paw-print\" class=\"w-3 h-3\"></i>${escapeHtml(p.pet_type)}</span>`:''}
                     ${typeof p.stock!=='undefined'?`<span class=\"inline-flex items-center gap-1 px-2 py-1 rounded-full bg-gray-50 text-gray-700 border border-gray-200\"><i data-lucide=\"boxes\" class=\"w-3 h-3\"></i>Stock: ${p.stock}</span>`:''}
+                    <span class=\"inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold ${inactive?'bg-red-100 text-red-700 border border-red-300':'bg-green-100 text-green-700 border border-green-300'}\">${inactive?'Not Available':'Available'}</span>
                     ${discount>0?`<span class=\"inline-flex items-center gap-1 px-2 py-1 rounded-full bg-red-50 text-red-700 border border-red-200\"><i data-lucide=\"badge-percent\" class=\"w-3 h-3\"></i>${discount}% OFF</span>`:''}
                 </div>
                 <p class=\"text-gray-600 mb-4 whitespace-pre-line\">${escapeHtml(p.description||'No description.')}</p>
                 <div class=\"flex items-center gap-4 mb-6\">\n                    <span class=\"text-2xl font-bold text-orange-600\">₱${numberFormat(p.price)}</span>\n                    ${p.originalPrice&&p.originalPrice>p.price?`<span class=\\"text-lg text-gray-500 line-through\\">₱${numberFormat(p.originalPrice)}</span>`:''}\n                    ${discount>0?`<span class=\\"text-xs bg-red-100 text-red-600 px-2 py-1 rounded-full font-semibold\\">${discount}% OFF</span>`:''}\n                </div>
-                <form method=\"post\" action=\"../../shop/cart_add.php\" class=\"space-y-4 ajax-cart-add\" data-product-id=\"${p.id}\">\n                    <input type=\"hidden\" name=\"csrf\" value=\"<?= h($csrf) ?>\" />\n                    <input type=\"hidden\" name=\"product_id\" value=\"${p.id}\" />\n                    <div class=\"flex items-center gap-3\">\n                        <span class=\"text-xs font-medium text-gray-500\">Quantity</span>\n                        <div class=\"inline-flex items-center rounded-full border border-gray-300 overflow-hidden bg-white shadow-sm\">\n                            <button type=\"button\" class=\"qty-btn px-3 py-1 text-gray-600 hover:bg-gray-100 focus:outline-none focus:bg-gray-100 text-sm\" data-delta=\"-1\" aria-label=\"Decrease quantity\" ${outOfStock?'disabled':''}>-</button>\n                            <input name=\"qty\" value=\"1\" min=\"1\" max=\"${p.stock||0}\" type=\"number\" class=\"w-12 text-center text-sm border-0 focus:ring-0 focus:outline-none hide-number-spinner\" ${outOfStock?'disabled':''} />\n                            <button type=\"button\" class=\"qty-btn px-3 py-1 text-gray-600 hover:bg-gray-100 focus:outline-none focus:bg-gray-100 text-sm\" data-delta=\"1\" aria-label=\"Increase quantity\" ${outOfStock?'disabled':''}>+</button>\n                        </div>\n                        ${p.stock?`<span class=\\"text-[10px] text-gray-400\\">Stock: ${p.stock}</span>`:'<span class=\\"text-[10px] text-red-500\\">Out of stock</span>'}\n                    </div>\n                    <button type=\"submit\" class=\"w-full ${outOfStock?'bg-gray-300 cursor-not-allowed':'bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700'} text-white font-semibold py-3 px-6 rounded-lg transition-all duration-200 flex items-center justify-center gap-2\" ${outOfStock?'disabled':''}>\n                        <i data-lucide=\"shopping-cart\" class=\"w-5 h-5\"></i> ${outOfStock?'Unavailable':'Add to Cart'}\n                    </button>\n                </form>
+                <form method=\"post\" action=\"../../shop/cart_add.php\" class=\"space-y-4 ajax-cart-add\" data-product-id=\"${p.id}\">\n                    <input type=\"hidden\" name=\"csrf\" value=\"<?= h($csrf) ?>\" />\n                    <input type=\"hidden\" name=\"product_id\" value=\"${p.id}\" />\n                    <div class=\"flex items-center gap-3\">\n                        <span class=\"text-xs font-medium text-gray-500\">Quantity</span>\n                        <div class=\"inline-flex items-center rounded-full border border-gray-300 overflow-hidden bg-white shadow-sm\">\n                            <button type=\"button\" class=\"qty-btn px-3 py-1 text-gray-600 hover:bg-gray-100 focus:outline-none focus:bg-gray-100 text-sm\" data-delta=\"-1\" aria-label=\"Decrease quantity\" ${outOfStock||inactive?'disabled':''}>-</button>\n                            <input name=\"qty\" value=\"1\" min=\"1\" max=\"${p.stock||0}\" type=\"number\" class=\"w-12 text-center text-sm border-0 focus:ring-0 focus:outline-none hide-number-spinner\" ${outOfStock||inactive?'disabled':''} />\n                            <button type=\"button\" class=\"qty-btn px-3 py-1 text-gray-600 hover:bg-gray-100 focus:outline-none focus:bg-gray-100 text-sm\" data-delta=\"1\" aria-label=\"Increase quantity\" ${outOfStock||inactive?'disabled':''}>+</button>\n                        </div>\n                        ${p.stock?`<span class=\\"text-[10px] text-gray-400\\">Stock: ${p.stock}</span>`:'<span class=\\"text-[10px] text-red-500\\">Out of stock</span>'} <span class=\"px-2 py-0.5 rounded-full text-[10px] font-semibold ${inactive?'bg-red-100 text-red-700 border border-red-300':'bg-green-100 text-green-700 border border-green-300'}\">${inactive?'Not Available':'Available'}</span>\n                    </div>\n                    <button type=\"submit\" class=\"w-full ${outOfStock||inactive?'bg-gray-300 cursor-not-allowed':'bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700'} text-white font-semibold py-3 px-6 rounded-lg transition-all duration-200 flex items-center justify-center gap-2\" ${outOfStock||inactive?'disabled':''}>\n                        <i data-lucide=\"shopping-cart\" class=\"w-5 h-5\"></i> ${(outOfStock||inactive)?'Unavailable':'Add to Cart'}\n                    </button>\n                </form>
             </div>
         </div>`;
         document.getElementById('quick-view-content').innerHTML=content;

@@ -63,6 +63,42 @@ if (!$adminId) {
 $admin_fullname = trim(($admin['users_firstname'] ?? '') . ' ' . ($admin['users_lastname'] ?? '')) ?: 'Admin User';
 $admin_initial = strtoupper(substr(($admin['users_firstname'] ?? '') !== '' ? $admin['users_firstname'] : ($admin['users_username'] ?? 'A'), 0, 1));
 
+// ---- Subscribers (Subscription) Stats + List Preparation ----
+// We treat any record in user_subscriptions as a subscriber. Active defined by status 'active' and (no end date or future end date).
+$subscriberStats = [ 'total' => 0, 'active' => 0, 'this_month' => 0 ];
+$subscribersList = [];
+if(isset($connections) && $connections){
+    // Total distinct users subscribed at least once
+    if($res = mysqli_query($connections, "SELECT COUNT(DISTINCT users_id) c FROM user_subscriptions")){
+        if($row = mysqli_fetch_assoc($res)) $subscriberStats['total'] = (int)$row['c'];
+        mysqli_free_result($res);
+    }
+    // Active distinct users
+    if($res = mysqli_query($connections, "SELECT COUNT(DISTINCT users_id) c FROM user_subscriptions WHERE us_status='active' AND (us_end_date IS NULL OR us_end_date >= NOW())")){
+        if($row = mysqli_fetch_assoc($res)) $subscriberStats['active'] = (int)$row['c'];
+        mysqli_free_result($res);
+    }
+    // Started this month (distinct)
+    if($res = mysqli_query($connections, "SELECT COUNT(DISTINCT users_id) c FROM user_subscriptions WHERE YEAR(us_start_date)=YEAR(CURDATE()) AND MONTH(us_start_date)=MONTH(CURDATE())")){
+        if($row = mysqli_fetch_assoc($res)) $subscriberStats['this_month'] = (int)$row['c'];
+        mysqli_free_result($res);
+    }
+    // Latest subscription per user for table
+    $sqlSubs = "SELECT u.users_id, CONCAT(COALESCE(u.users_firstname,''),' ',COALESCE(u.users_lastname,'')) full_name, u.users_email, us.us_id, us.us_start_date, us.us_end_date, us.us_status
+                FROM user_subscriptions us
+                JOIN users u ON u.users_id = us.users_id
+                INNER JOIN (
+                    SELECT users_id, MAX(us_start_date) latest_start
+                    FROM user_subscriptions
+                    GROUP BY users_id
+                ) latest ON latest.users_id = us.users_id AND latest.latest_start = us.us_start_date
+                ORDER BY us.us_start_date DESC";
+    if($res = mysqli_query($connections, $sqlSubs)){
+        while($row = mysqli_fetch_assoc($res)) $subscribersList[] = $row;
+        mysqli_free_result($res);
+    }
+}
+
 function resolveImageUrl($path) {
     if (!$path) return '';
     if (preg_match('/^https?:/i', $path)) return $path;
@@ -1686,74 +1722,113 @@ function resolveImageUrl($path) {
                     </div>
                 </div>
 
-                <!-- Subscribers Section -->
+                <!-- Subscribers Section (Dynamic) -->
                 <div id="subscribers-section" class="space-y-6 hidden">
                     <div class="flex items-center justify-between">
                         <div>
-                            <h1 class="text-3xl font-bold">Newsletter Subscribers</h1>
-                            <p class="text-gray-600 mt-1">Manage newsletter subscriptions and email marketing</p>
+                            <h2 class="text-3xl font-bold">Subscribers</h2>
+                            <p class="text-gray-600 mt-1">Manage user subscription statuses</p>
                         </div>
-                        <button class="bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white px-4 py-2 rounded-md flex items-center gap-2">
-                            <i data-lucide="mail" class="w-4 h-4"></i>
-                            Send Newsletter
-                        </button>
+                        <div class="flex items-center gap-2">
+                            <button id="refreshSubscribers" class="bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white px-4 py-2 rounded-md flex items-center gap-2 text-sm"><i data-lucide="rotate-cw" class="w-4 h-4"></i>Refresh</button>
+                        </div>
                     </div>
 
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div class="bg-white rounded-lg border border-gray-200 p-6">
                             <div class="text-center">
-                                <div class="text-2xl font-bold text-orange-600">2</div>
+                                <div class="text-2xl font-bold text-orange-600" id="subsTotal"><?= (int)$subscriberStats['total'] ?></div>
                                 <div class="text-sm text-gray-600">Total Subscribers</div>
                             </div>
                         </div>
                         <div class="bg-white rounded-lg border border-gray-200 p-6">
                             <div class="text-center">
-                                <div class="text-2xl font-bold text-green-600">2</div>
+                                <div class="text-2xl font-bold text-green-600" id="subsActive"><?= (int)$subscriberStats['active'] ?></div>
                                 <div class="text-sm text-gray-600">Active Subscribers</div>
                             </div>
                         </div>
                         <div class="bg-white rounded-lg border border-gray-200 p-6">
                             <div class="text-center">
-                                <div class="text-2xl font-bold text-blue-600">1</div>
+                                <div class="text-2xl font-bold text-blue-600" id="subsMonth"><?= (int)$subscriberStats['this_month'] ?></div>
                                 <div class="text-sm text-gray-600">This Month</div>
                             </div>
                         </div>
                     </div>
 
-                    <div class="bg-white rounded-lg border border-gray-200">
-                        <div class="p-6 border-b border-gray-200">
-                            <div class="flex items-center justify-between">
-                                <h3 class="text-lg font-semibold">Subscriber List</h3>
-                                <div class="flex items-center gap-2">
-                                    <input type="text" placeholder="Search subscribers..." class="px-3 py-2 border border-gray-300 rounded-md w-64">
-                                    <button class="px-3 py-2 border border-gray-300 rounded-md hover:bg-gray-50">
-                                        <i data-lucide="download" class="w-4 h-4"></i>
-                                    </button>
+                    <div class="bg-white rounded-lg border border-gray-200 overflow-hidden">
+                        <div class="p-4 border-b border-gray-200 flex items-center justify-between gap-4 flex-wrap">
+                            <div class="flex items-center gap-2">
+                                <i data-lucide="list" class="w-4 h-4 text-gray-500"></i>
+                                <h3 class="font-semibold text-gray-700">Subscribers List</h3>
+                            </div>
+                            <div class="flex items-center gap-3 w-full md:w-auto">
+                                <div class="relative flex-1 md:flex-initial">
+                                    <i data-lucide="search" class="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2"></i>
+                                    <input id="subsSearch" type="text" placeholder="Search user/email" class="pl-9 pr-3 py-2 text-sm rounded-md border border-gray-300 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 w-full" />
                                 </div>
+                                <select id="subsStatusFilter" class="text-sm border-gray-300 rounded-md focus:ring-orange-500 focus:border-orange-500">
+                                    <option value="">All Status</option>
+                                    <option value="active">Active</option>
+                                    <option value="cancelled">Cancelled</option>
+                                    <option value="expired">Expired</option>
+                                </select>
                             </div>
                         </div>
                         <div class="overflow-x-auto">
-                            <table class="w-full">
-                                <thead class="bg-gray-50 border-b">
+                            <table class="w-full text-sm">
+                                <thead class="bg-gray-50 text-xs uppercase text-gray-500">
                                     <tr>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email Address</th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Subscribe Date</th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Source</th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                        <th class="py-2 px-3 text-left">User</th>
+                                        <th class="py-2 px-3 text-left">Start Date</th>
+                                        <th class="py-2 px-3 text-left">End Date</th>
+                                        <th class="py-2 px-3 text-left">Status</th>
+                                        <th class="py-2 px-3 text-left">Actions</th>
                                     </tr>
                                 </thead>
-                                <tbody id="subscribersTableBody" class="bg-white divide-y divide-gray-200">
-                                    <!-- Subscribers will be populated by JavaScript -->
+                                <tbody id="subsTableBody" class="divide-y divide-gray-100">
+                                    <?php if(empty($subscribersList)): ?>
+                                        <tr><td colspan="5" class="py-6 px-3 text-center text-gray-500 text-sm" data-empty="1">No subscribers found.</td></tr>
+                                    <?php else: foreach($subscribersList as $s):
+                                        $status = $s['us_status'];
+                                        if($status === 'active' && !empty($s['us_end_date']) && strtotime($s['us_end_date']) < time()) { $status = 'expired'; }
+                                        $badgeClass = match($status){
+                                            'active' => 'bg-green-100 text-green-700 border-green-300',
+                                            'cancelled' => 'bg-red-100 text-red-700 border-red-300',
+                                            'expired' => 'bg-gray-200 text-gray-700 border-gray-300',
+                                            default => 'bg-gray-100 text-gray-600 border-gray-200'
+                                        };
+                                    ?>
+                                    <tr data-status="<?= htmlspecialchars($status,ENT_QUOTES) ?>" data-user="<?= (int)$s['users_id'] ?>" data-name="<?= htmlspecialchars($s['full_name'] ?: $s['users_email'],ENT_QUOTES) ?>" data-email="<?= htmlspecialchars($s['users_email'],ENT_QUOTES) ?>">
+                                        <td class="py-2 px-3">
+                                            <div class="flex flex-col">
+                                                <span class="font-medium text-gray-800 leading-tight"><?= htmlspecialchars($s['full_name'] ?: $s['users_email'],ENT_QUOTES) ?></span>
+                                                <span class="text-[11px] text-gray-500 leading-tight"><?= htmlspecialchars($s['users_email'],ENT_QUOTES) ?></span>
+                                            </div>
+                                        </td>
+                                        <td class="py-2 px-3 text-gray-600 text-xs"><?= $s['us_start_date'] ? date('Y-m-d', strtotime($s['us_start_date'])) : '—' ?></td>
+                                        <td class="py-2 px-3 text-gray-600 text-xs"><?= $s['us_end_date'] ? date('Y-m-d', strtotime($s['us_end_date'])) : '—' ?></td>
+                                        <td class="py-2 px-3">
+                                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[11px] font-medium <?= $badgeClass ?> capitalize">
+                                                <i data-lucide="dot" class="w-3 h-3"></i><?= htmlspecialchars($status,ENT_QUOTES) ?>
+                                            </span>
+                                        </td>
+                                        <td class="py-2 px-3">
+                                            <div class="flex items-center gap-2">
+                                                <button class="subs-message-btn inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-md border border-gray-300 hover:border-orange-400 hover:text-orange-600" data-email="<?= htmlspecialchars($s['users_email'],ENT_QUOTES) ?>" data-name="<?= htmlspecialchars($s['full_name'],ENT_QUOTES) ?>"><i data-lucide="mail" class="w-3 h-3"></i>Message</button>
+                                                <button class="subs-delete-btn inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-md border border-red-300 text-red-600 hover:bg-red-50" data-us="<?= (int)$s['us_id'] ?>"><i data-lucide="trash-2" class="w-3 h-3"></i>Delete</button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    <?php endforeach; endif; ?>
                                 </tbody>
                             </table>
                         </div>
-                        <div id="sittersPagination" class="p-4 border-t border-gray-100 flex items-center justify-between hidden">
-                            <div id="sittersPageInfo" class="text-sm text-gray-600"></div>
-                            <div class="flex items-center gap-2">
-                                <button id="sittersPrev" class="px-3 py-1.5 border border-gray-300 rounded-md text-sm text-gray-700 hover:bg-gray-50">Prev</button>
-                                <div id="sittersPageNums" class="flex items-center gap-1"></div>
-                                <button id="sittersNext" class="px-3 py-1.5 border border-gray-300 rounded-md text-sm text-gray-700 hover:bg-gray-50">Next</button>
+                        <div class="p-3 border-t border-gray-200 flex items-center justify-between text-xs text-gray-500">
+                            <div id="subsCountSummary">Showing <span id="subsShownCount"></span> of <span id="subsTotalCount"></span></div>
+                            <div class="flex items-center gap-2" id="subsPager" style="display:none;">
+                                <button id="subsPrev" class="px-2 py-1 rounded border border-gray-300 disabled:opacity-40">Prev</button>
+                                <div id="subsPageNums" class="flex items-center gap-1"></div>
+                                <button id="subsNext" class="px-2 py-1 rounded border border-gray-300 disabled:opacity-40">Next</button>
                             </div>
                         </div>
                     </div>
@@ -3469,6 +3544,105 @@ function resolveImageUrl($path) {
             const range=[]; if(total<=maxButtons){ for(let i=1;i<=total;i++) range.push(i); return range; }
             const half=Math.floor(maxButtons/2); let start=Math.max(1,current-half); let end=start+maxButtons-1; if(end>total){end=total; start=end-maxButtons+1;} if(start>1){ range.push(1); if(start>2) range.push('...'); } for(let i=start;i<=end;i++) range.push(i); if(end<total){ if(end<total-1) range.push('...'); range.push(total);} return range;
         }
+
+        // ================= Subscribers Filtering & Search (Isolated) =================
+        (function initSubscribersFilters(){
+            const tbody = document.getElementById('subsTableBody');
+            if(!tbody) return; // safety if section removed
+            const searchInput = document.getElementById('subsSearch');
+            const statusFilter = document.getElementById('subsStatusFilter');
+            const shownEl = document.getElementById('subsShownCount');
+            const totalEl = document.getElementById('subsTotalCount');
+            const pagerWrap = document.getElementById('subsPager');
+            const prevBtn = document.getElementById('subsPrev');
+            const nextBtn = document.getElementById('subsNext');
+            const pageNumsWrap = document.getElementById('subsPageNums');
+            const pageSize = 15;
+            let page = 1;
+            const allRows = Array.from(tbody.querySelectorAll('tr[data-status]'));
+            if(totalEl) totalEl.textContent = allRows.length.toString();
+
+            function ensureEmptyRow(){
+                let emptyRow = tbody.querySelector('tr[data-empty]');
+                if(!emptyRow){
+                    emptyRow = document.createElement('tr');
+                    emptyRow.setAttribute('data-empty','1');
+                    emptyRow.innerHTML = '<td colspan="5" class="py-6 px-3 text-center text-gray-500 text-sm">No subscribers match.</td>';
+                }
+                return emptyRow;
+            }
+
+            function apply(){
+                const q = (searchInput?.value || '').trim().toLowerCase();
+                const statusVal = statusFilter?.value || '';
+                const filtered = allRows.filter(r => {
+                    const name = (r.getAttribute('data-name')||'').toLowerCase();
+                    const email = (r.getAttribute('data-email')||'').toLowerCase();
+                    const st = (r.getAttribute('data-status')||'').toLowerCase();
+                    if(statusVal && st !== statusVal) return false;
+                    if(q && !(name.includes(q) || email.includes(q))) return false;
+                    return true;
+                });
+                // Hide all first
+                allRows.forEach(r => r.style.display='none');
+                // Remove existing empty placeholder(s)
+                tbody.querySelectorAll('tr[data-empty]')?.forEach(er => er.remove());
+
+                const total = filtered.length;
+                const totalPages = Math.max(1, Math.ceil(total / pageSize));
+                if(page > totalPages) page = totalPages; // clamp
+                const start = (page-1)*pageSize;
+                const end = start + pageSize;
+                const pageRows = filtered.slice(start,end);
+                pageRows.forEach(r => r.style.display='');
+
+                if(shownEl) shownEl.textContent = total.toString() === '0' ? '0' : `${start+1}-${start+pageRows.length}`;
+                if(totalEl && !totalEl.textContent) totalEl.textContent = allRows.length.toString();
+                // If no matches show empty row
+                if(total === 0){ tbody.appendChild(ensureEmptyRow()); }
+
+                // Pager visibility
+                if(total > pageSize){
+                    pagerWrap && (pagerWrap.style.display='flex');
+                    const totalPagesReal = Math.ceil(total / pageSize);
+                    prevBtn.disabled = page <= 1;
+                    nextBtn.disabled = page >= totalPagesReal;
+                    prevBtn.classList.toggle('opacity-40', prevBtn.disabled);
+                    nextBtn.classList.toggle('opacity-40', nextBtn.disabled);
+                    if(pageNumsWrap){
+                        pageNumsWrap.innerHTML = '';
+                        const nums = paginationRange(page, totalPagesReal, 5);
+                        nums.forEach(n => {
+                            const btn = document.createElement('button');
+                            btn.className = 'px-2 py-1 rounded text-xs border';
+                            if(n === '...'){
+                                btn.textContent = '...';
+                                btn.disabled = true;
+                                btn.classList.add('opacity-50');
+                            } else {
+                                btn.textContent = n;
+                                if(n === page){
+                                    btn.classList.add('bg-orange-500','text-white','border-orange-500');
+                                } else {
+                                    btn.classList.add('bg-white','hover:bg-orange-50');
+                                    btn.addEventListener('click', ()=>{ page = n; apply(); });
+                                }
+                            }
+                            pageNumsWrap.appendChild(btn);
+                        });
+                    }
+                } else {
+                    pagerWrap && (pagerWrap.style.display='none');
+                }
+            }
+
+            searchInput?.addEventListener('input', () => { page = 1; apply(); });
+            statusFilter?.addEventListener('change', () => { page = 1; apply(); });
+            prevBtn?.addEventListener('click', () => { if(page>1){ page--; apply(); }});
+            nextBtn?.addEventListener('click', () => { page++; apply(); });
+
+            apply();
+        })();
     </script>
     <!-- Tailwind safelist (hidden) to ensure dynamic specialty classes are included by CDN JIT -->
     <div class="hidden">

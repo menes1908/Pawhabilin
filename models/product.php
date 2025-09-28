@@ -47,7 +47,11 @@ if (!function_exists('product_sort_clause')) {
 
 if (!function_exists('product_build_where')) {
     function product_build_where(array $filters, array &$params, string &$types): string {
-        $clauses = ['products_active = 1'];
+        $clauses = [];
+        // Only enforce active filter when include_inactive not explicitly true
+        if (empty($filters['include_inactive'])) {
+            $clauses[] = 'products_active = 1';
+        }
         if (!empty($filters['q'])) {
             $clauses[] = 'products_name LIKE ?';
             $params[] = '%'.$filters['q'].'%';
@@ -57,6 +61,9 @@ if (!function_exists('product_build_where')) {
             $clauses[] = 'products_category = ?';
             $params[] = $filters['cat'];
             $types .= 's';
+        }
+        if (!$clauses) {
+            return ''; // No WHERE clause needed (select all, including inactive)
         }
         return 'WHERE '.implode(' AND ', $clauses);
     }

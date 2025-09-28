@@ -18,7 +18,7 @@ function h($v){ return htmlspecialchars($v ?? '', ENT_QUOTES, 'UTF-8'); }
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Subscription Plans - pawhabilin</title>
+    <title>Subscription Plans - Pawhabilin</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="../../globals.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -415,7 +415,7 @@ function h($v){ return htmlspecialchars($v ?? '', ENT_QUOTES, 'UTF-8'); }
                                     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                                         <div class="sm:col-span-2">
                                             <label class="block text-sm font-medium text-gray-700 mb-1">Mobile Number</label>
-                                            <input type="tel" placeholder="09xxxxxxxxx" class="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-orange-300" />
+                                            <input type="tel" placeholder="09xxxxxxxxx" class="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-orange-300" maxlength="11" />
                                         </div>
                                         <div class="flex items-end">
                                             <button type="button" class="px-3 py-2 border rounded-lg text-sm">Send OTP</button>

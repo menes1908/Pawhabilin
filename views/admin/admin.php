@@ -1909,6 +1909,54 @@ function resolveImageUrl($path) {
                         </div>
                     </div>
                 </div>
+
+                <!-- Settings Section -->
+                <div id="settings-section" class="space-y-6 hidden">
+                    <div>
+                        <h2 class="text-xl font-semibold flex items-center gap-2 text-gray-800"><i data-lucide="settings" class="w-5 h-5 text-orange-500"></i> Settings</h2>
+                        <p class="text-sm text-gray-500">Manage admin preferences and booking availability.</p>
+                    </div>
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <!-- Dark Mode Card -->
+                        <div class="bg-white border border-gray-200 rounded-lg shadow-sm p-5 flex flex-col gap-4" id="darkModeCard">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <h3 class="font-medium text-gray-800 flex items-center gap-2"><i data-lucide="moon" class="w-4 h-4 text-indigo-500"></i> Dark Mode</h3>
+                                    <p class="text-xs text-gray-500">Toggle dark theme for the admin dashboard.</p>
+                                </div>
+                                <label class="inline-flex items-center cursor-pointer select-none">
+                                    <input type="checkbox" id="darkModeToggle" class="sr-only">
+                                    <span class="w-10 h-5 flex items-center bg-gray-300 rounded-full p-1 transition-all" id="darkModeSlider">
+                                        <span class="bg-white w-4 h-4 rounded-full shadow transition-all" id="darkModeKnob"></span>
+                                    </span>
+                                </label>
+                            </div>
+                            <div class="text-xs text-gray-500" id="darkModeStatus">Theme: Light</div>
+                        </div>
+                        <!-- Appointment Blocking Card -->
+                        <div class="bg-white border border-gray-200 rounded-lg shadow-sm p-5 flex flex-col gap-4" id="blockApptCard">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <h3 class="font-medium text-gray-800 flex items-center gap-2"><i data-lucide="calendar-x" class="w-4 h-4 text-red-500"></i> Appointment Availability</h3>
+                                    <p class="text-xs text-gray-500">Block accepting new appointments for a selected date.</p>
+                                </div>
+                            </div>
+                            <div class="flex flex-col md:flex-row gap-3 items-start md:items-end">
+                                <div class="flex flex-col gap-1">
+                                    <label for="blockDate" class="text-xs font-medium text-gray-600">Select Date</label>
+                                    <input type="date" id="blockDate" class="border border-gray-300 rounded-md px-2 py-1 text-sm" />
+                                </div>
+                                <div class="flex gap-2">
+                                    <button id="blockTodayBtn" class="px-3 py-2 bg-red-600 hover:bg-red-700 text-white text-xs rounded-md">Block Today</button>
+                                    <button id="blockDateBtn" class="px-3 py-2 bg-orange-600 hover:bg-orange-700 text-white text-xs rounded-md">Block Date</button>
+                                    <button id="clearBlockBtn" class="px-3 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 text-xs rounded-md">Clear</button>
+                                </div>
+                            </div>
+                            <div id="blockStatus" class="text-xs text-gray-500">No blocked date set.</div>
+                            <div class="text-[11px] text-gray-400">Users attempting to book on a blocked date will see a notice.</div>
+                        </div>
+                    </div>
+                </div>
             </main>
         </div>
     </div>
@@ -2360,8 +2408,9 @@ function resolveImageUrl($path) {
             initSubscribersFilters();
             initSitters();
             initTopSellingModal();
+            initSettingsSection();
             // Section isolation logic: ensure only active section's UI is visible
-            const sectionIds = ['dashboard','orders','sitters','appointments','owners','subscribers','products'];
+            const sectionIds = ['dashboard','orders','sitters','appointments','owners','subscribers','products','settings'];
             function showSection(id){
                 sectionIds.forEach(sid=>{
                     const el = document.getElementById(sid+'-section');
@@ -3809,6 +3858,232 @@ function resolveImageUrl($path) {
             card.addEventListener('click', open);
             closeBtns.forEach(btn=> btn && btn.addEventListener('click', close));
             modal.addEventListener('click', (e)=>{ if(e.target===modal) close(); });
+        }
+
+        // ========== Settings Section (Dark Mode + Block Appointments) ==========
+        function initSettingsSection(){
+            const toggle = document.getElementById('darkModeToggle');
+            const knob = document.getElementById('darkModeKnob');
+            const slider = document.getElementById('darkModeSlider');
+            const status = document.getElementById('darkModeStatus');
+            const root = document.documentElement;
+            const blockDateInput = document.getElementById('blockDate');
+            const blockTodayBtn = document.getElementById('blockTodayBtn');
+            const blockDateBtn = document.getElementById('blockDateBtn');
+            const clearBlockBtn = document.getElementById('clearBlockBtn');
+            const blockStatus = document.getElementById('blockStatus');
+            if(!toggle || !slider) return; // safety
+
+            // Persistence keys
+            const THEME_KEY = 'admin_theme_mode';
+            const BLOCK_KEY = 'appointments_block_date';
+
+            // Load persisted theme
+            let saved = null; try { saved = localStorage.getItem(THEME_KEY); } catch(e){}
+            function applyDark(on){
+                if(on){
+                    document.body.classList.add('dark');
+                    root.classList.add('dark');
+                    slider.classList.remove('bg-gray-300');
+                    slider.classList.add('bg-indigo-600');
+                    knob.classList.add('translate-x-5');
+                    status.textContent = 'Theme: Dark';
+                } else {
+                    document.body.classList.remove('dark');
+                    root.classList.remove('dark');
+                    slider.classList.add('bg-gray-300');
+                    slider.classList.remove('bg-indigo-600');
+                    knob.classList.remove('translate-x-5');
+                    status.textContent = 'Theme: Light';
+                }
+            }
+            const initialDark = saved === 'dark';
+            toggle.checked = initialDark;
+            applyDark(initialDark);
+            toggle.addEventListener('change', ()=>{
+                const on = toggle.checked;
+                applyDark(on);
+                try { localStorage.setItem(THEME_KEY, on?'dark':'light'); } catch(e){}
+            });
+
+            // Basic dark mode CSS injection (minimal to avoid altering existing styles drastically)
+            if(!document.getElementById('adminDarkModeStyles')){
+                const style = document.createElement('style');
+                style.id='adminDarkModeStyles';
+                style.textContent = `
+                /* Base surfaces & typography */
+                .dark body { background-color:#0f172a; color:#e2e8f0; }
+                .dark h1,.dark h2,.dark h3,.dark h4,.dark h5,.dark h6 { color:#f8fafc; }
+                .dark .bg-white { background-color:#1f2937 !important; }
+                .dark .bg-gray-50 { background-color:#1e293b !important; }
+                .dark .bg-gray-100 { background-color:#243044 !important; }
+                .dark .bg-gray-200 { background-color:#2f3b52 !important; }
+                .dark .bg-gray-300 { background-color:#3a475e !important; }
+                .dark .text-black,
+                .dark .text-gray-900 { color:#f1f5f9 !important; }
+                .dark .text-gray-800 { color:#f1f5f9 !important; }
+                .dark .text-gray-700 { color:#e2e8f0 !important; }
+                .dark .text-gray-600 { color:#cbd5e1 !important; }
+                .dark .text-gray-500 { color:#94a3b8 !important; }
+                .dark .border-gray-200 { border-color:#334155 !important; }
+                .dark .border-gray-300 { border-color:#475569 !important; }
+                .dark .divide-gray-200 > :not([hidden]) ~ :not([hidden]) { border-color:#334155 !important; }
+                .dark .shadow-sm { box-shadow:0 1px 2px 0 rgba(0,0,0,0.7),0 2px 4px -1px rgba(0,0,0,0.6); }
+
+                /* Sidebar & navigation */
+                .dark #sidebar { background:#1e293b; border-color:#334155; }
+                .dark .sidebar-item { color:#cbd5e1; }
+                .dark .sidebar-item:hover { background:#334155; color:#fff8eb; }
+                .dark .sidebar-item:hover i { color:#fbbf24; }
+                .dark .sidebar-item.bg-gradient-to-r { background:linear-gradient(to right,#f97316,#ea580c); color:#fff !important; }
+                .dark .sidebar-item.bg-gradient-to-r i { color:#fff8eb !important; }
+
+                /* Cards & panels */
+                .dark .stats-card,
+                .dark .rounded-lg.bg-white,
+                .dark .border.border-gray-200 { background:#1f2937 !important; border-color:#334155 !important; }
+                .dark .hover\:bg-gray-100:hover { background-color:#334155 !important; }
+                .dark .hover\:bg-white:hover { background-color:#334155 !important; }
+
+                /* Tables */
+                .dark table thead th { background:#1e293b !important; color:#f1f5f9 !important; border-color:#334155 !important; }
+                .dark table tbody tr { background:#1f2937; border-color:#334155; }
+                .dark table tbody tr:nth-child(even) { background:#233146; }
+                .dark table tbody tr:hover { background:#334155; }
+                .dark table td { color:#e2e8f0; }
+
+                /* Forms */
+                .dark input[type=text],
+                .dark input[type=number],
+                .dark input[type=email],
+                .dark input[type=date],
+                .dark input[type=time],
+                .dark input[type=password],
+                .dark select,
+                .dark textarea { background:#0f172a; border:1px solid #334155; color:#f1f5f9; }
+                .dark input::placeholder,
+                .dark textarea::placeholder { color:#64748b; }
+                .dark input:focus,
+                .dark select:focus,
+                .dark textarea:focus { outline:none; border-color:#f59e0b; box-shadow:0 0 0 1px #f59e0b; }
+
+                /* Buttons */
+                .dark button,
+                .dark .btn { color:#f1f5f9; }
+                .dark .bg-gray-100 { background:#243044 !important; }
+                .dark .bg-gray-200 { background:#2f3b52 !important; }
+                .dark .bg-gray-100:hover,
+                .dark .bg-gray-200:hover { background:#334155 !important; }
+                .dark .bg-orange-50 { background:rgba(251,146,60,0.15) !important; color:#fdba74 !important; }
+                .dark .hover\:bg-orange-50:hover { background:rgba(251,146,60,0.25) !important; }
+
+                /* Badges & status chips */
+                .dark .bg-green-50 { background:rgba(34,197,94,0.15) !important; color:#4ade80 !important; }
+                .dark .bg-red-50 { background:rgba(248,113,113,0.15) !important; color:#f87171 !important; }
+                .dark .bg-yellow-50 { background:rgba(234,179,8,0.15) !important; color:#facc15 !important; }
+                .dark .bg-blue-50 { background:rgba(59,130,246,0.15) !important; color:#60a5fa !important; }
+
+                /* Modals */
+                .dark .fixed.inset-0 .bg-white { background:#1f2937 !important; }
+                .dark .fixed.inset-0 .border-gray-200 { border-color:#334155 !important; }
+
+                /* Scrollbars (Webkit) */
+                .dark ::-webkit-scrollbar-track { background:#1e293b; }
+                .dark ::-webkit-scrollbar-thumb { background:#334155; }
+                .dark ::-webkit-scrollbar-thumb:hover { background:#475569; }
+
+                /* Links */
+                .dark a { color:#93c5fd; }
+                .dark a:hover { color:#bfdbfe; }
+
+                /* Accent highlights */
+                .dark .ring-1 { --tw-ring-color:#334155; }
+                .dark .focus\:ring-orange-500:focus { box-shadow:0 0 0 2px rgba(249,115,22,0.6); }
+                .dark .focus\:ring:focus { box-shadow:0 0 0 2px #f59e0b66; }
+
+                /* Tables empty state / subtle */
+                .dark tr[data-empty] td { color:#94a3b8 !important; }
+
+                /* Pagination */
+                .dark .pagination button { background:#243044; border-color:#334155; color:#e2e8f0; }
+                .dark .pagination button:hover { background:#334155; }
+                .dark .pagination button[disabled] { opacity:.4; }
+
+                /* Search inputs inside light cards */
+                .dark .relative.w-80 input[type=text] { background:#0f172a; border-color:#334155; color:#f1f5f9; }
+
+                /* Toast override for dark mode */
+                .dark #adminToastWrap .bg-gray-800 { background:#1e293b !important; border-color:#334155 !important; }
+                `;
+                document.head.appendChild(style);
+            }
+
+            // Appointment blocking logic (client-side + localStorage for now)
+            function updateBlockStatus(){
+                let dateVal=null; try { dateVal = localStorage.getItem(BLOCK_KEY); } catch(e){}
+                if(dateVal){
+                    blockStatus.textContent = 'Blocked date: '+dateVal+' (users cannot book this day)';
+                    blockStatus.classList.remove('text-gray-500');
+                    blockStatus.classList.add('text-red-600');
+                    blockDateInput.value = dateVal;
+                } else {
+                    blockStatus.textContent = 'No blocked date set.';
+                    blockStatus.classList.add('text-gray-500');
+                    blockStatus.classList.remove('text-red-600');
+                    blockDateInput.value = '';
+                }
+            }
+            updateBlockStatus();
+            // --- Server sync (lightweight) ---
+            const API_URL = '../../controllers/admin/blockdate.php';
+            async function syncFromServer(){
+                try {
+                    const r = await fetch(API_URL + '?_=' + Date.now());
+                    if(!r.ok) return;
+                    const data = await r.json();
+                    if(data && data.blocked_date){
+                        try { localStorage.setItem(BLOCK_KEY, data.blocked_date); } catch(e){}
+                    } else {
+                        try { localStorage.removeItem(BLOCK_KEY); } catch(e){}
+                    }
+                    updateBlockStatus();
+                } catch(e){ /* silent */ }
+            }
+            async function persistBlock(dateStr){
+                try {
+                    const fd = new FormData();
+                    fd.append('date', dateStr || '');
+                    await fetch(API_URL, { method: 'POST', body: fd });
+                } catch(e){ /* silent */ }
+            }
+            function setBlock(dateStr){
+                if(!dateStr) return;
+                try { localStorage.setItem(BLOCK_KEY, dateStr); } catch(e){}
+                updateBlockStatus();
+                persistBlock(dateStr);
+                toast('Blocked appointments for '+dateStr, 'warn');
+            }
+            function clearBlock(){
+                try { localStorage.removeItem(BLOCK_KEY); } catch(e){}
+                updateBlockStatus();
+                persistBlock('');
+                toast('Cleared blocked date','info');
+            }
+            blockTodayBtn?.addEventListener('click', (e)=>{ e.preventDefault(); const today = new Date(); const ds=today.toISOString().substring(0,10); setBlock(ds); });
+            blockDateBtn?.addEventListener('click', (e)=>{ e.preventDefault(); if(blockDateInput.value) setBlock(blockDateInput.value); });
+            clearBlockBtn?.addEventListener('click', (e)=>{ e.preventDefault(); clearBlock(); });
+
+            // Lightweight toast (reuse existing if available)
+            function toast(msg,type='info'){
+                if(typeof showToast==='function'){ showToast(msg, type==='warn'?'error':'success'); return; }
+                let wrap=document.getElementById('adminToastWrap');
+                if(!wrap){ wrap=document.createElement('div'); wrap.id='adminToastWrap'; wrap.className='fixed z-[999] top-4 right-4 space-y-2 w-72'; document.body.appendChild(wrap);}                const el=document.createElement('div');
+                const base='px-3 py-2 rounded-md text-xs shadow border animate-fade-in';
+                const cls= type==='warn' ? 'bg-red-50 border-red-200 text-red-700' : 'bg-gray-800 border-gray-700 text-gray-100';
+                el.className=base+' '+cls; el.textContent=msg; wrap.appendChild(el); setTimeout(()=>{ el.classList.add('opacity-0'); setTimeout(()=>el.remove(),300); },3000);
+            }
+            // Initial sync (non-blocking)
+            syncFromServer();
         }
     </script>
     <!-- Tailwind safelist (hidden) to ensure dynamic specialty classes are included by CDN JIT -->

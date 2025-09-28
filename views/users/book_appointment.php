@@ -1519,6 +1519,67 @@ $currentUserImg = user_image_url($currentUser);
                 if (e.key === 'Escape') setOpen(false);
             });
         })();
+
+        // Blocked appointment date: fetch from server + localStorage fallback and validate user selection
+        (function(){
+            const BLOCK_KEY = 'appointments_block_date';
+            const API_URL = '../../controllers/admin/blockdate.php';
+            const dateInput = document.querySelector('input[name="appointmentDate"]');
+            if(!dateInput) return;
+            let currentBlocked = null;
+            try { currentBlocked = localStorage.getItem(BLOCK_KEY); } catch(e){}
+            function ensureNotice(msg){
+                let n = document.getElementById('blockedDateNotice');
+                if(!n){
+                    n = document.createElement('div');
+                    n.id='blockedDateNotice';
+                    n.className='mb-4 p-4 rounded-md border border-red-300 bg-red-50 text-red-700 text-sm';
+                    const form = dateInput.closest('form');
+                    if(form && form.parentNode) form.parentNode.insertBefore(n, form);
+                }
+                n.textContent = msg;
+                return n;
+            }
+            function removeNotice(){ const n=document.getElementById('blockedDateNotice'); if(n) n.remove(); }
+            function disableForm(disabled){
+                const form = dateInput.closest('form'); if(!form) return; const submits=form.querySelectorAll('button[type="submit"], input[type="submit"]');
+                submits.forEach(b=>{ b.disabled = disabled; b.classList.toggle('opacity-60',disabled); b.classList.toggle('cursor-not-allowed',disabled); });
+            }
+            function todayStr(){ return new Date().toISOString().substring(0,10); }
+            function checkTodayBlock(){
+                if(currentBlocked && currentBlocked === todayStr()){
+                    ensureNotice('Appointments are temporarily closed for today. Please select another date.');
+                    disableForm(true);
+                } else { removeNotice(); disableForm(false); }
+            }
+            function validateSelection(){
+                if(!currentBlocked) return;
+                if(dateInput.value === currentBlocked){
+                    ensureNotice('Selected date ('+currentBlocked+') is closed. Please choose another date.');
+                    disableForm(true);
+                } else {
+                    checkTodayBlock(); // revert to baseline state
+                }
+            }
+            dateInput.addEventListener('change', validateSelection);
+            // Initial local check
+            checkTodayBlock();
+            // Sync from server
+            fetch(API_URL + '?_=' + Date.now())
+                .then(r=> r.ok ? r.json(): null)
+                .then(data=>{
+                    if(data && data.blocked_date){
+                        currentBlocked = data.blocked_date;
+                        try { localStorage.setItem(BLOCK_KEY, currentBlocked); } catch(e){}
+                    } else {
+                        currentBlocked = null;
+                        try { localStorage.removeItem(BLOCK_KEY); } catch(e){}
+                    }
+                    checkTodayBlock();
+                    validateSelection();
+                })
+                .catch(()=>{});
+        })();
     </script>
 </body>
 </html>

@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Sep 27, 2025 at 03:39 PM
+-- Generation Time: Sep 28, 2025 at 07:05 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.0.30
 
@@ -120,7 +120,7 @@ CREATE TABLE `deliveries` (
 
 INSERT INTO `deliveries` (`deliveries_id`, `transactions_id`, `location_id`, `deliveries_delivery_status`, `deliveries_estimated_delivery_date`, `deliveries_actual_delivery_date`, `deliveries_recipient_signature`) VALUES
 (1, 3, 2, 'processing', '2025-09-28', NULL, NULL),
-(2, 4, 1, 'processing', '2025-09-29', NULL, NULL);
+(2, 4, 1, 'delivered', '2025-09-29', '2025-09-29', '1');
 
 -- --------------------------------------------------------
 
@@ -235,7 +235,8 @@ INSERT INTO `products` (`products_id`, `products_name`, `products_pet_type`, `pr
 (8, '23qwra', 'Cat', 'waqdc', 'necessity', 234.00, NULL, '234', NULL, 1, '2025-09-20 12:05:36'),
 (9, 'q3awr3weqr', 'Cat', '23wetfesdf', 'necessity', 345.00, NULL, '234', NULL, 1, '2025-09-20 12:05:50'),
 (10, 't43wegdxz', 'Bird', 'sdregsdfg', 'necessity', 3425.00, NULL, '324', NULL, 1, '2025-09-20 12:06:20'),
-(11, '345rt', 'Bird', '6346', 'necessity', 345.00, NULL, '234', NULL, 1, '2025-09-20 12:06:36');
+(11, '345rt', 'Bird', '6346', 'necessity', 345.00, NULL, '234', NULL, 1, '2025-09-20 12:06:36'),
+(12, 'feswd', 'Dog', 'rewdfeasdf', 'accessory', 23.00, NULL, '33', NULL, 0, '2025-09-27 21:44:22');
 
 -- --------------------------------------------------------
 
@@ -531,7 +532,7 @@ ALTER TABLE `pets`
 -- AUTO_INCREMENT for table `products`
 --
 ALTER TABLE `products`
-  MODIFY `products_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=12;
+  MODIFY `products_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
 
 --
 -- AUTO_INCREMENT for table `sitters`

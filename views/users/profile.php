@@ -535,60 +535,63 @@ if (isset($connections) && $connections && $usersId > 0) {
 $petsCount = count($userPets);
 $bookedCount = count($bookedAppointments);
 
-// Orders (pickup & delivery)
+// Delivery Orders Only (encapsulated)
 $ordersCount = 0;
-$userPickupOrders = [];
 $userDeliveryOrders = [];
-if (isset($connections) && $connections && $usersId > 0) {
-    $sqlOrders = "SELECT t.transactions_id, t.transactions_amount, t.transactions_payment_method, t.transactions_fulfillment_type,
-                         t.transactions_created_at,
-                         p.pickups_pickup_date, p.pickups_pickup_time, p.pickups_pickup_status,
-                         d.deliveries_delivery_status, d.deliveries_estimated_delivery_date, d.deliveries_actual_delivery_date, d.deliveries_recipient_signature,
-                         d.location_id,
-                         COALESCE(l.location_address_line1, d.deliveries_address) AS full_address_line1,
-                         COALESCE(l.location_city, d.deliveries_city) AS full_address_city,
-                         COALESCE(l.location_province, '') AS full_address_province
-                  FROM transactions t
-                  LEFT JOIN pickups p ON p.transactions_id = t.transactions_id
-                  LEFT JOIN deliveries d ON d.transactions_id = t.transactions_id
-                  LEFT JOIN locations l ON l.location_id = d.location_id
-                  WHERE t.users_id = ? AND t.transactions_type = 'product'
-                  ORDER BY t.transactions_created_at DESC, t.transactions_id DESC";
-    if ($stmt = mysqli_prepare($connections, $sqlOrders)) {
-        mysqli_stmt_bind_param($stmt, 'i', $usersId);
-        mysqli_stmt_execute($stmt);
-        $res = mysqli_stmt_get_result($stmt);
-        $rows = [];
-        while ($r = mysqli_fetch_assoc($res)) { $rows[] = $r; }
-        mysqli_stmt_close($stmt);
-        if ($rows) {
-            $ids = array_map('intval', array_column($rows, 'transactions_id'));
-            $idList = implode(',', $ids);
-            $lineData = [];
-            if ($idList !== '') {
-                $lineSql = "SELECT tp.transactions_id, tp.products_id, tp.tp_quantity, pr.products_name, pr.products_price
-                            FROM transaction_products tp
-                            JOIN products pr ON pr.products_id = tp.products_id
-                            WHERE tp.transactions_id IN ($idList)";
-                if ($lr = mysqli_query($connections, $lineSql)) {
-                    while ($ln = mysqli_fetch_assoc($lr)) { $lineData[] = $ln; }
-                    mysqli_free_result($lr);
+if (!function_exists('fetch_user_delivery_orders')) {
+    function fetch_user_delivery_orders(mysqli $conn, int $uid): array {
+        $out = [];
+        $sql = "SELECT t.transactions_id, t.transactions_amount, t.transactions_payment_method, t.transactions_fulfillment_type, t.transactions_created_at,
+                       d.deliveries_delivery_status, d.deliveries_estimated_delivery_date, d.deliveries_actual_delivery_date, d.deliveries_recipient_signature,
+                       d.location_id,
+                       COALESCE(l.location_address_line1, d.deliveries_address) AS full_address_line1,
+                       COALESCE(l.location_city, d.deliveries_city) AS full_address_city,
+                       COALESCE(l.location_province, '') AS full_address_province
+                FROM transactions t
+                JOIN deliveries d ON d.transactions_id = t.transactions_id
+                LEFT JOIN locations l ON l.location_id = d.location_id
+                WHERE t.users_id = ? AND t.transactions_type='product'
+                ORDER BY t.transactions_created_at DESC, t.transactions_id DESC";
+        if ($st = mysqli_prepare($conn,$sql)) {
+            mysqli_stmt_bind_param($st,'i',$uid);
+            mysqli_stmt_execute($st); $rs = mysqli_stmt_get_result($st);
+            $rows = [];
+            while ($r = mysqli_fetch_assoc($rs)) { $rows[] = $r; }
+            mysqli_stmt_close($st);
+            if ($rows) {
+                $ids = array_column($rows,'transactions_id');
+                $ids = array_map('intval',$ids);
+                $idList = implode(',', $ids);
+                $itemsByTxn = [];
+                if ($idList !== '') {
+                    $lineSql = "SELECT tp.transactions_id, tp.products_id, tp.tp_quantity, pr.products_name, pr.products_price, pr.products_image_url
+                                FROM transaction_products tp
+                                JOIN products pr ON pr.products_id = tp.products_id
+                                WHERE tp.transactions_id IN ($idList)";
+                    if ($res2 = mysqli_query($conn,$lineSql)) {
+                        while ($ln = mysqli_fetch_assoc($res2)) {
+                            $tid = (int)$ln['transactions_id'];
+                            if (!isset($itemsByTxn[$tid])) $itemsByTxn[$tid] = [];
+                            $itemsByTxn[$tid][] = $ln;
+                        }
+                        mysqli_free_result($res2);
+                    }
+                }
+                foreach ($rows as $row) {
+                    $tid = (int)$row['transactions_id'];
+                    // ensure only deliveries
+                    if (($row['transactions_fulfillment_type'] ?? '') !== 'delivery') continue;
+                    $row['items'] = $itemsByTxn[$tid] ?? [];
+                    $out[] = $row;
                 }
             }
-            $byTxn = [];
-            foreach ($lineData as $ln) { $byTxn[(int)$ln['transactions_id']][] = $ln; }
-            foreach ($rows as $row) {
-                $tid = (int)$row['transactions_id'];
-                $row['items'] = $byTxn[$tid] ?? [];
-                if (($row['transactions_fulfillment_type'] ?? '') === 'pickup') {
-                    $userPickupOrders[] = $row;
-                } elseif (($row['transactions_fulfillment_type'] ?? '') === 'delivery') {
-                    $userDeliveryOrders[] = $row;
-                }
-            }
-            $ordersCount = count($userPickupOrders) + count($userDeliveryOrders);
         }
+        return $out;
     }
+}
+if (isset($connections) && $connections && $usersId > 0) {
+    $userDeliveryOrders = fetch_user_delivery_orders($connections,$usersId);
+    $ordersCount = count($userDeliveryOrders);
 }
 // Handle order cancellation (pickup)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'cancel_pickup_order' && $usersId > 0) {
@@ -628,6 +631,71 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'cance
         }
     }
     header('Location: profile.php');
+    exit();
+}
+
+// AJAX: Mark delivery as received (sets signature + delivered status) and returns updated order JSON
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && (($_POST['action'] ?? '') === 'mark_delivery_received') && $usersId > 0) {
+    header('Content-Type: application/json');
+    $tid = (int)($_POST['transactions_id'] ?? 0);
+    if ($tid <= 0 || !isset($connections) || !$connections) {
+        echo json_encode(['success'=>false,'message'=>'Invalid request.']);
+        exit();
+    }
+    // Verify ownership & that a delivery row exists and not yet signed
+    $ok = false; $already = false;
+    if ($stmt = mysqli_prepare($connections, "SELECT d.deliveries_recipient_signature FROM transactions t JOIN deliveries d ON d.transactions_id = t.transactions_id WHERE t.transactions_id = ? AND t.users_id = ? LIMIT 1")) {
+        mysqli_stmt_bind_param($stmt,'ii',$tid,$usersId);
+        mysqli_stmt_execute($stmt); $rs = mysqli_stmt_get_result($stmt);
+        if ($row = mysqli_fetch_assoc($rs)) {
+            $already = !empty($row['deliveries_recipient_signature']);
+            $ok = true;
+        }
+        mysqli_stmt_close($stmt);
+    }
+    if (!$ok) {
+        echo json_encode(['success'=>false,'message'=>'Order not found.']);
+        exit();
+    }
+    if ($already) {
+        echo json_encode(['success'=>true,'message'=>'Already received.']);
+        exit();
+    }
+    if ($upd = mysqli_prepare($connections, "UPDATE deliveries SET deliveries_recipient_signature = CONCAT('Received ', NOW()), deliveries_actual_delivery_date = IF(deliveries_actual_delivery_date IS NULL, NOW(), deliveries_actual_delivery_date), deliveries_delivery_status = 'delivered' WHERE transactions_id = ?")) {
+        mysqli_stmt_bind_param($upd,'i',$tid);
+        mysqli_stmt_execute($upd);
+        mysqli_stmt_close($upd);
+    }
+    // Re-fetch updated order with items
+    $order = null; $items = [];
+    $osql = "SELECT t.transactions_id, t.transactions_amount, t.transactions_payment_method, t.transactions_fulfillment_type, t.transactions_created_at,
+                    d.deliveries_delivery_status, d.deliveries_estimated_delivery_date, d.deliveries_actual_delivery_date, d.deliveries_recipient_signature,
+                    d.location_id,
+                    COALESCE(l.location_address_line1, d.deliveries_address) AS full_address_line1,
+                    COALESCE(l.location_city, d.deliveries_city) AS full_address_city,
+                    COALESCE(l.location_province, '') AS full_address_province
+             FROM transactions t
+             LEFT JOIN deliveries d ON d.transactions_id = t.transactions_id
+             LEFT JOIN locations l ON l.location_id = d.location_id
+             WHERE t.transactions_id = ? AND t.users_id = ? LIMIT 1";
+    if ($st = mysqli_prepare($connections,$osql)) {
+        mysqli_stmt_bind_param($st,'ii',$tid,$usersId);
+        mysqli_stmt_execute($st); $rs = mysqli_stmt_get_result($st);
+        if ($r = mysqli_fetch_assoc($rs)) { $order = $r; }
+        mysqli_stmt_close($st);
+    }
+    if ($order) {
+        $lsql = "SELECT tp.transactions_id, tp.products_id, tp.tp_quantity, pr.products_name, pr.products_price, pr.products_image_url
+                 FROM transaction_products tp JOIN products pr ON pr.products_id = tp.products_id WHERE tp.transactions_id = ?";
+        if ($st2 = mysqli_prepare($connections,$lsql)) {
+            mysqli_stmt_bind_param($st2,'i',$tid);
+            mysqli_stmt_execute($st2); $rs2 = mysqli_stmt_get_result($st2);
+            while ($ln = mysqli_fetch_assoc($rs2)) { $items[] = $ln; }
+            mysqli_stmt_close($st2);
+        }
+        $order['items'] = $items;
+    }
+    echo json_encode(['success'=> (bool)$order, 'order'=>$order]);
     exit();
 }
 
@@ -1058,17 +1126,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'cance
                     </div>
                 </div>
                 
-                <div class="stats-card rounded-2xl p-6 cursor-pointer" onclick="openStats('orders')">
+                <a href="orders.php" class="stats-card rounded-2xl p-6 cursor-pointer block" title="View My Orders">
                     <div class="flex items-center justify-between">
                         <div>
-                            <p class="text-sm text-gray-600 font-medium">My Orders</p>
-                            <p class="text-3xl font-bold text-amber-600"><?php echo (int)$ordersCount; ?></p>
+                            <p class="text-2xl md:text-3xl font-extrabold tracking-tight text-amber-600">View My Orders</p>
                         </div>
-                        <div class="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center">
-                            <i data-lucide="shopping-bag" class="w-6 h-6 text-amber-600"></i>
+                        <div class="w-14 h-14 bg-amber-100 rounded-full flex items-center justify-center">
+                            <i data-lucide="shopping-bag" class="w-7 h-7 text-amber-600"></i>
                         </div>
                     </div>
-                </div>
+                </a>
                 
                 <div class="stats-card rounded-2xl p-6">
                     <div class="flex items-center justify-between">
@@ -1552,8 +1619,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'cance
                 numEl.textContent = String(count);
             }
 
-            // Seed global orders data (pickup & delivery)
-            window.userPickupOrders = <?php echo json_encode($userPickupOrders ?? []); ?>;
+            // Seed global delivery orders only
             window.userDeliveryOrders = <?php echo json_encode($userDeliveryOrders ?? []); ?>;
         });
 
@@ -1766,148 +1832,275 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'cance
                     });
                 }
             } else if (which === 'orders') {
-                title.textContent = 'My Orders';
-                const totalOrders = (window.userPickupOrders?.length || 0) + (window.userDeliveryOrders?.length || 0);
-                subtitle.textContent = totalOrders + ' total';
+                title.textContent = 'My Delivery Orders';
+                const totalOrders = (window.userDeliveryOrders?.length || 0);
+                subtitle.textContent = totalOrders + ' deliveries';
                 iconEl.setAttribute('data-lucide','shopping-bag');
-                const tabs=document.createElement('div');
-                tabs.className='flex gap-4 mb-4 border-b';
-                tabs.innerHTML=`<button id="ordersTabPickup" class="px-3 py-2 text-sm font-medium border-b-2 border-orange-500 text-orange-600">Pickups (${(window.userPickupOrders||[]).length})</button>
-                                 <button id="ordersTabDelivery" class="px-3 py-2 text-sm font-medium text-gray-500 hover:text-orange-600">Deliveries (${(window.userDeliveryOrders||[]).length})</button>`;
-                content.appendChild(tabs);
                 const wrap=document.createElement('div'); content.appendChild(wrap);
-                function renderPickup(){
-                    wrap.innerHTML='';
-                    if(!window.userPickupOrders || window.userPickupOrders.length===0){ wrap.innerHTML='<div class="text-center text-gray-600">No pickup orders.</div>'; return; }
-                    const tbl=document.createElement('table'); tbl.className='min-w-full divide-y divide-gray-200 text-xs';
-                    tbl.innerHTML=`<thead class='bg-gray-50'><tr>
-                        <th class='px-3 py-2 text-left'>Product Name</th>
-                        <th class='px-3 py-2 text-left'>Qty</th>
-                        <th class='px-3 py-2 text-left'>Price</th>
-                        <th class='px-3 py-2 text-left'>Pickup Date</th>
-                        <th class='px-3 py-2 text-left'>Pickup Time</th>
-                        <th class='px-3 py-2 text-left'>Payment</th>
-                        <th class='px-3 py-2 text-left'>Status</th>
-                        <th class='px-3 py-2 text-left'>Cancel</th>
-                    </tr></thead><tbody></tbody>`;
-                    const tb=tbl.querySelector('tbody');
-                    window.userPickupOrders.forEach(o=>{
-                        (o.items||[]).forEach(it=>{
-                            const canCancel=['scheduled','pending'].includes(String(o.pickups_pickup_status||''));
-                            const tr=document.createElement('tr');
-                            tr.innerHTML=`<td class='px-3 py-2'>${escapeHtml(it.products_name||'')}</td>
-                                          <td class='px-3 py-2'>${escapeHtml(it.tp_quantity||'')}</td>
-                                          <td class='px-3 py-2'>₱${Number(it.products_price||0).toFixed(2)}</td>
-                                          <td class='px-3 py-2'>${escapeHtml(o.pickups_pickup_date||'')}</td>
-                                          <td class='px-3 py-2'>${escapeHtml(o.pickups_pickup_time||'')}</td>
-                                          <td class='px-3 py-2 uppercase'>${escapeHtml(o.transactions_payment_method||'')}</td>
-                                          <td class='px-3 py-2'>${escapeHtml(o.pickups_pickup_status||'')}</td>
-                                          <td class='px-3 py-2'>${canCancel?`<button class='text-red-600 hover:underline' onclick='cancelPickup(${Number(o.transactions_id)})'>Cancel</button>`:''}</td>`;
-                            tb.appendChild(tr);
-                        });
-                    });
-                    wrap.appendChild(tbl);
+
+                function productCards(items){
+                    if(!items||!items.length) return '<div class="text-gray-500 text-xs">No items</div>';
+                    return `<div class="flex flex-wrap gap-3">`+items.map(it=>{
+                        const img=it.products_image_url?escapeHtml((/^(https?:)?\//i.test(it.products_image_url)?it.products_image_url:'../../'+it.products_image_url)):'https://via.placeholder.com/60x60?text=No+Img';
+                        const qty=Number(it.tp_quantity||0); const price=Number(it.products_price||0);
+                        return `<div class="flex items-center gap-2 border rounded-lg p-2 bg-white shadow-sm w-[200px]">
+                                    <div class="w-12 h-12 rounded-md overflow-hidden bg-gray-100 flex-shrink-0">
+                                        <img src="${img}" alt="${escapeHtml(it.products_name||'')}" class="w-full h-full object-cover"/>
+                                    </div>
+                                    <div class="flex-1 min-w-0">
+                                        <div class="text-xs font-semibold line-clamp-2">${escapeHtml(it.products_name||'')}</div>
+                                        <div class="text-[10px] text-gray-500">Qty: ${qty}</div>
+                                        <div class="text-[11px] font-medium text-orange-600">₱${(price*qty).toFixed(2)}</div>
+                                    </div>
+                                </div>`;
+                    }).join('')+`</div>`;
+                }
+                function orderTotal(items){
+                    let t=0; (items||[]).forEach(i=>{ t += Number(i.products_price||0)*Number(i.tp_quantity||0); });
+                    return t;
+                }
+                function statusBadge(status){
+                    status=String(status||'').toLowerCase();
+                    const map={processing:'bg-yellow-100 text-yellow-700',pending:'bg-amber-100 text-amber-700',out_for_delivery:'bg-blue-100 text-blue-700',delivered:'bg-green-100 text-green-700',cancelled:'bg-red-100 text-red-700'};
+                    const cls=map[status]||'bg-gray-100 text-gray-700';
+                    let label=status.replace(/_/g,' ');
+                    if(!label) label='unknown';
+                    return `<span class="px-2 py-1 rounded-full text-[11px] font-medium ${cls}">${escapeHtml(label)}</span>`;
+                }
+                function receivedBtn(o){
+                    if(o.deliveries_recipient_signature) return '<span class="text-emerald-600 text-xs font-medium">Received</span>';
+                    if(String(o.deliveries_delivery_status||'').toLowerCase()==='delivered') return '<span class="text-emerald-600 text-xs font-medium">Received</span>';
+                    return `<button class="px-2 py-1 text-xs rounded-md border border-emerald-500 text-emerald-600 hover:bg-emerald-50" onclick="markReceived(${Number(o.transactions_id)})">Mark Received</button>`;
                 }
                 function renderDelivery(){
                     wrap.innerHTML='';
-                    if(!window.userDeliveryOrders || window.userDeliveryOrders.length===0){ wrap.innerHTML='<div class="text-center text-gray-600">No delivery orders.</div>'; return; }
-                    const tbl=document.createElement('table'); tbl.className='min-w-full divide-y divide-gray-200 text-xs';
-                    tbl.innerHTML=`<thead class='bg-gray-50'><tr>
-                        <th class='px-3 py-2 text-left'>Product Name</th>
-                        <th class='px-3 py-2 text-left'>Qty</th>
-                        <th class='px-3 py-2 text-left'>Price</th>
-                        <th class='px-3 py-2 text-left'>Location</th>
+                    const data=window.userDeliveryOrders||[];
+                    if(!data.length){ wrap.innerHTML='<div class="text-center text-gray-600">No delivery orders.</div>'; return; }
+                    const table=document.createElement('table'); table.className='min-w-full divide-y divide-gray-200 text-xs';
+                    table.innerHTML=`<thead class='bg-gray-50'><tr>
+                        <th class='px-3 py-2 text-left'>Date of Checkout</th>
+                        <th class='px-3 py-2 text-left'>Order Items</th>
+                        <th class='px-3 py-2 text-left'>Total Price</th>
                         <th class='px-3 py-2 text-left'>Status</th>
-                        <th class='px-3 py-2 text-left'>Estimated Date</th>
-                        <th class='px-3 py-2 text-left'>Actual Date</th>
-                        <th class='px-3 py-2 text-left'>Payment</th>
-                        <th class='px-3 py-2 text-left'>Remarks</th>
+                        <th class='px-3 py-2 text-left'>Estimated</th>
+                        <th class='px-3 py-2 text-left'>Received</th>
                         <th class='px-3 py-2 text-left'>Cancel</th>
-                    </tr></thead><tbody></tbody>`;
-                    const tb=tbl.querySelector('tbody');
-                    window.userDeliveryOrders.forEach(o=>{
-                        const loc=[o.full_address_line1||'', o.full_address_city||'', o.full_address_province||''].filter(Boolean).join(', ');
-                        (o.items||[]).forEach(it=>{
-                            const canCancel=['processing','pending'].includes(String(o.deliveries_delivery_status||''));
-                            const remarks=o.deliveries_recipient_signature?'<span class="text-emerald-600 font-medium">Received</span>':'<span class="text-gray-500">Pending</span>';
-                            const tr=document.createElement('tr');
-                            tr.innerHTML=`<td class='px-3 py-2'>${escapeHtml(it.products_name||'')}</td>
-                                          <td class='px-3 py-2'>${escapeHtml(it.tp_quantity||'')}</td>
-                                          <td class='px-3 py-2'>₱${Number(it.products_price||0).toFixed(2)}</td>
-                                          <td class='px-3 py-2'>${escapeHtml(loc)}</td>
-                                          <td class='px-3 py-2'>${escapeHtml(o.deliveries_delivery_status||'')}</td>
-                                          <td class='px-3 py-2'>${escapeHtml(o.deliveries_estimated_delivery_date||'')}</td>
-                                          <td class='px-3 py-2'>${escapeHtml(o.deliveries_actual_delivery_date||'')}</td>
-                                          <td class='px-3 py-2 uppercase'>${escapeHtml(o.transactions_payment_method||'')}</td>
-                                          <td class='px-3 py-2'>${remarks}</td>
-                                          <td class='px-3 py-2'>${canCancel?`<button class='text-red-600 hover:underline' onclick='cancelDelivery(${Number(o.transactions_id)})'>Cancel</button>`:''}</td>`;
-                            tb.appendChild(tr);
-                        });
+                    </tr></thead><tbody class='bg-white divide-y divide-gray-100'></tbody>`;
+                    const tb=table.querySelector('tbody');
+                    data.forEach(o=>{
+                        const tr=document.createElement('tr');
+                        const dt = o.transactions_created_at? new Date(o.transactions_created_at.replace(' ','T')):null;
+                        const nice = dt? dt.toLocaleString(): escapeHtml(o.transactions_created_at||'');
+                        const itemsHtml=productCards(o.items||[]);
+                        const total=orderTotal(o.items||[]);
+                        const canCancel=['processing','pending'].includes(String(o.deliveries_delivery_status||'').toLowerCase());
+                        tr.innerHTML=`<td class='px-3 py-2 align-top whitespace-nowrap'>${escapeHtml(nice)}</td>
+                                      <td class='px-3 py-3'>${itemsHtml}</td>
+                                      <td class='px-3 py-2 font-semibold text-orange-600'>₱${total.toFixed(2)}</td>
+                                      <td class='px-3 py-2'>${statusBadge(o.deliveries_delivery_status)}</td>
+                                      <td class='px-3 py-2 text-xs'>${escapeHtml(o.deliveries_estimated_delivery_date||'')}</td>
+                                      <td class='px-3 py-2'>${receivedBtn(o)}</td>
+                                      <td class='px-3 py-2'>${canCancel?`<button class='text-red-600 hover:underline' onclick='cancelDelivery(${Number(o.transactions_id)})'>Cancel</button>`:''}</td>`;
+                        tb.appendChild(tr);
                     });
-                    wrap.appendChild(tbl);
+                    wrap.appendChild(table);
                 }
-                renderPickup();
-                tabs.querySelector('#ordersTabPickup').addEventListener('click',()=>{
-                    tabs.querySelector('#ordersTabPickup').classList.add('border-orange-500','text-orange-600');
-                    tabs.querySelector('#ordersTabDelivery').classList.remove('border-orange-500','text-orange-600');
-                    renderPickup();
-                });
-                tabs.querySelector('#ordersTabDelivery').addEventListener('click',()=>{
-                    tabs.querySelector('#ordersTabDelivery').classList.add('border-orange-500','text-orange-600');
-                    tabs.querySelector('#ordersTabPickup').classList.remove('border-orange-500','text-orange-600');
-                    renderDelivery();
-                });
+                // Render deliveries only
+                renderDelivery();
             } else if (which === 'appointments') {
-                title.textContent = 'My Appointments';
-                subtitle.textContent = '<?php echo (int)$bookedCount; ?> total';
-                iconEl.setAttribute('data-lucide', 'calendar');
-                const appts = window.userApptsData || <?php echo json_encode($userAppointmentsDetailed ?? []); ?>;
-                if (!appts || appts.length === 0) {
-                    content.innerHTML = '<div class="text-center text-gray-600">No appointments found.</div>';
-                } else {
-                    // Table for appointments
-                    const table = document.createElement('table');
-                    table.className = 'min-w-full divide-y divide-gray-200';
-                    table.innerHTML = `
-                        <thead class="bg-gray-50">
-                            <tr>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Pet Name</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sitting Type</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Address</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date & Time</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Notes</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                                <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
-                            </tr>
-                        </thead>
-                        <tbody id="userApptsBody" class="bg-white divide-y divide-gray-200"></tbody>
-                    `;
-                    const tbody = table.querySelector('tbody');
-                    appts.forEach(a => {
-                        const d = a.appointments_date ? new Date(String(a.appointments_date).replace(' ','T')) : null;
-                        const niceDate = d ? d.toLocaleString() : '';
-                        const status = String(a.appointments_status||'');
-                        let chip = `<span class="px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-800">${escapeHtml(status)}</span>`;
-                        if (status==='pending') chip = '<span class="px-2 py-1 text-xs rounded-full bg-yellow-100 text-yellow-800">Pending</span>';
-                        if (status==='completed') chip = '<span class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">Completed</span>';
-                        if (status==='cancelled') chip = '<span class="px-2 py-1 text-xs rounded-full bg-red-100 text-red-800">Cancelled</span>';
-                        const tr = document.createElement('tr');
-                        tr.innerHTML = `
-                            <td class="px-4 py-3 font-medium text-gray-800">${escapeHtml(a.appointments_pet_name || '')}</td>
-                            <td class="px-4 py-3">${typeLabel(a.appointments_type)}</td>
-                            <td class="px-4 py-3">${a.appointments_type==='pet_sitting' ? escapeHtml(sittingTypeLabel(aa)) : '-'}</td>
-                            <td class="px-4 py-3">${a.appointments_type==='pet_sitting' ? escapeHtml(fullAddress(aa)) : '-'}</td>
-                            <td class="px-4 py-3">${escapeHtml(niceDate)}</td>
-                            <td class="px-4 py-3 text-sm text-gray-700">${escapeHtml(notes)}</td>
-                            <td class="px-4 py-3">${statusChip(a.appointments_status)}</td>
-                            <td class="px-4 py-3 text-right space-x-2">
-                                ${canCancel ? `<button class="px-3 py-1.5 rounded-md border text-sm hover:bg-gray-50" onclick="confirmCancelAppt(${Number(a.appointments_id)})">Cancel</button>` : ''}
-                                ${canDelete ? `<button class=\"px-3 py-1.5 rounded-md border text-sm hover:bg-gray-50" onclick=\"confirmDeleteAppt(${Number(a.appointments_id)})\">Delete</button>` : ''}
-                            </td>`;
-                        tbody.appendChild(tr);
-                    });
-                    content.appendChild(table);
+                title.textContent = 'My Booked Appointments';
+                iconEl.setAttribute('data-lucide','calendar');
+                const allDataRaw = window.userApptsData || <?php echo json_encode($userAppointmentsDetailed ?? []); ?>;
+                // Only keep booked (pending + confirmed)
+                const bookedData = Array.isArray(allDataRaw) ? allDataRaw.filter(a => ['pending','confirmed'].includes(String(a.appointments_status||'').toLowerCase())) : [];
+                subtitle.textContent = bookedData.length + ' total';
+                // Filter controls
+                const filterWrap = document.createElement('div');
+                filterWrap.className = 'flex flex-wrap gap-2 mb-4';
+                filterWrap.innerHTML = `
+                    <button type="button" data-filter="all" class="appt-filter active px-3 py-1.5 rounded-full text-xs font-medium bg-orange-600 text-white shadow">All</button>
+                    <button type="button" data-filter="pet_sitting" class="appt-filter px-3 py-1.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700 hover:bg-orange-50">Pet Sitting</button>
+                    <button type="button" data-filter="grooming" class="appt-filter px-3 py-1.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700 hover:bg-orange-50">Grooming</button>
+                    <button type="button" data-filter="veterinary" class="appt-filter px-3 py-1.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700 hover:bg-orange-50">Veterinary</button>
+                `;
+                content.appendChild(filterWrap);
+
+                const table = document.createElement('table');
+                table.className = 'min-w-full divide-y divide-gray-200 text-[13px]';
+                table.innerHTML = `<thead id="apptHead" class="bg-gray-50"></thead><tbody class="bg-white divide-y divide-gray-100" id="apptTableBody"></tbody>`;
+                content.appendChild(table);
+
+                function typeLabel(t){
+                    t = String(t||'');
+                    if (t==='pet_sitting') return 'Pet Sitting';
+                    if (t==='grooming') return 'Grooming';
+                    if (t==='veterinary' || t==='vet') return 'Veterinary';
+                    return t ? t.replace(/_/g,' ') : 'Unknown';
                 }
+                function statusChip(st){
+                    st = String(st||'').toLowerCase();
+                    const map = {
+                        pending: 'bg-yellow-100 text-yellow-700',
+                        confirmed: 'bg-blue-100 text-blue-700',
+                        completed: 'bg-green-100 text-green-700',
+                        cancelled: 'bg-red-100 text-red-700'
+                    };
+                    const cls = map[st] || 'bg-gray-100 text-gray-700';
+                    return `<span class="px-2 py-1 rounded-full text-[11px] font-medium ${cls}">${escapeHtml(st||'unknown')}</span>`;
+                }
+                function formatDate(dt){
+                    if(!dt) return '';
+                    try { const d = new Date(String(dt).replace(' ','T')); return d.toLocaleString(); } catch(e){ return escapeHtml(dt); }
+                }
+                function renderRows(filterType){
+                    const body = table.querySelector('#apptTableBody');
+                    body.innerHTML = '';
+                    let rows = bookedData;
+                    if (filterType && filterType!=='all') {
+                        const norm = filterType.toLowerCase();
+                        rows = rows.filter(a => {
+                            const at = String(a.appointments_type||'').toLowerCase();
+                            if (norm==='veterinary') return at==='veterinary' || at==='vet';
+                            return at===norm;
+                        });
+                    }
+                    // Unified fixed layout for the 'All' filter so columns don't jump per row
+                    if (filterType === 'all') {
+                        const head = table.querySelector('#apptHead');
+                        head.innerHTML = `<tr>
+                            <th class='px-3 py-2 text-left font-semibold text-gray-600 uppercase tracking-wider'>Pet Name</th>
+                            <th class='px-3 py-2 text-left font-semibold text-gray-600 uppercase tracking-wider'>Pet Type</th>
+                            <th class='px-3 py-2 text-left font-semibold text-gray-600 uppercase tracking-wider'>Appointment Type</th>
+                            <th class='px-3 py-2 text-left font-semibold text-gray-600 uppercase tracking-wider'>Type (Home/Drop)</th>
+                            <th class='px-3 py-2 text-left font-semibold text-gray-600 uppercase tracking-wider'>Address</th>
+                            <th class='px-3 py-2 text-left font-semibold text-gray-600 uppercase tracking-wider'>Notes</th>
+                            <th class='px-3 py-2 text-left font-semibold text-gray-600 uppercase tracking-wider'>Appointment Date</th>
+                            <th class='px-3 py-2 text-left font-semibold text-gray-600 uppercase tracking-wider'>Status</th>
+                            <th class='px-3 py-2 text-right font-semibold text-gray-600 uppercase tracking-wider'>Actions</th>
+                        </tr>`;
+                        if (!rows.length) {
+                            body.innerHTML = `<tr><td colspan="9" class="px-4 py-6 text-center text-gray-500">No appointments found.</td></tr>`;
+                            return;
+                        }
+                        rows.forEach(a => {
+                            const status = String(a.appointments_status||'').toLowerCase();
+                            const canCancel = ['pending','confirmed'].includes(status);
+                            const address = [a.aa_address, a.aa_city, a.aa_province].filter(Boolean).join(', ');
+                            const notes = (String(a.appointments_type||'').toLowerCase()==='pet_sitting' && a.aa_notes) ? String(a.aa_notes).slice(0,120) : '';
+                            const homeDrop = String(a.appointments_type||'').toLowerCase()==='pet_sitting'
+                                ? (a.aa_type ? (String(a.aa_type).toLowerCase()==='home'?'Home-sitting': (String(a.aa_type).toLowerCase()==='drop_off'?'Drop off': a.aa_type)) : '-')
+                                : '-';
+                            const tr = document.createElement('tr');
+                            tr.className='hover:bg-orange-50/40';
+                            tr.innerHTML = `
+                                <td class="px-3 py-2 font-semibold text-gray-800">${escapeHtml(a.appointments_pet_name||'')}</td>
+                                <td class="px-3 py-2">${escapeHtml(a.appointments_pet_type||'')}</td>
+                                <td class="px-3 py-2">${escapeHtml(typeLabel(a.appointments_type))}</td>
+                                <td class="px-3 py-2">${escapeHtml(homeDrop)}</td>
+                                <td class="px-3 py-2">${address?escapeHtml(address):'-'}</td>
+                                <td class="px-3 py-2">${notes?escapeHtml(notes):'-'}</td>
+                                <td class="px-3 py-2 whitespace-nowrap">${escapeHtml(formatDate(a.appointments_date))}</td>
+                                <td class="px-3 py-2">${statusChip(status)}</td>
+                                <td class="px-3 py-2 text-right space-x-2">${canCancel ? `<button class='px-2 py-1 rounded-md border text-xs hover:bg-gray-50' onclick='confirmCancelAppt(${Number(a.appointments_id)})'>Cancel</button>` : ''}</td>`;
+                            body.appendChild(tr);
+                        });
+                        return; // prevent reaching type-specific layout logic below
+                    }
+                    // Build head depending on filter (if specific) OR show both groups when all -> default to pet sitting layout if first row is pet_sitting; we rebuild each render for simplicity.
+                    const head = table.querySelector('#apptHead');
+                    const showingPetSitting = (filterType==='pet_sitting') || (!filterType || filterType==='all' && rows.some(r=>String(r.appointments_type).toLowerCase()==='pet_sitting'));
+                    if (showingPetSitting) {
+                        head.innerHTML = `<tr>
+                            <th class='px-3 py-2 text-left font-semibold text-gray-600 uppercase tracking-wider'>Pet Name</th>
+                            <th class='px-3 py-2 text-left font-semibold text-gray-600 uppercase tracking-wider'>Pet Type</th>
+                            <th class='px-3 py-2 text-left font-semibold text-gray-600 uppercase tracking-wider'>Appointment Type</th>
+                            <th class='px-3 py-2 text-left font-semibold text-gray-600 uppercase tracking-wider'>Type (Home/Drop)</th>
+                            <th class='px-3 py-2 text-left font-semibold text-gray-600 uppercase tracking-wider'>Address</th>
+                            <th class='px-3 py-2 text-left font-semibold text-gray-600 uppercase tracking-wider'>Notes</th>
+                            <th class='px-3 py-2 text-left font-semibold text-gray-600 uppercase tracking-wider'>Status</th>
+                            <th class='px-3 py-2 text-right font-semibold text-gray-600 uppercase tracking-wider'>Actions</th>
+                        </tr>`;
+                    } else {
+                        head.innerHTML = `<tr>
+                            <th class='px-3 py-2 text-left font-semibold text-gray-600 uppercase tracking-wider'>Pet Name</th>
+                            <th class='px-3 py-2 text-left font-semibold text-gray-600 uppercase tracking-wider'>Pet Type</th>
+                            <th class='px-3 py-2 text-left font-semibold text-gray-600 uppercase tracking-wider'>Appointment Type</th>
+                            <th class='px-3 py-2 text-left font-semibold text-gray-600 uppercase tracking-wider'>Appointment Date</th>
+                            <th class='px-3 py-2 text-left font-semibold text-gray-600 uppercase tracking-wider'>Status</th>
+                            <th class='px-3 py-2 text-right font-semibold text-gray-600 uppercase tracking-wider'>Action</th>
+                        </tr>`;
+                    }
+                    if (!rows.length) {
+                        body.innerHTML = `<tr><td colspan="${showingPetSitting?8:6}" class="px-4 py-6 text-center text-gray-500">No appointments found for this filter.</td></tr>`;
+                        return;
+                    }
+                    rows.forEach(a => {
+                        const status = String(a.appointments_status||'').toLowerCase();
+                        const canCancel = ['pending','confirmed'].includes(status);
+                        const canDelete = status==='cancelled';
+                        const address = [a.aa_address, a.aa_city, a.aa_province].filter(Boolean).join(', ');
+                        const notes = a.aa_notes ? String(a.aa_notes).slice(0,120) : '';
+                        const tr = document.createElement('tr');
+                        tr.className='hover:bg-orange-50/40';
+                        if (showingPetSitting && String(a.appointments_type).toLowerCase()==='pet_sitting') {
+                            const homeDrop = a.aa_type ? (String(a.aa_type).toLowerCase()==='home'?'Home-sitting': (String(a.aa_type).toLowerCase()==='drop_off'?'Drop off': a.aa_type)) : '-';
+                            tr.innerHTML = `
+                                <td class="px-3 py-2 font-semibold text-gray-800">${escapeHtml(a.appointments_pet_name||'')}</td>
+                                <td class="px-3 py-2">${escapeHtml(a.appointments_pet_type||'')}</td>
+                                <td class="px-3 py-2">${escapeHtml(typeLabel(a.appointments_type))}</td>
+                                <td class="px-3 py-2">${escapeHtml(homeDrop)}</td>
+                                <td class="px-3 py-2">${address?escapeHtml(address):'-'}</td>
+                                <td class="px-3 py-2">${escapeHtml(notes)}</td>
+                                <td class="px-3 py-2">${statusChip(status)}</td>
+                                <td class="px-3 py-2 text-right space-x-2">${canCancel ? `<button class='px-2 py-1 rounded-md border text-xs hover:bg-gray-50' onclick='confirmCancelAppt(${Number(a.appointments_id)})'>Cancel</button>` : ''}</td>`;
+                        } else if (!showingPetSitting && ['grooming','veterinary','vet'].includes(String(a.appointments_type).toLowerCase())) {
+                            tr.innerHTML = `
+                                <td class="px-3 py-2 font-semibold text-gray-800">${escapeHtml(a.appointments_pet_name||'')}</td>
+                                <td class="px-3 py-2">${escapeHtml(a.appointments_pet_type||'')}</td>
+                                <td class="px-3 py-2">${escapeHtml(typeLabel(a.appointments_type))}</td>
+                                <td class="px-3 py-2 whitespace-nowrap">${escapeHtml(formatDate(a.appointments_date))}</td>
+                                <td class="px-3 py-2">${statusChip(status)}</td>
+                                <td class="px-3 py-2 text-right space-x-2">${canCancel ? `<button class='px-2 py-1 rounded-md border text-xs hover:bg-gray-50' onclick='confirmCancelAppt(${Number(a.appointments_id)})'>Cancel</button>` : ''}</td>`;
+                        } else {
+                            // Row that doesn't match current layout (e.g., All filter with grooming+pet sitting). Decide layout per row.
+                            if (String(a.appointments_type).toLowerCase()==='pet_sitting') {
+                                const homeDrop = a.aa_type ? (String(a.aa_type).toLowerCase()==='home'?'Home-sitting': (String(a.aa_type).toLowerCase()==='drop_off'?'Drop off': a.aa_type)) : '-';
+                                tr.innerHTML = `
+                                    <td class="px-3 py-2 font-semibold text-gray-800">${escapeHtml(a.appointments_pet_name||'')}</td>
+                                    <td class="px-3 py-2">${escapeHtml(a.appointments_pet_type||'')}</td>
+                                    <td class="px-3 py-2">${escapeHtml(typeLabel(a.appointments_type))}</td>
+                                    <td class="px-3 py-2">${escapeHtml(homeDrop)}</td>
+                                    <td class="px-3 py-2">${address?escapeHtml(address):'-'}</td>
+                                    <td class="px-3 py-2">${escapeHtml(notes)}</td>
+                                    <td class="px-3 py-2">${statusChip(status)}</td>
+                                    <td class="px-3 py-2 text-right space-x-2">${canCancel ? `<button class='px-2 py-1 rounded-md border text-xs hover:bg-gray-50' onclick='confirmCancelAppt(${Number(a.appointments_id)})'>Cancel</button>` : ''}</td>`;
+                            } else {
+                                tr.innerHTML = `
+                                    <td class="px-3 py-2 font-semibold text-gray-800">${escapeHtml(a.appointments_pet_name||'')}</td>
+                                    <td class="px-3 py-2">${escapeHtml(a.appointments_pet_type||'')}</td>
+                                    <td class="px-3 py-2">${escapeHtml(typeLabel(a.appointments_type))}</td>
+                                    <td class="px-3 py-2 whitespace-nowrap">${escapeHtml(formatDate(a.appointments_date))}</td>
+                                    <td class="px-3 py-2">${statusChip(status)}</td>
+                                    <td class="px-3 py-2 text-right space-x-2">${canCancel ? `<button class='px-2 py-1 rounded-md border text-xs hover:bg-gray-50' onclick='confirmCancelAppt(${Number(a.appointments_id)})'>Cancel</button>` : ''}</td>`;
+                            }
+                        }
+                        body.appendChild(tr);
+                    });
+                }
+                renderRows('all');
+                // Filter button logic
+                filterWrap.addEventListener('click', e => {
+                    const btn = e.target.closest('.appt-filter');
+                    if(!btn) return;
+                    filterWrap.querySelectorAll('.appt-filter').forEach(b=>{
+                        b.classList.remove('bg-orange-600','text-white','shadow','active');
+                        b.classList.add('bg-gray-100','text-gray-700');
+                    });
+                    btn.classList.add('bg-orange-600','text-white','shadow','active');
+                    btn.classList.remove('bg-gray-100','text-gray-700');
+                    const f = btn.getAttribute('data-filter');
+                    renderRows(f);
+                });
             }
             modal.classList.remove('hidden');
             document.body.style.overflow = 'hidden';
@@ -2165,6 +2358,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'cance
             if(!tid) return; if(!confirm('Cancel this delivery order?')) return;
             const fd=new FormData(); fd.append('action','cancel_delivery_order'); fd.append('transactions_id',tid);
             fetch('profile.php',{method:'POST',body:fd}).then(()=>location.reload());
+        }
+        // Mark delivery received
+        function markReceived(tid){
+            if(!tid) return; if(!confirm('Mark this order as received?')) return;
+            const btnEvent = event; // capture calling event for optimistic UI
+            const el = btnEvent?.target?.closest('button');
+            if(el){ el.disabled=true; el.textContent='Saving...'; }
+            const fd=new FormData(); fd.append('action','mark_delivery_received'); fd.append('transactions_id',tid);
+            fetch('profile.php',{method:'POST',body:fd}).then(r=>r.json()).then(j=>{
+                if(j?.success && j.order){
+                    // update in-memory array
+                    if(window.userDeliveryOrders){
+                        const idx = window.userDeliveryOrders.findIndex(o=>Number(o.transactions_id)===Number(tid));
+                        if(idx>-1){ window.userDeliveryOrders[idx] = j.order; }
+                    }
+                    // re-render if modal open on deliveries
+                    const open = document.getElementById('statsModal');
+                    if(open && !open.classList.contains('hidden')){
+                        // If delivery tab active (border), trigger click to refresh
+                        const delTab = document.getElementById('ordersTabDelivery');
+                        if(delTab && delTab.classList.contains('border-orange-500')) delTab.click();
+                    }
+                    showNotification('Order marked as received!','success');
+                } else {
+                    showNotification(j?.message||'Failed to update.','error');
+                    if(el){ el.disabled=false; el.textContent='Mark Received'; }
+                }
+            }).catch(()=>{
+                if(el){ el.disabled=false; el.textContent='Mark Received'; }
+                showNotification('Network error.','error');
+            });
         }
 
         // Parallax effect for floating elements

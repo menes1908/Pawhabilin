@@ -720,6 +720,15 @@ if(($_GET['partial']??'')==='1'){
     <script>
     document.addEventListener('DOMContentLoaded',()=>{ if(window.lucide) lucide.createIcons(); ensureDrawerRoot(); });
 
+    // Ensure relative DB image paths work in this page (views/users/*) by prefixing project base
+    const IMAGE_BASE='../../';
+    function normalizeImageUrl(u){
+        if(!u) return '';
+        // keep absolute or already-prefixed paths
+        if(/^https?:\/\//i.test(u) || /^data:/i.test(u) || /^blob:/i.test(u) || /^(\.\.\/|\.\/)/.test(u) || u.startsWith(IMAGE_BASE)) return u;
+        return IMAGE_BASE + u.replace(/^\/+/, '');
+    }
+
     // Quick View (DB powered)
     async function openQuickViewDb(id){
         // Show drawer immediately with loading skeleton for responsiveness
@@ -766,8 +775,9 @@ if(($_GET['partial']??'')==='1'){
         // Rating, badge, and variant options removed (columns dropped from DB)
         const discount=(typeof p.discountPercent==='number')?p.discountPercent:((p.originalPrice&&p.originalPrice>p.price)?Math.round(((p.originalPrice-p.price)/p.originalPrice)*100):0);
         const outOfStock = !p.stock || p.stock<=0;
+        const imgSrc = normalizeImageUrl(p.image); // NEW: normalize DB image path
         const content=`<div class="space-y-6">
-            <div class=\"aspect-square w-full rounded-lg overflow-hidden bg-gray-100 flex items-center justify-center\">${p.image?`<img src=\"${p.image}\" alt=\"${escapeHtml(p.name)}\" class=\"w-full h-full object-cover\">`:'<div class=\"text-xs text-gray-400\">No Image</div>'}</div>
+            <div class=\"aspect-square w-full rounded-lg overflow-hidden bg-gray-100 flex items-center justify-center\">${imgSrc?`<img src=\"${imgSrc}\" alt=\"${escapeHtml(p.name)}\" class=\"w-full h-full object-cover\">`:'<div class=\"text-xs text-gray-400\">No Image</div>'}</div>
             <div>
                 <h3 class=\"text-2xl font-bold text-gray-800 mb-2\">${escapeHtml(p.name)}</h3>
                 <div class=\"flex flex-wrap items-center gap-2 mb-3 text-xs\">
@@ -875,6 +885,9 @@ if(($_GET['partial']??'')==='1'){
     // Minimal cart stub (legacy JS cart removed)
     // Build cart data from server (embedded in page for this request)
     const serverCart = <?php echo json_encode($_SESSION['cart'] ?? []); ?>;
+    // Normalize any session item images immediately
+    for(const k in serverCart){ if(serverCart[k] && serverCart[k].image){ serverCart[k].image = normalizeImageUrl(serverCart[k].image); } }
+
     function toggleCart(){
         const items = Object.values(serverCart||{});
         let contentHtml = '';
@@ -892,8 +905,10 @@ if(($_GET['partial']??'')==='1'){
         } else {
             let total = 0;
             const rows = items.map(it=>{
-                const line = (it.price*it.qty); total += line; return `<div class="flex items-center gap-3 p-3 border-b group" data-cart-line="${it.id}">
-                    ${it.image?`<img src="${it.image}" class="w-12 h-12 object-cover rounded" alt="${escapeHtml(it.name)}">`:`<div class=\"w-12 h-12 flex items-center justify-center text-xs text-gray-400 bg-gray-100 rounded\">No Img</div>`}
+                const line = (it.price*it.qty); total += line;
+                const img = normalizeImageUrl(it.image); // NEW: normalize image before rendering
+                return `<div class="flex items-center gap-3 p-3 border-b group" data-cart-line="${it.id}">
+                    ${img?`<img src="${img}" class="w-12 h-12 object-cover rounded" alt="${escapeHtml(it.name)}">`:`<div class=\"w-12 h-12 flex items-center justify-center text-xs text-gray-400 bg-gray-100 rounded\">No Img</div>`}
                     <div class="flex-1 min-w-0">
                         <h4 class="font-medium text-sm truncate">${escapeHtml(it.name)}</h4>
                         <div class="mt-1 flex items-center gap-2">
@@ -970,8 +985,11 @@ if(($_GET['partial']??'')==='1'){
                         updateCartCount(data.cartCount);
                         showNotification('Added to cart','success');
                         showDrawerNotification('Added to cart','success');
-                        // Update in-memory serverCart for drawer
-                        serverCart[data.item.id]=data.item;
+                        // Update in-memory serverCart for drawer (normalize image path)
+                        if(data.item){
+                            data.item.image = normalizeImageUrl(data.item.image);
+                            serverCart[data.item.id]=data.item;
+                        }
                     } else {
                         showNotification('Add failed','error');
                         showDrawerNotification('Add failed','error');

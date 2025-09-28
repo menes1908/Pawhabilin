@@ -830,7 +830,7 @@ function resolveImageUrl($path) {
                                         }
                                         $qs = $hasVerified
                                             ? "SELECT sitters_id, sitters_name, sitters_bio, sitter_email, sitters_contact, sitter_specialty, sitters_image_url, sitters_active, years_experience, sitters_verified FROM sitters ORDER BY sitters_id DESC"
-                                            : "SELECT sitters_id, sitters_name, sitters_bio, sitter_email, sitters_contact, sitter_specialty, sitters_image_url, sitters_active, years_experience FROM sitters ORDER BY sitters_id DESC";
+                                            : "SELECT sitters_id, sitters_name, sitters_bio, sitter_email, sitters_contact, sitter_specialty, sitters_image_url, sitters_active, years_experience, sitters_verified FROM sitters ORDER BY sitters_id DESC";
                                         if ($res = mysqli_query($connections, $qs)) {
                                             while ($r = mysqli_fetch_assoc($res)) { 
                                                 if (!isset($r['sitters_verified'])) { $r['sitters_verified'] = 0; }
@@ -1107,6 +1107,7 @@ function resolveImageUrl($path) {
                             const editDescription = document.getElementById('edit_description');
                             const editActive = document.getElementById('edit_sitters_active');
                             const editVerified = document.getElementById('edit_sitters_verified');
+                            const editVerifiedText = document.getElementById('edit_sitter_verified_text');
                             // Specialties elements (add)
                             const addOtherSpec = document.getElementById('addOtherSpec');
                             const addOtherWrapper = document.getElementById('addOtherWrapper');
@@ -1259,15 +1260,34 @@ function resolveImageUrl($path) {
                                         const res = await fetch(`../../controllers/admin/sittercontroller.php?action=get&id=${encodeURIComponent(id)}`);
                                         const data = await res.json();
                                         if (!data.success) { alert(data.error||'Failed to load sitter'); return; }
-                                        const s = data.item;
-                                        editId.value = s.id;
-                                        editName.value = s.name||'';
-                                        editEmail.value = s.email||'';
-                                        editPhone.value = s.phone||'';
-                                        editYears.value = s.years_experience||0;
-                                        editBio.value = s.bio||'';
-                                        editActive.checked = String(s.active)==='1' || s.active===1 || s.active===true;
-                                        if (editVerified) editVerified.checked = String(s.verified)==='1' || s.verified===1 || s.verified===true;
+                                        const raw = data.item || {};
+                                        // Normalize fields coming from backend (supports existing schema names)
+                                        const norm = {
+                                            id: raw.id ?? raw.sitters_id ?? id,
+                                            name: raw.name ?? raw.sitters_name ?? '',
+                                            email: raw.email ?? raw.sitter_email ?? '',
+                                            phone: raw.phone ?? raw.sitters_contact ?? '',
+                                            years_experience: raw.years_experience ?? raw.experience ?? 0,
+                                            bio: raw.bio ?? raw.sitters_bio ?? '',
+                                            active: raw.active ?? raw.sitters_active ?? 0,
+                                            verified: raw.verified ?? raw.sitters_verified ?? 0,
+                                            verified_text: raw.verified_text ?? raw.sitter_verified_text ?? '',
+                                            specialties: (function(){
+                                                if (Array.isArray(raw.specialties)) return raw.specialties;
+                                                const spec = raw.sitter_specialty || raw.sitters_specialty || '';
+                                                if (!spec) return [];
+                                                return String(spec).split(/[,|]/).map(s=>s.trim()).filter(Boolean);
+                                            })()
+                                        };
+                                        editId.value = norm.id;
+                                        editName.value = norm.name;
+                                        editEmail.value = norm.email;
+                                        editPhone.value = norm.phone;
+                                        editYears.value = norm.years_experience || 0;
+                                        editBio.value = norm.bio;
+                                        editActive.checked = String(norm.active)==='1' || norm.active===1 || norm.active===true;
+                                        if (editVerified) editVerified.checked = String(norm.verified)==='1' || norm.verified===1 || norm.verified===true;
+                                        if (editVerifiedText) editVerifiedText.value = norm.verified_text || (String(norm.verified)==='1' ? 'Verified' : '');
                                         // Populate specialties checkboxes in edit form
                                         try {
                                             const specBoxes = editModal.querySelectorAll('#editSpecialtiesGroup input[type="checkbox"][name="sitters_specialty[]"]');
@@ -1276,7 +1296,7 @@ function resolveImageUrl($path) {
                                             if (editOtherInput) editOtherInput.value='';
                                             if (editOtherWrapper) editOtherWrapper.classList.add('hidden');
                                             const extras = [];
-                                            (s.specialties||[]).forEach(val => {
+                                            (norm.specialties||[]).forEach(val => {
                                                 const norm = String(val).trim().toLowerCase();
                                                 const matched = [...specBoxes].find(cb => cb.value.toLowerCase() === norm);
                                                 if (matched) { matched.checked = true; }

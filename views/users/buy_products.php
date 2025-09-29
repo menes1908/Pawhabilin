@@ -15,7 +15,7 @@ $currentUserInitial = user_initial($currentUser);
 $currentUserImg = user_image_url($currentUser);
 // Derive cart count from session (after server add)
 $cartCount = 0; if(!empty($_SESSION['cart']) && is_array($_SESSION['cart'])){ foreach($_SESSION['cart'] as $c){ $cartCount += (int)($c['qty']??0); } }
-$filters=['q'=>$q,'cat'=>$cat,'page'=>$page,'limit'=>12,'sort'=>$sort,'include_inactive'=>true];
+$filters=['q'=>$q,'cat'=>$cat,'page'=>$page,'limit'=>20,'sort'=>$sort,'include_inactive'=>true]; // limit changed 12->20
 $res=product_fetch_paginated($connections,$filters); $items=$res['items']; $total=$res['total']; $pages=$res['pages']; $page=$res['page'];
 // If partial request (?partial=1) return only the products grid + pagination fragments for AJAX
 if(($_GET['partial']??'')==='1'){

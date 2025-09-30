@@ -1157,70 +1157,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['sitter_register'])) {
         </div>
     </section>
 
-    <!-- Footer -->
-    <footer class="py-12 bg-gray-900 text-white">
-        <div class="container mx-auto px-4">
-            <div class="grid md:grid-cols-4 gap-8">
-                <div class="space-y-4">
-                    <div class="flex items-center space-x-2">
-                        <div class="w-8 h-8 rounded-lg overflow-hidden">
-                            <img src="https://images.unsplash.com/photo-1601758228041-f3b2795255f1?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxwdXBweSUyMGtpdCUyMGFjY2Vzc29yaWVzfGVufDF8fHx8MTc1NjU0MzcxNXww&ixlib=rb-4.1.0&q=80&w=1080" alt="pawhabilin Logo" class="w-full h-full object-contain">
-                        </div>
-                        <span class="text-xl font-semibold brand-font">pawhabilin</span>
-                    </div>
-                    <p class="text-gray-400">
-                        The Philippines' most trusted pet care platform. Join our community of professional pet sitters today.
-                    </p>
-                </div>
-
-                <div class="space-y-4">
-                    <h4 class="font-semibold">For Pet Sitters</h4>
-                    <ul class="space-y-2 text-gray-400">
-                        <li><a href="become-sitter.php" class="hover:text-white transition-colors">Become a Sitter</a></li>
-                        <li><a href="#" class="hover:text-white transition-colors">Sitter Resources</a></li>
-                        <li><a href="#" class="hover:text-white transition-colors">Training Center</a></li>
-                        <li><a href="#" class="hover:text-white transition-colors">Community Forum</a></li>
-                    </ul>
-                </div>
-
-                <div class="space-y-4">
-                    <h4 class="font-semibold">For Pet Owners</h4>
-                    <ul class="space-y-2 text-gray-400">
-                        <li><a href="find-sitter.php" class="hover:text-white transition-colors">Find a Sitter</a></li>
-                        <li><a href="appointment.php" class="hover:text-white transition-colors">Book Appointment</a></li>
-                        <li><a href="shop.php" class="hover:text-white transition-colors">Pet Shop</a></li>
-                        <li><a href="#" class="hover:text-white transition-colors">Pet Care Tips</a></li>
-                    </ul>
-                </div>
-
-                <div class="space-y-4">
-                    <h4 class="font-semibold">Support</h4>
-                    <ul class="space-y-2 text-gray-400">
-                        <li class="flex items-center gap-2">
-                            <i data-lucide="phone" class="w-4 h-4"></i>
-                            +63 912 345 6789
-                        </li>
-                        <li class="flex items-center gap-2">
-                            <i data-lucide="mail" class="w-4 h-4"></i>
-                            sitters@pawhabilin.com
-                        </li>
-                        <li class="flex items-center gap-2">
-                            <i data-lucide="clock" class="w-4 h-4"></i>
-                            24/7 Support Available
-                        </li>
-                        <li class="flex items-center gap-2">
-                            <i data-lucide="help-circle" class="w-4 h-4"></i>
-                            <a href="#" class="hover:text-white transition-colors">Help Center</a>
-                        </li>
-                    </ul>
-                </div>
-            </div>
-
-            <div class="mt-12 pt-8 border-t border-gray-800 text-center text-gray-400">
-                <p>&copy; 2025 pawhabilin Philippines. All rights reserved. | Built for pet lovers, by pet lovers.</p>
-            </div>
-        </div>
-    </footer>
+    <!-- Footer (shared) -->
+    <?php include __DIR__ . '/utils/footer.php'; ?>
 
     <script>
         // Initialize Lucide icons

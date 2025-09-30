@@ -452,60 +452,8 @@ $currentUserImg = user_image_url($currentUser);
         </div>
     </section>
 
-    <!-- Footer -->
-    <footer class="py-12 bg-gray-900 text-white">
-        <div class="container mx-auto px-4">
-            <div class="grid md:grid-cols-4 gap-8">
-                <div class="space-y-4">
-                    <div class="flex items-center space-x-2">
-                        <div class="w-24 h-24 rounded-lg overflow-hidden flex items-center justify-center" style="width:77px; height:77px;">
-                            <img src="../../pictures/Pawhabilin logo.png" alt="Pawhabilin Logo" class="w-full h-full object-contain" />
-                        </div>
-                        <span class="text-xl font-semibold bg-gradient-to-r from-orange-600 to-amber-600 bg-clip-text text-transparent" style="font-family: 'La Lou Big', cursive;">
-                        Pawhabilin
-                    </span>
-                    </div>
-                    <p class="text-gray-400">
-                        The Philippines' most trusted pet sitting platform connecting pet parents with verified pet care providers.
-                    </p>
-                </div>
-
-                <div class="space-y-4">
-                    <h4 class="font-semibold">For Pet Parents</h4>
-                    <ul class="space-y-2 text-gray-400">
-                        <li><a href="#" class="hover:text-white transition-colors">Find a Pet Sitter</a></li>
-                        <li><a href="#" class="hover:text-white transition-colors">How it Works</a></li>
-                        <li><a href="#" class="hover:text-white transition-colors">Safety</a></li>
-                        <li><a href="#" class="hover:text-white transition-colors">Pricing</a></li>
-                    </ul>
-                </div>
-
-                <div class="space-y-4">
-                    <h4 class="font-semibold">For Pet Sitters</h4>
-                    <ul class="space-y-2 text-gray-400">
-                        <li><a href="#" class="hover:text-white transition-colors">Become a Pet Sitter</a></li>
-                        <li><a href="#" class="hover:text-white transition-colors">Sitter Resources</a></li>
-                        <li><a href="#" class="hover:text-white transition-colors">Background Check</a></li>
-                        <li><a href="#" class="hover:text-white transition-colors">Earnings</a></li>
-                    </ul>
-                </div>
-
-                <div class="space-y-4">
-                    <h4 class="font-semibold">Support</h4>
-                    <ul class="space-y-2 text-gray-400">
-                        <li><a href="#" class="hover:text-white transition-colors">Help Center</a></li>
-                        <li><a href="#" class="hover:text-white transition-colors">Contact Us</a></li>
-                        <li><a href="#" class="hover:text-white transition-colors">Trust & Safety</a></li>
-                        <li><a href="#" class="hover:text-white transition-colors">Community</a></li>
-                    </ul>
-                </div>
-            </div>
-
-            <div class="mt-12 pt-8 text-center text-gray-400">
-                <p>&copy; 2025 <span class="brand-font">pawhabilin</span> Philippines. All rights reserved.</p>
-            </div>
-        </div>
-    </footer>
+    <!-- Footer (shared) -->
+    <?php include __DIR__ . '/../../utils/footer.php'; ?>
 
     <script>
         // Initialize Lucide icons

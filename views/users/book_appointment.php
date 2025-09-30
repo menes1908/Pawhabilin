@@ -40,75 +40,31 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
         try {
             $_SESSION['form_token'] = bin2hex(random_bytes(32));
         } catch (Throwable $e) {
-            // Fallback if random_bytes not available
-            $_SESSION['form_token'] = bin2hex(openssl_random_pseudo_bytes(32));
+            $_SESSION['form_token'] = bin2hex(random_bytes(16));
         }
     }
 }
 
-// Handle form submission
+// Initialize form variables and process submission
+$errors = [];
+$fullName = trim($_POST['fullName'] ?? '');
+$email = trim($_POST['email'] ?? '');
+$phone = trim($_POST['phone'] ?? '');
+$petName = trim($_POST['petName'] ?? '');
+$petType = trim($_POST['petType'] ?? '');
+$breed = trim($_POST['breed'] ?? '');
+$age = trim($_POST['age'] ?? '');
+$service = trim($_POST['service'] ?? '');
+$sittingMode = trim($_POST['sittingMode'] ?? '');
+$sitAddress = trim($_POST['sitAddress'] ?? '');
+$sitCity = trim($_POST['sitCity'] ?? '');
+$sitProvince = trim($_POST['sitProvince'] ?? '');
+$sitPostal = trim($_POST['sitPostal'] ?? '');
+$sitNotes = trim($_POST['sitNotes'] ?? '');
+$appointmentDate = trim($_POST['appointmentDate'] ?? '');
+$appointmentTime = trim($_POST['appointmentTime'] ?? '');
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // Collect inputs
-    $service = trim($_POST['service'] ?? ''); // 'grooming' | 'vet' | 'pet_sitting'
-    $fullName = trim($_POST['fullName'] ?? '');
-    $email = trim($_POST['email'] ?? '');
-    $phone = trim($_POST['phone'] ?? '');
-    $petName = trim($_POST['petName'] ?? '');
-    $petType = trim($_POST['petType'] ?? ''); // dog|cat|...
-    $breed = trim($_POST['breed'] ?? '');
-    $age = trim($_POST['age'] ?? '');
-    $appointmentDate = trim($_POST['appointmentDate'] ?? ''); // YYYY-MM-DD
-    $appointmentTime = trim($_POST['appointmentTime'] ?? ''); // HH:MM
-    $specialRequests = trim($_POST['specialRequests'] ?? '');
-
-    // Registered pet option
-    $useRegisteredPet = (($_POST['useRegisteredPet'] ?? '') === '1');
-    $selectedPetId = (int)($_POST['selectedPetId'] ?? 0);
-
-    // Pet sitting specific
-    $sittingMode = trim($_POST['sittingMode'] ?? ''); // 'home' | 'dropoff' (only when pet-sitting)
-    $sitAddress = trim($_POST['sit_address'] ?? '');
-    $sitCity = trim($_POST['sit_city'] ?? '');
-    $sitProvince = trim($_POST['sit_province'] ?? '');
-    $sitPostal = trim($_POST['sit_postal'] ?? '');
-    $sitNotes = trim($_POST['sit_notes'] ?? '');
-
-    $errors = [];
-    // Base validations
-    if ($service === '') $errors[] = 'Please select a service.';
-    if ($fullName === '') $errors[] = 'Full Name is required.';
-    if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) $errors[] = 'Valid Email is required.';
-    if ($phone === '') $errors[] = 'Phone Number is required.';
-    // If using a registered pet, fetch and override pet fields server-side
-    if ($useRegisteredPet) {
-        if ($selectedPetId <= 0) {
-            $errors[] = 'Please select a registered pet.';
-        } else {
-            if ($users_id > 0 && isset($connections) && $connections) {
-                if ($stmt = mysqli_prepare($connections, 'SELECT pets_name, pets_species, pets_breed FROM pets WHERE pets_id = ? AND users_id = ? LIMIT 1')) {
-                    mysqli_stmt_bind_param($stmt, 'ii', $selectedPetId, $users_id);
-                    mysqli_stmt_execute($stmt);
-                    $r = mysqli_stmt_get_result($stmt);
-                    if ($row = mysqli_fetch_assoc($r)) {
-                        $petName = (string)$row['pets_name'];
-                        $species = strtolower((string)$row['pets_species']);
-                        // Normalize species to appointments enum: dog|cat|bird|fish|other
-                        $map = ['dog' => 'dog', 'cat' => 'cat', 'bird' => 'bird', 'fish' => 'fish'];
-                        $petType = $map[$species] ?? 'other';
-                        $breed = (string)$row['pets_breed'];
-                    } else {
-                        $errors[] = 'Selected pet not found.';
-                    }
-                    mysqli_stmt_close($stmt);
-                } else {
-                    $errors[] = 'Could not verify selected pet.';
-                }
-            } else {
-                $errors[] = 'Not authorized to use a registered pet.';
-            }
-        }
-    }
-
     if ($petName === '') $errors[] = 'Pet Name is required.';
     // Normalize user-entered pet type to allowed enum
     $allowedPetTypes = ['dog','cat','bird','fish','other'];
@@ -147,7 +103,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $error = implode(' ', $errors);
     } else {
         // Determine appointment type mapping to DB enum
-        // appointments.appointments_type enum('grooming','vet','pet_sitting') NOT NULL
         $validTypes = ['grooming','vet','pet_sitting'];
         if (!in_array($service, $validTypes, true)) {
             $error = 'Invalid service selection.';
@@ -155,64 +110,51 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $apptType = $service;
         }
 
-        if (!empty($error)) {
-            // early stop if invalid service
-        } else {
-
-        // User id from session (already set above)
-        if ($users_id <= 0) {
-            $error = 'You must be logged in to book an appointment.';
-        } else {
-            // Use transaction for consistency
-            mysqli_begin_transaction($connections);
-            try {
-
-                // Insert appointment (aa_id null for now) per new schema columns
-                $stmt = mysqli_prepare($connections, "INSERT INTO appointments (users_id, appointments_full_name, appointments_email, appointments_phone, appointments_pet_name, appointments_pet_type, appointments_pet_breed, appointments_pet_age_years, appointments_type, appointments_date, sitters_id, aa_id, appointments_status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, NULL, 'pending')");
-                mysqli_stmt_bind_param($stmt, 'isssssssss', $users_id, $fullName, $email, $phone, $petName, $petType, $breed, $age, $apptType, $appointments_date);
-                if (!mysqli_stmt_execute($stmt)) {
-                    throw new Exception('Failed to create appointment: ' . mysqli_error($connections));
-                }
-                $appointments_id = mysqli_insert_id($connections);
-                mysqli_stmt_close($stmt);
-
-                // If pet-sitting: create appointment_address and link back
-                if ($service === 'pet_sitting') {
-                    $aa_type = ($sittingMode === 'home') ? 'home-sitting' : 'drop_off';
-                    $stmt = mysqli_prepare($connections, "INSERT INTO appointment_address (appointments_id, aa_type, aa_address, aa_city, aa_province, aa_postal_code, aa_notes) VALUES (?, ?, ?, ?, ?, ?, ?)");
-                    mysqli_stmt_bind_param($stmt, 'issssss', $appointments_id, $aa_type, $sitAddress, $sitCity, $sitProvince, $sitPostal, $sitNotes);
+        if (empty($error)) {
+            if ($users_id <= 0) {
+                $error = 'You must be logged in to book an appointment.';
+            } else {
+                mysqli_begin_transaction($connections);
+                try {
+                    $stmt = mysqli_prepare($connections, "INSERT INTO appointments (users_id, appointments_full_name, appointments_email, appointments_phone, appointments_pet_name, appointments_pet_type, appointments_pet_breed, appointments_pet_age_years, appointments_type, appointments_date, sitters_id, aa_id, appointments_status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, NULL, 'pending')");
+                    mysqli_stmt_bind_param($stmt, 'isssssssss', $users_id, $fullName, $email, $phone, $petName, $petType, $breed, $age, $apptType, $appointments_date);
                     if (!mysqli_stmt_execute($stmt)) {
-                        throw new Exception('Failed to save appointment address: ' . mysqli_error($connections));
+                        throw new Exception('Failed to create appointment: ' . mysqli_error($connections));
                     }
-                    $aa_id = mysqli_insert_id($connections);
+                    $appointments_id = mysqli_insert_id($connections);
                     mysqli_stmt_close($stmt);
 
-                    // Link aa_id in appointments
-                    $stmt = mysqli_prepare($connections, "UPDATE appointments SET aa_id = ? WHERE appointments_id = ?");
-                    mysqli_stmt_bind_param($stmt, 'ii', $aa_id, $appointments_id);
-                    if (!mysqli_stmt_execute($stmt)) {
-                        throw new Exception('Failed to link appointment address: ' . mysqli_error($connections));
+                    if ($service === 'pet_sitting') {
+                        $aa_type = ($sittingMode === 'home') ? 'home-sitting' : 'drop_off';
+                        $stmt = mysqli_prepare($connections, "INSERT INTO appointment_address (appointments_id, aa_type, aa_address, aa_city, aa_province, aa_postal_code, aa_notes) VALUES (?, ?, ?, ?, ?, ?, ?)");
+                        mysqli_stmt_bind_param($stmt, 'issssss', $appointments_id, $aa_type, $sitAddress, $sitCity, $sitProvince, $sitPostal, $sitNotes);
+                        if (!mysqli_stmt_execute($stmt)) {
+                            throw new Exception('Failed to save appointment address: ' . mysqli_error($connections));
+                        }
+                        $aa_id = mysqli_insert_id($connections);
+                        mysqli_stmt_close($stmt);
+
+                        $stmt = mysqli_prepare($connections, "UPDATE appointments SET aa_id = ? WHERE appointments_id = ?");
+                        mysqli_stmt_bind_param($stmt, 'ii', $aa_id, $appointments_id);
+                        if (!mysqli_stmt_execute($stmt)) {
+                            throw new Exception('Failed to link appointment address: ' . mysqli_error($connections));
+                        }
+                        mysqli_stmt_close($stmt);
                     }
-                    mysqli_stmt_close($stmt);
+
+                    mysqli_commit($connections);
+                    unset($_SESSION['form_token']);
+                    $_SESSION['flash_success'] = "Appointment booked! We'll contact you within 24 hours to confirm.";
+                    header('Location: ' . basename($_SERVER['PHP_SELF']));
+                    exit;
+                } catch (Throwable $tx) {
+                    mysqli_rollback($connections);
+                    $error = 'Sorry, something went wrong while saving your appointment. Please try again.';
+                    error_log('Book appointment error: ' . $tx->getMessage());
                 }
-
-                mysqli_commit($connections);
-
-                // Invalidate the token so the same payload cannot be resubmitted
-                unset($_SESSION['form_token']);
-
-                // Set flash message and redirect (PRG pattern) to avoid duplicate submission on refresh
-                $_SESSION['flash_success'] = "Appointment booked! We'll contact you within 24 hours to confirm.";
-                header('Location: ' . basename($_SERVER['PHP_SELF']));
-                exit;
-            } catch (Throwable $tx) {
-                mysqli_rollback($connections);
-                $error = 'Sorry, something went wrong while saving your appointment. Please try again.';
-                error_log('Book appointment error: ' . $tx->getMessage());
             }
         }
     }
-}
 }
 ?>
 <!DOCTYPE html>
@@ -1174,70 +1116,8 @@ $currentUserImg = user_image_url($currentUser);
         </div>
     </section>
 
-    <!-- Footer -->
-    <footer class="py-12 bg-gray-900 text-white">
-        <div class="container mx-auto px-4">
-            <div class="grid md:grid-cols-4 gap-8">
-                <div class="space-y-4">
-                    <div class="flex items-center space-x-2">
-                        <div class="w-8 h-8 rounded-lg overflow-hidden">
-                            <img src="https://images.unsplash.com/photo-1601758228041-f3b2795255f1?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxwdXBweSUyMGtpdCUyMGFjY2Vzc29yaWVzfGVufDF8fHx8MTc1NjU0MzcxNXww&ixlib=rb-4.1.0&q=80&w=1080" alt="pawhabilin Logo" class="w-full h-full object-contain">
-                        </div>
-                        <span class="text-xl font-semibold brand-font">pawhabilin</span>
-                    </div>
-                    <p class="text-gray-400">
-                        The Philippines' most trusted pet care platform providing comprehensive services for your beloved pets.
-                    </p>
-                </div>
-
-                <div class="space-y-4">
-                    <h4 class="font-semibold">Services</h4>
-                    <ul class="space-y-2 text-gray-400">
-                        <li><a href="#" class="hover:text-white transition-colors">Veterinary Care</a></li>
-                        <li><a href="#" class="hover:text-white transition-colors">Pet Grooming</a></li>
-                        <li><a href="#" class="hover:text-white transition-colors">Pet Sitting</a></li>
-                        <li><a href="#" class="hover:text-white transition-colors">Emergency Care</a></li>
-                    </ul>
-                </div>
-
-                <div class="space-y-4">
-                    <h4 class="font-semibold">Quick Links</h4>
-                    <ul class="space-y-2 text-gray-400">
-                        <li><a href="index.php" class="hover:text-white transition-colors">Home</a></li>
-                        <li><a href="animal_sitting.php" class="hover:text-white transition-colors">Find a Sitter</a></li>
-                        <li><a href="buy_products.php" class="hover:text-white transition-colors">Shop</a></li>
-                        <li><a href="book_appointment.php" class="hover:text-white transition-colors">Book Appointment</a></li>
-                    </ul>
-                </div>
-
-                <div class="space-y-4">
-                    <h4 class="font-semibold">Contact</h4>
-                    <ul class="space-y-2 text-gray-400">
-                        <li class="flex items-center gap-2">
-                            <i data-lucide="phone" class="w-4 h-4"></i>
-                            +63 912 345 6789
-                        </li>
-                        <li class="flex items-center gap-2">
-                            <i data-lucide="mail" class="w-4 h-4"></i>
-                            hello@pawhabilin.com
-                        </li>
-                        <li class="flex items-center gap-2">
-                            <i data-lucide="map-pin" class="w-4 h-4"></i>
-                            Cebu City, Philippines
-                        </li>
-                        <li class="flex items-center gap-2">
-                            <i data-lucide="clock" class="w-4 h-4"></i>
-                            24/7 Emergency Support
-                        </li>
-                    </ul>
-                </div>
-            </div>
-
-            <div class="mt-12 pt-8 border-t border-gray-800 text-center text-gray-400">
-                <p>&copy; 2025 pawhabilin Philippines. All rights reserved.</p>
-            </div>
-        </div>
-    </footer>
+    <!-- Footer (shared) -->
+    <?php include __DIR__ . '/../../utils/footer.php'; ?>
 
     <script>
         // Initialize Lucide icons

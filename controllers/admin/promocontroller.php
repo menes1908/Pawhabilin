@@ -4,6 +4,7 @@
 header('Content-Type: application/json; charset=UTF-8');
 session_start();
 require_once __DIR__ . '/../../database.php';
+require_once __DIR__ . '/../../utils/helper.php';
 
 if (!isset($connections) || !$connections) {
     echo json_encode(['success' => false, 'message' => 'Database connection unavailable']);
@@ -145,6 +146,16 @@ if ($action === 'add') {
         $rs = mysqli_query($connections, 'SELECT * FROM promotions WHERE promo_id='.(int)$id.' LIMIT 1');
         if ($rs) { $promo = mysqli_fetch_assoc($rs); mysqli_free_result($rs); }
     }
+    // Audit: promotion added
+    if ($promo) {
+        log_admin_action($connections, 'updates', [
+            'target' => 'promotion',
+            'target_id' => (string)$promo['promo_id'],
+            'details' => ['message' => 'Added promotion'],
+            'previous' => null,
+            'new' => $promo
+        ]);
+    }
     send_json(true, 'Promotion added successfully.', ['promo' => $promo]);
 }
 elseif ($action === 'toggle') {
@@ -156,6 +167,14 @@ elseif ($action === 'toggle') {
     mysqli_stmt_bind_param($stmt, 'ii', $to, $id);
     if (!mysqli_stmt_execute($stmt)) { $err = mysqli_error($connections); mysqli_stmt_close($stmt); send_json(false, 'Update failed: '.$err); }
     mysqli_stmt_close($stmt);
+    // Audit: promotion toggle
+    log_admin_action($connections, 'updates', [
+        'target' => 'promotion',
+        'target_id' => (string)$id,
+        'details' => ['message' => 'Toggled promotion active status'],
+        'previous' => null,
+        'new' => ['promo_active' => $to]
+    ]);
     send_json(true, 'Promo status updated.', ['promo_id' => $id, 'active' => $to]);
 }
 elseif ($action === 'delete') {
@@ -166,6 +185,14 @@ elseif ($action === 'delete') {
     mysqli_stmt_bind_param($stmt, 'i', $id);
     if (!mysqli_stmt_execute($stmt)) { $err = mysqli_error($connections); mysqli_stmt_close($stmt); send_json(false, 'Delete failed: '.$err); }
     mysqli_stmt_close($stmt);
+    // Audit: promotion deleted
+    log_admin_action($connections, 'updates', [
+        'target' => 'promotion',
+        'target_id' => (string)$id,
+        'details' => ['message' => 'Deleted promotion'],
+        'previous' => ['promo_id' => $id],
+        'new' => null
+    ]);
     send_json(true, 'Promo deleted.', ['promo_id' => $id]);
 }
 elseif ($action === 'list') {
@@ -258,6 +285,14 @@ elseif ($action === 'update') {
     mysqli_stmt_close($stmt);
     $row = null;
     if ($res2 = mysqli_query($connections, 'SELECT * FROM promotions WHERE promo_id=' . $id . ' LIMIT 1')) { $row = mysqli_fetch_assoc($res2); mysqli_free_result($res2); }
+    // Audit: promotion update
+    log_admin_action($connections, 'updates', [
+        'target' => 'promotion',
+        'target_id' => (string)$id,
+        'details' => ['message' => 'Updated promotion'],
+        'previous' => $existing,
+        'new' => $row
+    ]);
     send_json(true, 'Promotion updated.', ['promo' => $row]);
 }
 else {

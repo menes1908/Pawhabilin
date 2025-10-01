@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../../database.php';
+require_once __DIR__ . '/../../utils/helper.php';
 
 header_remove('X-Powered-By');
 
@@ -38,6 +39,14 @@ if ($action === 'delete') {
     mysqli_query($connections, "DELETE FROM deliveries WHERE transactions_id=$tid");
     mysqli_query($connections, "DELETE FROM transactions WHERE transactions_id=$tid");
     $ok = mysqli_affected_rows($connections) >= 0; // if transaction row existed it will be removed
+    // Audit: order deletion
+    log_admin_action($connections, 'updates', [
+        'target' => 'order',
+        'target_id' => (string)$tid,
+        'details' => ['message' => 'Deleted order'],
+        'previous' => ['transactions_id' => $tid],
+        'new' => null
+    ]);
     if($isJson) json_out(['success'=>$ok]);
     redirect_back($ok? 'Order deleted':'Nothing deleted');
 }
@@ -95,6 +104,25 @@ if ($action === 'update_delivery') {
     mysqli_stmt_execute($stmt);
     $affected = mysqli_stmt_affected_rows($stmt);
     mysqli_stmt_close($stmt);
+    // Audit: order/delivery update
+    log_admin_action($connections, 'updates', [
+        'target' => 'order',
+        'target_id' => (string)$tid,
+        'details' => [
+            'message' => 'Updated delivery status',
+            'fields_changed' => ['deliveries_delivery_status','deliveries_estimated_delivery_date','deliveries_actual_delivery_date','deliveries_recipient_signature']
+        ],
+        'previous' => [
+            'deliveries_actual_delivery_date' => $curActual,
+            'deliveries_recipient_signature' => $curSig
+        ],
+        'new' => [
+            'deliveries_delivery_status' => $status,
+            'deliveries_estimated_delivery_date' => $eta,
+            'deliveries_actual_delivery_date' => $finalActual,
+            'deliveries_recipient_signature' => $signature
+        ]
+    ]);
     if($isJson) json_out(['success'=> $affected>=0]);
     redirect_back('Order updated');
 }

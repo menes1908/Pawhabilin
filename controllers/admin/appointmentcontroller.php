@@ -1,6 +1,7 @@
 <?php
 header('Content-Type: application/json');
 require_once __DIR__ . '/../../database.php';
+require_once __DIR__ . '/../../utils/helper.php';
 
 function json_out($ok, $payload = []){
     echo json_encode($ok ? array_merge(['success'=>true], $payload) : array_merge(['success'=>false], $payload));
@@ -84,6 +85,30 @@ if ($action === 'update') {
     $cls = $status==='confirmed' ? 'bg-indigo-100 text-indigo-800 border border-indigo-200' : ($status==='completed' ? 'bg-green-100 text-green-800 border border-green-200' : ($status==='cancelled' ? 'bg-red-100 text-red-800 border border-red-200' : 'bg-yellow-100 text-yellow-800 border border-yellow-200'));
     $chip = '<span class="px-2 py-1 rounded-full '.$cls.'">'.ucfirst($status).'</span>';
 
+    // Audit: appointment update
+    log_admin_action($connections, 'updates', [
+        'target' => 'appointment',
+        'target_id' => (string)$id,
+        'details' => [
+            'message' => 'Updated appointment',
+            'fields_changed' => ['full_name','email','phone','pet_name','pet_type','pet_breed','pet_age','type','datetime','status','notes']
+        ],
+        'previous' => null,
+        'new' => [
+            'full_name' => $full,
+            'email' => $email,
+            'phone' => $phone,
+            'pet_name' => $petName,
+            'pet_type' => $petType,
+            'pet_breed' => $breed,
+            'pet_age' => $age,
+            'type' => $type,
+            'datetime' => $dtIso,
+            'status' => $status,
+            'notes' => $aa_notes
+        ]
+    ]);
+
     json_out(true, ['item'=>[
         'id'=>$id,
         'full_name'=>$full,
@@ -111,6 +136,14 @@ if ($action === 'delete') {
         mysqli_stmt_bind_param($stmt, 'i', $id);
         if (!mysqli_stmt_execute($stmt)) { mysqli_stmt_close($stmt); json_out(false, ['error'=>'Delete failed']); }
         mysqli_stmt_close($stmt);
+        // Audit: appointment deletion
+        log_admin_action($connections, 'updates', [
+            'target' => 'appointment',
+            'target_id' => (string)$id,
+            'details' => ['message' => 'Deleted appointment'],
+            'previous' => ['appointments_id' => $id],
+            'new' => null
+        ]);
         json_out(true, ['message'=>'Deleted']);
     }
     json_out(false, ['error'=>'Prepare failed']);

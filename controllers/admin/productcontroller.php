@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../../database.php';
+require_once __DIR__ . '/../../utils/helper.php';
 
 header_remove('X-Powered-By');
 
@@ -187,6 +188,28 @@ if ($method === 'POST' && ($action === 'add' || isset($_POST['add_product']))) {
 	];
 	$label = $labelMap[$categoryInput] ?? 'Food';
 
+	// Audit log: product addition
+	log_admin_action($connections, 'additions', [
+		'target' => 'product',
+		'target_id' => (string)$newId,
+		'details' => [
+			'message' => 'Added product',
+			'fields_changed' => ['name','pet_type','description','category','price','stock','active','image']
+		],
+		'previous' => null,
+		'new' => [
+			'id' => $newId,
+			'name' => $name,
+			'pet_type' => $petType,
+			'description' => $description,
+			'category' => $category,
+			'price' => $priceVal,
+			'stock' => $stock,
+			'active' => $active,
+			'db_image_url' => $dbImagePath
+		]
+	]);
+
 	json_response([
 		'success' => true,
 		'item' => [
@@ -219,6 +242,16 @@ if ($method === 'POST' && $action === 'update') {
 	$stock = trim((string)($_POST['products_stock'] ?? ''));
 	$active = isset($_POST['products_active']) ? 1 : 0;
 	$currentImage = trim($_POST['current_image_url'] ?? '');
+
+	// Fetch previous product state for audit
+	$prev = null;
+	if ($stmtPrev = mysqli_prepare($connections, "SELECT products_name, products_pet_type, products_description, products_category, products_price, products_stock, products_image_url, products_active FROM products WHERE products_id=? LIMIT 1")) {
+		mysqli_stmt_bind_param($stmtPrev, 'i', $id);
+		mysqli_stmt_execute($stmtPrev);
+		$resPrev = mysqli_stmt_get_result($stmtPrev);
+		$prev = $resPrev ? mysqli_fetch_assoc($resPrev) : null;
+		mysqli_stmt_close($stmtPrev);
+	}
 
 	if ($name === '') json_response(['success' => false, 'error' => 'Product name is required.'], 400);
 
@@ -265,6 +298,62 @@ if ($method === 'POST' && $action === 'update') {
 		json_response(['success' => false, 'error' => 'Update failed: ' . $err], 500);
 	}
 	mysqli_stmt_close($stmt);
+
+	// Audit logs for updates
+	$prevPrice = $prev ? (float)$prev['products_price'] : null;
+	$prevStock = $prev ? $prev['products_stock'] : null;
+	$changes = [];
+	if ($prev) {
+		if ((string)$prev['products_name'] !== (string)$name) $changes[] = 'name';
+		if ((string)$prev['products_pet_type'] !== (string)$petType) $changes[] = 'pet_type';
+		if ((string)$prev['products_description'] !== (string)$description) $changes[] = 'description';
+		if ((string)$prev['products_category'] !== (string)$category) $changes[] = 'category';
+		if ((float)$prev['products_price'] !== (float)$price) $changes[] = 'price';
+		if ((string)$prev['products_stock'] !== (string)$stock) $changes[] = 'stock';
+		if ((string)($prev['products_image_url'] ?? '') !== (string)($dbImagePath ?? '')) $changes[] = 'image';
+		if ((int)$prev['products_active'] !== (int)$active) $changes[] = 'active';
+	}
+
+	// General update log
+	log_admin_action($connections, 'updates', [
+		'target' => 'product',
+		'target_id' => (string)$id,
+		'details' => [
+			'message' => 'Updated product',
+			'fields_changed' => $changes
+		],
+		'previous' => $prev,
+		'new' => [
+			'name' => $name,
+			'pet_type' => $petType,
+			'description' => $description,
+			'category' => $category,
+			'price' => $price,
+			'stock' => $stock,
+			'active' => $active,
+			'products_image_url' => $dbImagePath
+		]
+	]);
+
+	// Specific price and stock change logs
+	if ($prev && (float)$prevPrice !== (float)$price) {
+		log_admin_action($connections, 'price_changes', [
+			'target' => 'product',
+			'target_id' => (string)$id,
+			'details' => ['message' => 'Price changed'],
+			'previous' => ['price' => (float)$prevPrice],
+			'new' => ['price' => (float)$price]
+		]);
+	}
+	if ($prev && (string)$prevStock !== (string)$stock) {
+		log_admin_action($connections, 'stock_changes', [
+			'target' => 'product',
+			'target_id' => (string)$id,
+			'details' => ['message' => 'Stock changed'],
+			'previous' => ['stock' => $prevStock],
+			'new' => ['stock' => $stock]
+		]);
+	}
 
 	json_response([
 		'success' => true,
@@ -315,6 +404,15 @@ if ($method === 'POST' && $action === 'delete') {
 	if ($img && strpos($img, 'pictures/products/') === 0) {
 		@unlink(realpath(__DIR__ . '/../../' . $img));
 	}
+
+	// Audit log: product deletion
+	log_admin_action($connections, 'updates', [
+		'target' => 'product',
+		'target_id' => (string)$id,
+		'details' => ['message' => 'Deleted product'],
+		'previous' => ['products_image_url' => $img],
+		'new' => null
+	]);
 
 	json_response(['success' => true]);
 }

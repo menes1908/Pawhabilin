@@ -371,6 +371,10 @@ function resolveImageUrl($path) {
                     <i data-lucide="percent" class="w-5 h-5 flex-shrink-0"></i>
                     <span class="sidebar-label font-medium hidden">Promos</span>
                 </button>
+                <button onclick="setActiveSection('audit')" class="sidebar-item w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-200 text-gray-700 hover:bg-gray-100" data-section="audit">
+                    <i data-lucide="activity" class="w-5 h-5 flex-shrink-0"></i>
+                    <span class="sidebar-label font-medium hidden">Audit Logs</span>
+                </button>
                 <button onclick="setActiveSection('settings')" class="sidebar-item w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-200 text-gray-700 hover:bg-gray-100" data-section="settings">
                     <i data-lucide="settings" class="w-5 h-5 flex-shrink-0"></i>
                     <span class="sidebar-label font-medium hidden">Settings</span>
@@ -2092,6 +2096,76 @@ function resolveImageUrl($path) {
                         </div>
                     </div>
                 </div>
+
+                <!-- Audit Logs Section (visual feed, no table) -->
+                <div id="audit-section" class="space-y-6 hidden">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h2 class="text-xl font-semibold text-gray-900">Audit Logs</h2>
+                            <p class="text-sm text-gray-500">Transparent history of admin actions</p>
+                        </div>
+                        <div class="text-xs text-gray-500">Last refreshed: <span id="auditRefreshedAt"></span></div>
+                    </div>
+
+                    <!-- Small stat cards -->
+                    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3" id="auditStats">
+                        <div class="p-3 rounded-lg border border-gray-200 bg-white">
+                            <div class="text-[11px] text-gray-500">All</div>
+                            <div class="text-xl font-semibold" id="auditStatAll">0</div>
+                        </div>
+                        <div class="p-3 rounded-lg border border-green-200 bg-green-50">
+                            <div class="text-[11px] text-green-700">Additions</div>
+                            <div class="text-xl font-semibold text-green-700" id="auditStatAdd">0</div>
+                        </div>
+                        <div class="p-3 rounded-lg border border-indigo-200 bg-indigo-50">
+                            <div class="text-[11px] text-indigo-700">Updates</div>
+                            <div class="text-xl font-semibold text-indigo-700" id="auditStatUpd">0</div>
+                        </div>
+                        <div class="p-3 rounded-lg border border-amber-200 bg-amber-50">
+                            <div class="text-[11px] text-amber-700">Price</div>
+                            <div class="text-xl font-semibold text-amber-700" id="auditStatPrice">0</div>
+                        </div>
+                        <div class="p-3 rounded-lg border border-sky-200 bg-sky-50">
+                            <div class="text-[11px] text-sky-700">Stock</div>
+                            <div class="text-xl font-semibold text-sky-700" id="auditStatStock">0</div>
+                        </div>
+                        <div class="p-3 rounded-lg border border-gray-200 bg-white">
+                            <div class="text-[11px] text-gray-700">Other</div>
+                            <div class="text-xl font-semibold text-gray-800" id="auditStatOther">0</div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-xl border border-gray-200 p-4">
+                        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                            <div class="flex flex-wrap items-center gap-2" id="auditTabs"></div>
+                            <div class="flex items-center gap-2">
+                                <input id="auditFrom" type="date" class="px-3 py-2 rounded-lg border border-gray-300">
+                                <span class="text-xs text-gray-500">to</span>
+                                <input id="auditTo" type="date" class="px-3 py-2 rounded-lg border border-gray-300">
+                                <input id="auditSearch" type="text" placeholder="Search by user, action, product..." class="w-64 px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-orange-400" />
+                                <button id="auditSearchBtn" class="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-orange-600 text-white hover:bg-orange-700">
+                                    <i data-lucide="search" class="w-4 h-4"></i>
+                                    <span>Search</span>
+                                </button>
+                                <button id="auditResetBtn" class="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50">
+                                    <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
+                                    <span>Reset</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center justify-between text-sm text-gray-600">
+                        <div>Showing <span id="auditShowing">0</span> of <span id="auditTotal">0</span> activities</div>
+                        <div class="flex items-center gap-2">
+                            <button id="auditPrev" class="px-3 py-1.5 rounded-lg border border-gray-200 hover:bg-gray-50">Previous</button>
+                            <span id="auditPageInfo">Page 1 / 1</span>
+                            <button id="auditNext" class="px-3 py-1.5 rounded-lg border border-gray-200 hover:bg-gray-50">Next</button>
+                        </div>
+                    </div>
+
+                    <div id="auditFeed" class="space-y-3"></div>
+                </div>
             </main>
         </div>
     </div>
@@ -2728,13 +2802,11 @@ function resolveImageUrl($path) {
             initTopSellingModal();
             initSettingsSection();
             // Section isolation logic: ensure only active section's UI is visible
-            const sectionIds = ['dashboard','orders','sitters','appointments','owners','subscribers','products','promos','settings'];
             function showSection(id){
-                sectionIds.forEach(sid=>{
-                    const el = document.getElementById(sid+'-section');
-                    if(!el) return;
-                    if(sid===id){ el.classList.remove('hidden'); } else { el.classList.add('hidden'); }
-                });
+                // Hide all existing *-section containers dynamically
+                document.querySelectorAll('[id$="-section"]').forEach(el => el.classList.add('hidden'));
+                const el = document.getElementById(id+'-section');
+                if (el) el.classList.remove('hidden');
                 currentActiveSection = id;
                 // Persist
                 try { localStorage.setItem('admin_active_section', id); } catch(e){}
@@ -2748,6 +2820,11 @@ function resolveImageUrl($path) {
                     activeItem.classList.add('bg-gradient-to-r','from-orange-500','to-amber-600','text-white','shadow-md');
                     activeItem.classList.remove('text-gray-700','hover:bg-gray-100');
                 }
+                // Initialize Audit UI if navigating to Audit section
+                if (id === 'audit') {
+                    if (typeof initAuditSectionOnce === 'function') initAuditSectionOnce();
+                    if (typeof refreshAudit === 'function') refreshAudit();
+                }
             }
             // Bind nav items marked with data-section
             document.querySelectorAll('[data-section]')?.forEach(btn=>{
@@ -2756,6 +2833,13 @@ function resolveImageUrl($path) {
                     if(id) showSection(id);
                 });
             });
+            // Prefer section from URL (?section=...), fallback to last stored, then dashboard
+            try {
+                const urlSec = new URLSearchParams(window.location.search).get('section');
+                if (urlSec && document.getElementById(urlSec+'-section')) {
+                    currentActiveSection = urlSec;
+                }
+            } catch(e){}
             // Initialize to existing or default
             if(!document.getElementById(currentActiveSection+'-section')) currentActiveSection='dashboard';
             showSection(currentActiveSection);
@@ -3628,15 +3712,12 @@ function resolveImageUrl($path) {
 
         // Section navigation
         function setActiveSection(section) {
-            // Hide all sections
-            // Include 'orders' so it hides when navigating to other sections
-            const sections = ['dashboard', 'products', 'orders', 'sitters', 'appointments', 'pets', 'subscribers','promos'];
-            sections.forEach(s => {
-                document.getElementById(`${s}-section`).classList.add('hidden');
-            });
+            // Hide all sections dynamically (any element with id ending in -section)
+            document.querySelectorAll('[id$="-section"]').forEach(el => el.classList.add('hidden'));
 
             // Show active section
-            document.getElementById(`${section}-section`).classList.remove('hidden');
+            const target = document.getElementById(`${section}-section`);
+            if (target) target.classList.remove('hidden');
 
             // Update sidebar active state
             document.querySelectorAll('.sidebar-item').forEach(item => {
@@ -3651,6 +3732,11 @@ function resolveImageUrl($path) {
             }
 
             currentActiveSection = section;
+
+            if (section === 'audit') {
+                initAuditSectionOnce();
+                refreshAudit();
+            }
         }
 
         // Time filter functions
@@ -4600,6 +4686,153 @@ function resolveImageUrl($path) {
             }
             // Initial sync (non-blocking)
             syncFromServer();
+        }
+
+        // ===== Audit Logs (embedded) =====
+        let auditOnce = false;
+        let audit = { tab: 'all', q: '', page: 1, per: 15, total: 0, from: '', to: '' };
+        function initAuditSectionOnce(){ if(auditOnce) return; auditOnce=true; initAuditUI(); bindAuditEvents(); }
+        function initAuditUI(){
+            const tabsCfg = [
+                {k:'all', label:'All'},
+                {k:'additions', label:'Additions'},
+                {k:'updates', label:'Updates'},
+                {k:'price_changes', label:'Price'},
+                {k:'stock_changes', label:'Stock'},
+                {k:'sitters', label:'Sitters'},
+                {k:'orders', label:'Orders'}
+            ];
+            const tabsWrap = document.getElementById('auditTabs');
+            tabsWrap.innerHTML = '';
+            tabsCfg.forEach(t => {
+                const a = document.createElement('button');
+                a.textContent = t.label;
+                a.className = 'px-3 py-1.5 rounded-full border text-sm';
+                a.dataset.tab = t.k;
+                a.addEventListener('click', ()=>{ audit.tab = t.k; audit.page = 1; styleAuditTabs(); refreshAudit(); });
+                tabsWrap.appendChild(a);
+            });
+            styleAuditTabs();
+        }
+        function styleAuditTabs(){
+            const tabsWrap = document.getElementById('auditTabs');
+            tabsWrap.querySelectorAll('button').forEach(btn => {
+                const active = btn.dataset.tab === audit.tab;
+                btn.className = 'px-3 py-1.5 rounded-full border text-sm ' + (active ? 'bg-orange-50 border-orange-300 text-orange-700' : 'bg-white border-gray-200 text-gray-700 hover:bg-gray-50');
+            });
+        }
+        function bindAuditEvents(){
+            const search = document.getElementById('auditSearch');
+            const btn = document.getElementById('auditSearchBtn');
+            let t; search.addEventListener('input', ()=>{ clearTimeout(t); t=setTimeout(()=>{ audit.q = search.value.trim(); audit.page = 1; refreshAudit(); }, 200); });
+            btn.addEventListener('click', ()=>{ audit.q = search.value.trim(); audit.page = 1; refreshAudit(); });
+            const f = document.getElementById('auditFrom');
+            const to = document.getElementById('auditTo');
+            f.addEventListener('change', ()=>{ audit.from = f.value; audit.page=1; refreshAudit(); });
+            to.addEventListener('change', ()=>{ audit.to = to.value; audit.page=1; refreshAudit(); });
+            const reset = document.getElementById('auditResetBtn');
+            reset.addEventListener('click', ()=>{
+                audit.q=''; audit.from=''; audit.to=''; audit.page=1; audit.tab='all';
+                if (search) search.value='';
+                if (f) f.value='';
+                if (to) to.value='';
+                styleAuditTabs();
+                refreshAudit();
+            });
+            document.getElementById('auditPrev').addEventListener('click', ()=>{ if(audit.page>1){ audit.page--; refreshAudit(); }});
+            document.getElementById('auditNext').addEventListener('click', ()=>{ const pages = Math.max(1, Math.ceil(audit.total / audit.per)); if(audit.page<pages){ audit.page++; refreshAudit(); }});
+        }
+        async function refreshAudit(){
+            try{
+                document.getElementById('auditRefreshedAt').textContent = new Date().toLocaleString();
+                const url = `../../controllers/admin/logs.php?tab=${encodeURIComponent(audit.tab)}&q=${encodeURIComponent(audit.q)}&page=${audit.page}&per=${audit.per}&from=${encodeURIComponent(audit.from||'')}&to=${encodeURIComponent(audit.to||'')}`;
+                const r = await fetch(url);
+                const d = await r.json();
+                if(!d.success){ throw new Error(d.error||'Failed to load logs'); }
+                audit.total = d.total||0;
+                renderAudit(d.items||[]);
+                const pages = Math.max(1, Math.ceil(audit.total / audit.per));
+                document.getElementById('auditPageInfo').textContent = `Page ${audit.page} / ${pages}`;
+                document.getElementById('auditTotal').textContent = String(audit.total);
+                document.getElementById('auditShowing').textContent = String((d.items||[]).length);
+                // update stat cards if present
+                if(d.stats){
+                    const s = d.stats;
+                    document.getElementById('auditStatAll').textContent = s.all ?? 0;
+                    document.getElementById('auditStatAdd').textContent = s.additions ?? 0;
+                    document.getElementById('auditStatUpd').textContent = s.updates ?? 0;
+                    document.getElementById('auditStatPrice').textContent = s.price_changes ?? 0;
+                    document.getElementById('auditStatStock').textContent = s.stock_changes ?? 0;
+                    const other = (s.sitters??0) + (s.orders??0);
+                    document.getElementById('auditStatOther').textContent = other;
+                }
+            } catch(e){
+                renderAudit([]);
+                document.getElementById('auditPageInfo').textContent = 'Page 1 / 1';
+                document.getElementById('auditTotal').textContent = '0';
+                document.getElementById('auditShowing').textContent = '0';
+            } finally {
+                if(window.lucide) window.lucide.createIcons();
+            }
+        }
+        function summarizeChange(prev, next){
+            if(!prev && !next) return [];
+            const p = prev||{}; const n = next||{}; const keys = Array.from(new Set([...Object.keys(p), ...Object.keys(n)]));
+            const out=[]; for(const k of keys){ const pv = typeof p[k]==='object'? JSON.stringify(p[k]) : (p[k]??''); const nv = typeof n[k]==='object'? JSON.stringify(n[k]) : (n[k]??''); if(String(pv)!==String(nv)) out.push({key:k, prev:String(pv), next:String(nv)}); if(out.length>=8) break; }
+            return out;
+        }
+        function badgeClass(t){
+            switch(t){
+                case 'additions': return 'bg-green-100 text-green-800 border border-green-200';
+                case 'updates': return 'bg-indigo-100 text-indigo-800 border border-indigo-200';
+                case 'price_changes': return 'bg-amber-100 text-amber-800 border border-amber-200';
+                case 'stock_changes': return 'bg-sky-100 text-sky-800 border border-sky-200';
+                case 'auth_login': return 'bg-emerald-100 text-emerald-800 border border-emerald-200';
+                case 'auth_logout': return 'bg-stone-100 text-stone-800 border border-stone-200';
+                case 'auth_login_failed': return 'bg-red-100 text-red-800 border border-red-200';
+                default: return 'bg-gray-100 text-gray-800 border border-gray-200';
+            }
+        }
+        function esc(s){ const d = document.createElement('div'); d.textContent = s==null? '' : String(s); return d.innerHTML; }
+        function renderAudit(items){
+            const feed = document.getElementById('auditFeed');
+            feed.innerHTML = '';
+            if(!items || items.length===0){ feed.innerHTML = '<div class="bg-white border border-gray-200 rounded-xl p-6 text-center text-gray-500">No activities found.</div>'; return; }
+            items.forEach(row => {
+                const ts = row.timestamp||'';
+                const user = row.user_email || (row.users_id? `User #${row.users_id}` : 'Unknown user');
+                const ip = row.ip_address || '';
+                const action = row.action_type || 'updates';
+                const target = [row.target||'', row.target_id||''].join(' ').trim();
+                const details = row.details||{}; const message = details.message || '';
+                const changes = summarizeChange(row.previous, row.new);
+                const fieldsChanged = Array.isArray(details.fields_changed) ? details.fields_changed : [];
+                const chip = badgeClass(action);
+                const card = document.createElement('div');
+                card.className = 'bg-white border border-gray-200 rounded-xl p-4';
+                card.innerHTML = `
+                    <div class="flex items-start gap-4">
+                        <div class="mt-1"><span class="inline-block w-3 h-3 rounded-full bg-orange-500"></span></div>
+                        <div class="flex-1">
+                            <div class="flex flex-wrap items-center justify-between gap-2">
+                                <div class="flex flex-wrap items-center gap-2">
+                                    <span class="text-sm text-gray-500">${esc(new Date(ts).toLocaleString())}</span>
+                                    <span class="text-sm text-gray-400">•</span>
+                                    <span class="text-sm text-gray-700">By ${esc(user)}</span>
+                                    ${ip? `<span class="text-xs text-gray-400">(${esc(ip)})</span>`:''}
+                                </div>
+                                <span class="text-xs px-2 py-1 rounded-full ${chip} capitalize">${esc(action.replaceAll('_',' '))}</span>
+                            </div>
+                            <div class="mt-2 text-sm text-gray-900">
+                                ${message? `<p class="font-medium">${esc(message)}</p>` : `<p class="font-medium">Updated <span class="text-gray-600">${esc(target||'record')}</span></p>`}
+                            </div>
+                            ${fieldsChanged.length? `<div class="mt-2 flex flex-wrap gap-1">${fieldsChanged.map(f=>`<span class=\"text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-700 border border-gray-200\">${esc(f)}</span>`).join('')}</div>`:''}
+                            ${changes.length? `<div class=\"mt-3 grid grid-cols-1 md:grid-cols-2 gap-3\">${changes.map(ch=>`<div class=\"p-3 rounded-lg bg-gray-50 border border-gray-200\"><div class=\"text-xs font-medium text-gray-500 mb-1\">${esc(ch.key)}</div><div class=\"text-xs text-gray-700\"><span class=\"text-gray-500\">Previous:</span> ${esc(ch.prev)}</div><div class=\"text-xs text-gray-700\"><span class=\"text-gray-500\">New:</span> ${esc(ch.next)}</div></div>`).join('')}</div>`:''}
+                            ${target? `<div class=\"mt-3 text-xs text-gray-500\">Target: ${esc(target)}</div>`:''}
+                        </div>
+                    </div>`;
+                feed.appendChild(card);
+            });
         }
     </script>
     <!-- Tailwind safelist (hidden) to ensure dynamic specialty classes are included by CDN JIT -->

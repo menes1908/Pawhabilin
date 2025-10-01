@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../../database.php';
+require_once __DIR__ . '/../../utils/helper.php';
 
 header_remove('X-Powered-By');
 
@@ -151,6 +152,29 @@ if ($method === 'POST' && $action === 'add') {
     $newId = mysqli_insert_id($connections);
     mysqli_stmt_close($stmt);
 
+    // Audit log: sitter addition
+    log_admin_action($connections, 'additions', [
+        'target' => 'sitter',
+        'target_id' => (string)$newId,
+        'details' => [
+            'message' => 'Added sitter',
+            'fields_changed' => ['name','bio','email','phone','experience','years_experience','specialties','active','verified','image']
+        ],
+        'previous' => null,
+        'new' => [
+            'id' => $newId,
+            'name' => $name,
+            'email' => $email,
+            'phone' => $phone,
+            'experience' => $experienceToStore,
+            'years_experience' => $years,
+            'specialties' => $allSpecs,
+            'active' => $active,
+            'verified' => $verified,
+            'db_image_url' => $dbImagePath
+        ]
+    ]);
+
     json_response([
         'success' => true,
         'item' => [
@@ -200,8 +224,16 @@ if ($method === 'POST' && $action === 'update') {
     if (!$connections) json_response(['success' => false, 'error' => 'Database connection error.'], 500);
     ensure_sitter_columns_admin($connections);
 
-    // Get current image
+    // Get current image and previous fields for audit
     $cur = null; $curImg = null;
+    $prev = null;
+    if ($stmtPrev = mysqli_prepare($connections, "SELECT sitters_name, sitters_bio, sitter_email, sitters_contact, sitter_specialty, sitter_experience, sitters_image_url, sitters_active, years_experience, sitters_verified FROM sitters WHERE sitters_id=? LIMIT 1")) {
+        mysqli_stmt_bind_param($stmtPrev, 'i', $id);
+        mysqli_stmt_execute($stmtPrev);
+        $resPrev = mysqli_stmt_get_result($stmtPrev);
+        $prev = $resPrev ? mysqli_fetch_assoc($resPrev) : null;
+        mysqli_stmt_close($stmtPrev);
+    }
     if ($stmt = mysqli_prepare($connections, "SELECT sitters_image_url FROM sitters WHERE sitters_id = ? LIMIT 1")) {
         mysqli_stmt_bind_param($stmt, 'i', $id);
         mysqli_stmt_execute($stmt);
@@ -244,6 +276,42 @@ if ($method === 'POST' && $action === 'update') {
     $ok = mysqli_stmt_execute($stmt);
     if (!$ok) { $err = mysqli_error($connections); mysqli_stmt_close($stmt); json_response(['success' => false, 'error' => 'Update failed: ' . $err], 500); }
     mysqli_stmt_close($stmt);
+
+    // Audit log: sitter update
+    $changed = [];
+    if ($prev) {
+        if ((string)$prev['sitters_name'] !== (string)$name) $changed[] = 'name';
+        if ((string)$prev['sitters_bio'] !== (string)$bio) $changed[] = 'bio';
+        if ((string)$prev['sitter_email'] !== (string)$email) $changed[] = 'email';
+        if ((string)$prev['sitters_contact'] !== (string)$phone) $changed[] = 'phone';
+        if ((string)$prev['sitter_experience'] !== (string)$experienceToStore) $changed[] = 'experience';
+        if ((int)($prev['years_experience'] ?? 0) !== (int)$years) $changed[] = 'years_experience';
+        if ((string)$prev['sitter_specialty'] !== (string)$specStr) $changed[] = 'specialties';
+        if ((int)$prev['sitters_active'] !== (int)$active) $changed[] = 'active';
+        if ((int)($prev['sitters_verified'] ?? 0) !== (int)$verified) $changed[] = 'verified';
+        if ((string)($prev['sitters_image_url'] ?? '') !== (string)($dbImagePath ?? '')) $changed[] = 'image';
+    }
+    log_admin_action($connections, 'updates', [
+        'target' => 'sitter',
+        'target_id' => (string)$id,
+        'details' => [
+            'message' => 'Updated sitter',
+            'fields_changed' => $changed
+        ],
+        'previous' => $prev,
+        'new' => [
+            'name' => $name,
+            'bio' => $bio,
+            'email' => $email,
+            'phone' => $phone,
+            'experience' => $experienceToStore,
+            'years_experience' => $years,
+            'specialties' => $allSpecs,
+            'active' => $active,
+            'verified' => $verified,
+            'sitters_image_url' => $dbImagePath
+        ]
+    ]);
 
     json_response([
         'success' => true,
@@ -292,6 +360,16 @@ if ($method === 'POST' && $action === 'delete') {
     }
     // Remove image file
     if ($curImg) delete_local_image_if_applicable($curImg);
+    
+    // Audit log: sitter deletion
+    log_admin_action($connections, 'updates', [
+        'target' => 'sitter',
+        'target_id' => (string)$id,
+        'details' => ['message' => 'Deleted sitter'],
+        'previous' => ['sitters_image_url' => $curImg],
+        'new' => null
+    ]);
+
     json_response(['success' => true]);
 }
 

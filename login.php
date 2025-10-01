@@ -2,6 +2,7 @@
 session_start();
 require_once __DIR__ . '/utils/session.php';
 require_once __DIR__ . '/database.php';
+require_once __DIR__ . '/utils/helper.php';
 
 $email = '';
 $success_message = '';
@@ -44,6 +45,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         'users_role' => (string)$row['users_role'],
                     ];
 
+                    // Audit: login success
+                    log_admin_action($connections, 'auth_login', [
+                        'target' => 'user',
+                        'target_id' => (string)$row['users_id'],
+                        'details' => ['message' => 'Login successful', 'email' => $row['users_email']],
+                        'previous' => null,
+                        'new' => null
+                    ]);
+
                     // Role-based redirect: 1 => admin dashboard, else user dashboard
                     $role = (string)$row['users_role'];
                     if ($role === '1' || (int)$role === 1) {
@@ -59,9 +69,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     exit();
                 } else {
                     $error_message = 'Invalid email or password.';
+                    // Audit: login failed (no user id context)
+                    log_admin_action($connections, 'auth_login_failed', [
+                        'users_id' => (int)$row['users_id'],
+                        'target' => 'user',
+                        'target_id' => (string)$row['users_id'],
+                        'details' => ['message' => 'Login failed', 'email' => $email],
+                        'previous' => null,
+                        'new' => null
+                    ]);
                 }
             } else {
                 $error_message = 'Invalid email or password.';
+                // Note: skip audit log when email not found to avoid legacy FK issues (no users_id)
             }
             mysqli_stmt_close($stmt);
         } else {

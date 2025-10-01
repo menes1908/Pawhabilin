@@ -77,7 +77,7 @@ if (!isset($currentUserName) && !isset($currentUserInitial)) { http_response_cod
           <div id="userMenu" class="absolute right-0 mt-2 w-48 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 opacity-0 translate-y-2 transition-all duration-200" role="menu" aria-hidden="true">
             <div class="py-1">
               <a href="<?= htmlspecialchars($asset('views/users/profile.php')) ?>" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50" role="menuitem">Profile</a>
-              <a href="<?= htmlspecialchars($asset('views/users/index.php')) ?>#orders" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50" role="menuitem">My Rewards</a>
+              <a href="<?= htmlspecialchars($asset('views/users/rewards.php')) ?>" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50" role="menuitem">My Rewards</a>
               <div class="my-1 border-t"></div>
               <a href="<?= htmlspecialchars($asset('views/users/logout.php')) ?>" class="block px-4 py-2 text-sm text-red-600 hover:bg-red-50" role="menuitem">Logout</a>
             </div>

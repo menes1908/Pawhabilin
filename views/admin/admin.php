@@ -63,6 +63,60 @@ if (!$adminId) {
 $admin_fullname = trim(($admin['users_firstname'] ?? '') . ' ' . ($admin['users_lastname'] ?? '')) ?: 'Admin User';
 $admin_initial = strtoupper(substr(($admin['users_firstname'] ?? '') !== '' ? $admin['users_firstname'] : ($admin['users_username'] ?? 'A'), 0, 1));
 
+// ================= PROMOTIONS (simple CRUD) =================
+$promoFeedback = ['success'=>'','error'=>''];
+$promotions = [];
+if(isset($connections) && $connections){
+    if(!empty($_POST['promo_action'])){
+        $act = $_POST['promo_action'];
+        if($act==='add'){
+            $cols = ['promo_type','promo_code','promo_name','promo_description','promo_discount_type','promo_discount_value','promo_points_cost','promo_min_purchase_amount','promo_usage_limit','promo_per_user_limit','promo_require_active_subscription','promo_starts_at','promo_ends_at','promo_active'];
+            $d=[]; foreach($cols as $c){ $d[$c]= isset($_POST[$c])?trim($_POST[$c]):null; }
+            if($d['promo_name']===''){ $promoFeedback['error']='Promo name required.'; }
+            if($promoFeedback['error']===''){
+                foreach(['promo_discount_value','promo_min_purchase_amount'] as $nf){ if($d[$nf]==='') $d[$nf]=null; }
+                foreach(['promo_points_cost','promo_usage_limit','promo_per_user_limit','promo_require_active_subscription','promo_active'] as $if){ $d[$if]= ($d[$if]===''||$d[$if]===null)? null : (int)$d[$if]; }
+                foreach(['promo_starts_at','promo_ends_at'] as $dt){ if(!empty($d[$dt])) $d[$dt]=str_replace('T',' ',$d[$dt]); }
+                $sql="INSERT INTO promotions (promo_type,promo_code,promo_name,promo_description,promo_discount_type,promo_discount_value,promo_points_cost,promo_min_purchase_amount,promo_usage_limit,promo_per_user_limit,promo_require_active_subscription,promo_starts_at,promo_ends_at,promo_active) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+                $stmt = mysqli_prepare($connections,$sql);
+                if($stmt){
+                    $order=['promo_type','promo_code','promo_name','promo_description','promo_discount_type','promo_discount_value','promo_points_cost','promo_min_purchase_amount','promo_usage_limit','promo_per_user_limit','promo_require_active_subscription','promo_starts_at','promo_ends_at','promo_active'];
+                    $types=''; $vals=[];
+                    foreach($order as $c){
+                        $v=$d[$c];
+                        if(in_array($c,['promo_discount_value','promo_min_purchase_amount'])){ $types.='d'; $v=$v!==null?(float)$v:null; }
+                        elseif(in_array($c,['promo_points_cost','promo_usage_limit','promo_per_user_limit','promo_require_active_subscription','promo_active'])){ $types.='i'; $v=$v!==null?(int)$v:0; }
+                        else { $types.='s'; }
+                        $vals[]=$v;
+                    }
+                    $refs=[]; foreach($vals as $k=>$v){ $refs[$k]=$vals[$k]; }
+                    $bind = array_merge([$stmt,$types],$refs); $tmp=[]; foreach($bind as $k=>$v){ $tmp[$k]=&$bind[$k]; }
+                    call_user_func_array('mysqli_stmt_bind_param',$tmp);
+                    if(mysqli_stmt_execute($stmt)){ $promoFeedback['success']='Promo added.'; } else { $promoFeedback['error']='Insert failed: '.mysqli_error($connections); }
+                    mysqli_stmt_close($stmt);
+                } else { $promoFeedback['error']='Prepare failed: '.mysqli_error($connections); }
+            }
+        } elseif($act==='toggle' && isset($_POST['promo_id'])){
+            $pid=(int)$_POST['promo_id']; $to = (isset($_POST['to']) && $_POST['to']=='1')?1:0;
+            if($stmt=mysqli_prepare($connections,"UPDATE promotions SET promo_active=? WHERE promo_id=?")){
+                mysqli_stmt_bind_param($stmt,'ii',$to,$pid);
+                if(mysqli_stmt_execute($stmt)){ $promoFeedback['success']='Promo state updated.'; } else { $promoFeedback['error']='Toggle failed.'; }
+                mysqli_stmt_close($stmt);
+            }
+        } elseif($act==='delete' && isset($_POST['promo_id'])){
+            $pid=(int)$_POST['promo_id'];
+            if($stmt=mysqli_prepare($connections,"DELETE FROM promotions WHERE promo_id=?")){
+                mysqli_stmt_bind_param($stmt,'i',$pid);
+                if(mysqli_stmt_execute($stmt)){ $promoFeedback['success']='Promo deleted.'; } else { $promoFeedback['error']='Delete failed.'; }
+                mysqli_stmt_close($stmt);
+            }
+        }
+    }
+    if($res=mysqli_query($connections,"SELECT * FROM promotions ORDER BY promo_created_at DESC")){
+        while($row=mysqli_fetch_assoc($res)) $promotions[]=$row; mysqli_free_result($res);
+    }
+}
+
 // ====== Dashboard KPIs (database-driven) ======
 // Metrics: Total Sales (sum transactions_amount for product & subscription), Appointments Booked (count appointments),
 // Pet Sitters (active sitters), Pet Owners (non-admin users), Active Users (distinct users having recent activity: transaction OR appointment in last 30 days)
@@ -312,6 +366,10 @@ function resolveImageUrl($path) {
                 <button onclick="setActiveSection('subscribers')" class="sidebar-item w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-200 text-gray-700 hover:bg-gray-100" data-section="subscribers">
                     <i data-lucide="bell" class="w-5 h-5 flex-shrink-0"></i>
                     <span class="sidebar-label font-medium hidden">Subscribers</span>
+                </button>
+                <button onclick="setActiveSection('promos')" class="sidebar-item w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-200 text-gray-700 hover:bg-gray-100" data-section="promos">
+                    <i data-lucide="percent" class="w-5 h-5 flex-shrink-0"></i>
+                    <span class="sidebar-label font-medium hidden">Promos</span>
                 </button>
                 <button onclick="setActiveSection('settings')" class="sidebar-item w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-200 text-gray-700 hover:bg-gray-100" data-section="settings">
                     <i data-lucide="settings" class="w-5 h-5 flex-shrink-0"></i>
@@ -1910,6 +1968,72 @@ function resolveImageUrl($path) {
                     </div>
                 </div>
 
+                <!-- Promos Section -->
+                <div id="promos-section" class="space-y-6 hidden">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h2 class="text-3xl font-bold">Promos</h2>
+                            <p class="text-gray-600 mt-1">Manage promotional offers</p>
+                        </div>
+                        <button id="openAddPromoBtn" type="button" class="bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white px-4 py-2 rounded-md flex items-center gap-2 text-sm"><i data-lucide="plus" class="w-4 h-4"></i>Add Promo</button>
+                    </div>
+                    <?php if($promoFeedback['success']): ?>
+                        <div class="p-3 rounded-md bg-green-50 border border-green-200 text-green-700 text-sm flex items-center gap-2"><i data-lucide="check-circle" class="w-4 h-4"></i><span><?= htmlspecialchars($promoFeedback['success']) ?></span></div>
+                    <?php elseif($promoFeedback['error']): ?>
+                        <div class="p-3 rounded-md bg-red-50 border border-red-200 text-red-700 text-sm flex items-center gap-2"><i data-lucide="alert-triangle" class="w-4 h-4"></i><span><?= htmlspecialchars($promoFeedback['error']) ?></span></div>
+                    <?php endif; ?>
+                    <div class="bg-white border border-gray-200 rounded-lg overflow-hidden" id="promosTableWrapper">
+                        <div class="p-4 border-b flex items-center justify-between">
+                            <h3 class="font-semibold text-gray-700 flex items-center gap-2"><i data-lucide="list" class="w-4 h-4 text-gray-500"></i>Promo List</h3>
+                            <div class="text-xs text-gray-500">Total: <?= count($promotions) ?></div>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-sm">
+                                <thead class="bg-gray-50 text-xs uppercase text-gray-500">
+                                    <tr>
+                                        <th class="px-3 py-2 text-left">Name / Code</th>
+                                        <th class="px-3 py-2 text-left">Type</th>
+                                        <th class="px-3 py-2 text-left">Discount</th>
+                                        <th class="px-3 py-2 text-left">Points</th>
+                                        <th class="px-3 py-2 text-left">Limits</th>
+                                        <th class="px-3 py-2 text-left">Window</th>
+                                        <th class="px-3 py-2 text-left">Status</th>
+                                        <th class="px-3 py-2 text-left">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="promosTbody">
+                                    <?php if(!count($promotions)): ?>
+                                        <tr><td colspan="8" class="px-3 py-6 text-center text-gray-500">No promos found.</td></tr>
+                                    <?php else: foreach($promotions as $pr): ?>
+                                        <?php
+                                            $active=(int)($pr['promo_active']??0)===1;
+                                            $discT=$pr['promo_discount_type']??'none';
+                                            $discV=$pr['promo_discount_value'];
+                                            if($discT==='percent' && $discV!==null) $discV=rtrim(rtrim(number_format((float)$discV,2,'.',''),'0'),'.').'%';
+                                            elseif($discV!==null) $discV='₱'.number_format((float)$discV,2);
+                                            $limits=[]; $limits[]=$pr['promo_usage_limit']? 'G:'.$pr['promo_usage_limit']:'G:∞'; $limits[]=$pr['promo_per_user_limit']? 'U:'.$pr['promo_per_user_limit']:'U:∞';
+                                            $win=htmlspecialchars(substr($pr['promo_starts_at'],0,16)).' → '.htmlspecialchars(substr($pr['promo_ends_at'],0,16));
+                                        ?>
+                                        <tr class="border-b last:border-b-0 hover:bg-orange-50/50">
+                                            <td class="px-3 py-2 align-top"><div class="font-medium text-gray-800 truncate max-w-[160px]" title="<?= htmlspecialchars($pr['promo_name']) ?>"><?= htmlspecialchars($pr['promo_name']) ?></div><div class="text-xs text-gray-500">Code: <?= htmlspecialchars($pr['promo_code']?:'—') ?></div></td>
+                                            <td class="px-3 py-2 align-top text-xs capitalize"><?= htmlspecialchars($pr['promo_type']) ?></td>
+                                            <td class="px-3 py-2 align-top text-xs"><div class="font-medium"><?= htmlspecialchars($discT) ?></div><div class="text-gray-500"><?= $discV? htmlspecialchars($discV):'—' ?></div></td>
+                                            <td class="px-3 py-2 align-top text-xs"><?= $pr['promo_points_cost'] ? (int)$pr['promo_points_cost'] : '—' ?></td>
+                                            <td class="px-3 py-2 align-top text-xs"><?= htmlspecialchars(implode(' / ',$limits)) ?></td>
+                                            <td class="px-3 py-2 align-top text-xs leading-tight"><?= $win ?></td>
+                                            <td class="px-3 py-2 align-top"><span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium <?= $active? 'bg-green-100 text-green-700 border border-green-200':'bg-gray-100 text-gray-600 border border-gray-200' ?>"><?= $active? 'Active':'Inactive' ?></span></td>
+                                            <td class="px-3 py-2 align-top text-xs"><div class="flex items-center gap-2 flex-wrap">
+                                                <form method="POST" onsubmit="return confirm('Toggle this promo?');"><input type="hidden" name="promo_action" value="toggle"><input type="hidden" name="promo_id" value="<?= (int)$pr['promo_id'] ?>"><input type="hidden" name="to" value="<?= $active? '0':'1' ?>"><button class="px-2 py-1 rounded border text-[11px] <?= $active? 'bg-white hover:bg-gray-50':'bg-green-600 border-green-600 text-white hover:bg-green-700' ?>" type="submit"><?= $active? 'Deactivate':'Activate' ?></button></form>
+                                                <form method="POST" onsubmit="return confirm('Delete this promo?');"><input type="hidden" name="promo_action" value="delete"><input type="hidden" name="promo_id" value="<?= (int)$pr['promo_id'] ?>"><button type="submit" class="px-2 py-1 rounded border border-red-300 bg-red-50 text-red-600 hover:bg-red-100 text-[11px]">Delete</button></form>
+                                            </div></td>
+                                        </tr>
+                                    <?php endforeach; endif; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Settings Section -->
                 <div id="settings-section" class="space-y-6 hidden">
                     <div>
@@ -1973,6 +2097,189 @@ function resolveImageUrl($path) {
     </div>
 
     <!-- Modals -->
+    <!-- Add Promo Modal (Floating Form) -->
+    <div id="addPromoModal" class="fixed inset-0 bg-black/40 hidden items-center justify-center z-50">
+        <div class="bg-white rounded-lg shadow-lg w-full max-w-3xl mx-4 flex flex-col max-h-[90vh]">
+            <div class="flex items-center justify-between px-5 py-4 border-b border-gray-200">
+                <div class="flex items-center gap-2">
+                    <i data-lucide="percent" class="w-5 h-5 text-orange-500"></i>
+                    <h3 class="text-lg font-semibold">Add Promotion</h3>
+                </div>
+                <button type="button" id="closeAddPromoBtn" class="text-gray-400 hover:text-gray-600" aria-label="Close">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <form class="overflow-y-auto p-5 space-y-6" id="addPromoForm">
+                <div id="addPromoFeedback" class="hidden text-sm rounded-md p-3"></div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <div class="space-y-1.5">
+                        <label class="text-sm font-medium text-gray-700">Type</label>
+                        <select name="promo_type" class="w-full border-gray-300 rounded-md text-sm focus:ring-orange-500 focus:border-orange-500" required>
+                            <option value="product">Product</option>
+                            <option value="appointment">Appointment</option>
+                            <option value="general">General</option>
+                        </select>
+                    </div>
+                    <div class="space-y-1.5">
+                        <label class="text-sm font-medium text-gray-700 flex items-center gap-1">Code <span class="text-xs text-gray-400">(blank = auto)</span></label>
+                        <input name="promo_code" type="text" maxlength="64" class="w-full border-gray-300 rounded-md text-sm focus:ring-orange-500 focus:border-orange-500" />
+                    </div>
+                    <div class="space-y-1.5 md:col-span-2">
+                        <label class="text-sm font-medium text-gray-700">Name *</label>
+                        <input name="promo_name" type="text" maxlength="120" required class="w-full border-gray-300 rounded-md text-sm focus:ring-orange-500 focus:border-orange-500" />
+                    </div>
+                    <div class="space-y-1.5 md:col-span-2">
+                        <label class="text-sm font-medium text-gray-700">Description</label>
+                        <textarea name="promo_description" rows="3" class="w-full border-gray-300 rounded-md text-sm focus:ring-orange-500 focus:border-orange-500" placeholder="Short description"></textarea>
+                    </div>
+                    <div class="space-y-1.5">
+                        <label class="text-sm font-medium text-gray-700">Discount Type</label>
+                        <select name="promo_discount_type" id="promoDiscountType" class="w-full border-gray-300 rounded-md text-sm focus:ring-orange-500 focus:border-orange-500">
+                            <option value="percent">Percent %</option>
+                            <option value="fixed">Fixed Amount</option>
+                            <option value="points_bonus">Points Bonus</option>
+                            <option value="free_item">Free Item</option>
+                            <option value="none">None</option>
+                        </select>
+                    </div>
+                    <div class="space-y-1.5">
+                        <label class="text-sm font-medium text-gray-700">Discount Value</label>
+                        <input name="promo_discount_value" id="promoDiscountValue" type="number" step="0.01" min="0" class="w-full border-gray-300 rounded-md text-sm focus:ring-orange-500 focus:border-orange-500" />
+                    </div>
+                    <div class="space-y-1.5">
+                        <label class="text-sm font-medium text-gray-700">Points Cost</label>
+                        <input name="promo_points_cost" type="number" min="0" class="w-full border-gray-300 rounded-md text-sm focus:ring-orange-500 focus:border-orange-500" placeholder="Blank/0 = none" />
+                    </div>
+                    <div class="space-y-1.5">
+                        <label class="text-sm font-medium text-gray-700">Min Purchase (₱)</label>
+                        <input name="promo_min_purchase_amount" type="number" step="0.01" min="0" class="w-full border-gray-300 rounded-md text-sm focus:ring-orange-500 focus:border-orange-500" />
+                    </div>
+                    <div class="space-y-1.5">
+                        <label class="text-sm font-medium text-gray-700">Usage Limit</label>
+                        <input name="promo_usage_limit" type="number" min="0" class="w-full border-gray-300 rounded-md text-sm focus:ring-orange-500 focus:border-orange-500" placeholder="Blank = unlimited" />
+                    </div>
+                    <div class="space-y-1.5">
+                        <label class="text-sm font-medium text-gray-700">Per User Limit</label>
+                        <input name="promo_per_user_limit" type="number" min="0" class="w-full border-gray-300 rounded-md text-sm focus:ring-orange-500 focus:border-orange-500" placeholder="Blank = unlimited" />
+                    </div>
+                    <div class="space-y-1.5">
+                        <label class="text-sm font-medium text-gray-700">Starts At</label>
+                        <input name="promo_starts_at" type="datetime-local" class="w-full border-gray-300 rounded-md text-sm focus:ring-orange-500 focus:border-orange-500" />
+                    </div>
+                    <div class="space-y-1.5">
+                        <label class="text-sm font-medium text-gray-700">Ends At</label>
+                        <input name="promo_ends_at" type="datetime-local" class="w-full border-gray-300 rounded-md text-sm focus:ring-orange-500 focus:border-orange-500" />
+                    </div>
+                    <div class="space-y-2 md:col-span-2">
+                        <label class="inline-flex items-center gap-2 text-sm font-medium text-gray-700">
+                            <input type="checkbox" name="promo_require_active_subscription" value="1" class="rounded border-gray-300 text-orange-600 focus:ring-orange-500" />
+                            Require Active Subscription
+                        </label>
+                        <label class="inline-flex items-center gap-2 text-sm font-medium text-gray-700">
+                            <input type="checkbox" name="promo_active" value="1" class="rounded border-gray-300 text-orange-600 focus:ring-orange-500" checked />
+                            Active Immediately
+                        </label>
+                    </div>
+                </div>
+                <div class="flex items-center justify-end gap-3 pt-2 border-t border-gray-200">
+                    <button type="button" id="cancelAddPromoBtn" class="px-4 py-2 text-sm rounded-md bg-gray-100 hover:bg-gray-200 text-gray-700">Cancel</button>
+                    <button type="submit" class="px-5 py-2.5 text-sm font-medium rounded-md bg-orange-600 hover:bg-orange-700 text-white shadow-sm">Save Promo</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <!-- Edit Promo Modal -->
+    <div id="editPromoModal" class="fixed inset-0 bg-black/40 hidden items-center justify-center z-50">
+        <div class="bg-white rounded-lg shadow-lg w-full max-w-3xl mx-4 flex flex-col max-h-[90vh]">
+            <div class="flex items-center justify-between px-5 py-4 border-b border-gray-200">
+                <div class="flex items-center gap-2">
+                    <i data-lucide="pencil" class="w-5 h-5 text-blue-500"></i>
+                    <h3 class="text-lg font-semibold">Edit Promotion</h3>
+                </div>
+                <button type="button" id="closeEditPromoBtn" class="text-gray-400 hover:text-gray-600" aria-label="Close">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <form class="overflow-y-auto p-5 space-y-6" id="editPromoForm">
+                <input type="hidden" name="promo_id" id="edit_promo_id" />
+                <div id="editPromoFeedback" class="hidden text-sm rounded-md p-3"></div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <div class="space-y-1.5">
+                        <label class="text-sm font-medium text-gray-700">Type</label>
+                        <select name="promo_type" id="edit_promo_type" class="w-full border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500" required>
+                            <option value="product">Product</option>
+                            <option value="appointment">Appointment</option>
+                            <option value="general">General</option>
+                        </select>
+                    </div>
+                    <div class="space-y-1.5">
+                        <label class="text-sm font-medium text-gray-700">Code</label>
+                        <input name="promo_code" id="edit_promo_code" type="text" maxlength="64" class="w-full border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500" />
+                    </div>
+                    <div class="space-y-1.5 md:col-span-2">
+                        <label class="text-sm font-medium text-gray-700">Name *</label>
+                        <input name="promo_name" id="edit_promo_name" type="text" maxlength="120" required class="w-full border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500" />
+                    </div>
+                    <div class="space-y-1.5 md:col-span-2">
+                        <label class="text-sm font-medium text-gray-700">Description</label>
+                        <textarea name="promo_description" id="edit_promo_description" rows="3" class="w-full border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"></textarea>
+                    </div>
+                    <div class="space-y-1.5">
+                        <label class="text-sm font-medium text-gray-700">Discount Type</label>
+                        <select name="promo_discount_type" id="edit_promo_discount_type" class="w-full border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500">
+                            <option value="percent">Percent %</option>
+                            <option value="fixed">Fixed Amount</option>
+                            <option value="points_bonus">Points Bonus</option>
+                            <option value="free_item">Free Item</option>
+                            <option value="none">None</option>
+                        </select>
+                    </div>
+                    <div class="space-y-1.5">
+                        <label class="text-sm font-medium text-gray-700">Discount Value</label>
+                        <input name="promo_discount_value" id="edit_promo_discount_value" type="number" step="0.01" min="0" class="w-full border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500" />
+                    </div>
+                    <div class="space-y-1.5">
+                        <label class="text-sm font-medium text-gray-700">Points Cost</label>
+                        <input name="promo_points_cost" id="edit_promo_points_cost" type="number" min="0" class="w-full border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500" />
+                    </div>
+                    <div class="space-y-1.5">
+                        <label class="text-sm font-medium text-gray-700">Min Purchase (₱)</label>
+                        <input name="promo_min_purchase_amount" id="edit_promo_min_purchase_amount" type="number" step="0.01" min="0" class="w-full border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500" />
+                    </div>
+                    <div class="space-y-1.5">
+                        <label class="text-sm font-medium text-gray-700">Usage Limit</label>
+                        <input name="promo_usage_limit" id="edit_promo_usage_limit" type="number" min="0" class="w-full border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500" />
+                    </div>
+                    <div class="space-y-1.5">
+                        <label class="text-sm font-medium text-gray-700">Per User Limit</label>
+                        <input name="promo_per_user_limit" id="edit_promo_per_user_limit" type="number" min="0" class="w-full border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500" />
+                    </div>
+                    <div class="space-y-1.5">
+                        <label class="text-sm font-medium text-gray-700">Starts At</label>
+                        <input name="promo_starts_at" id="edit_promo_starts_at" type="datetime-local" class="w-full border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500" />
+                    </div>
+                    <div class="space-y-1.5">
+                        <label class="text-sm font-medium text-gray-700">Ends At</label>
+                        <input name="promo_ends_at" id="edit_promo_ends_at" type="datetime-local" class="w-full border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500" />
+                    </div>
+                    <div class="space-y-2 md:col-span-2">
+                        <label class="inline-flex items-center gap-2 text-sm font-medium text-gray-700">
+                            <input type="checkbox" name="promo_require_active_subscription" id="edit_promo_require_active_subscription" value="1" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
+                            Require Active Subscription
+                        </label>
+                        <label class="inline-flex items-center gap-2 text-sm font-medium text-gray-700">
+                            <input type="checkbox" name="promo_active" id="edit_promo_active" value="1" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
+                            Active
+                        </label>
+                    </div>
+                </div>
+                <div class="flex items-center justify-end gap-3 pt-2 border-t border-gray-200">
+                    <button type="button" id="cancelEditPromoBtn" class="px-4 py-2 text-sm rounded-md bg-gray-100 hover:bg-gray-200 text-gray-700">Cancel</button>
+                    <button type="submit" class="px-5 py-2.5 text-sm font-medium rounded-md bg-blue-600 hover:bg-blue-700 text-white shadow-sm">Update Promo</button>
+                </div>
+            </form>
+        </div>
+    </div>
     <!-- Top Selling Products Modal -->
     <div id="topSellingModal" class="fixed inset-0 bg-black/40 hidden items-center justify-center z-50">
         <div class="bg-white rounded-lg shadow-lg w-full max-w-3xl mx-4 flex flex-col max-h-[90vh]">
@@ -2421,7 +2728,7 @@ function resolveImageUrl($path) {
             initTopSellingModal();
             initSettingsSection();
             // Section isolation logic: ensure only active section's UI is visible
-            const sectionIds = ['dashboard','orders','sitters','appointments','owners','subscribers','products','settings'];
+            const sectionIds = ['dashboard','orders','sitters','appointments','owners','subscribers','products','promos','settings'];
             function showSection(id){
                 sectionIds.forEach(sid=>{
                     const el = document.getElementById(sid+'-section');
@@ -2452,6 +2759,172 @@ function resolveImageUrl($path) {
             // Initialize to existing or default
             if(!document.getElementById(currentActiveSection+'-section')) currentActiveSection='dashboard';
             showSection(currentActiveSection);
+            // Floating Promo Modal + AJAX
+            const addPromoModal = document.getElementById('addPromoModal');
+            const openAddPromoBtn = document.getElementById('openAddPromoBtn');
+            const closeAddPromoBtn = document.getElementById('closeAddPromoBtn');
+            const cancelAddPromoBtn = document.getElementById('cancelAddPromoBtn');
+            const addPromoForm = document.getElementById('addPromoForm');
+            const addPromoFeedback = document.getElementById('addPromoFeedback');
+            const promosTableWrapper = document.getElementById('promosTableWrapper');
+
+            function openAddPromo(){ if(addPromoModal){ addPromoModal.classList.remove('hidden'); addPromoModal.classList.add('flex'); } }
+            function closeAddPromo(){ if(addPromoModal){ addPromoModal.classList.add('hidden'); addPromoModal.classList.remove('flex'); addPromoForm?.reset(); hidePromoFeedback(); } }
+            function showPromoFeedback(msg,type='error'){
+                if(!addPromoFeedback) return;
+                addPromoFeedback.textContent = msg;
+                addPromoFeedback.className = 'block text-sm rounded-md p-3 ' + (type==='success' ? 'bg-green-50 border border-green-200 text-green-700' : 'bg-red-50 border border-red-200 text-red-700');
+            }
+            function hidePromoFeedback(){ if(addPromoFeedback){ addPromoFeedback.classList.add('hidden'); addPromoFeedback.textContent=''; } }
+
+            openAddPromoBtn?.addEventListener('click', openAddPromo);
+            closeAddPromoBtn?.addEventListener('click', closeAddPromo);
+            cancelAddPromoBtn?.addEventListener('click', (e)=>{ e.preventDefault(); closeAddPromo(); });
+            addPromoModal?.addEventListener('click', (e)=>{ if(e.target === addPromoModal) closeAddPromo(); });
+
+            async function refreshPromos(){
+                try {
+                    const res = await fetch('../../controllers/admin/promocontroller.php?action=list',{credentials:'same-origin'});
+                    const data = await res.json();
+                    if(!data.success) return;
+                    const tbody = document.getElementById('promosTbody');
+                    if(!tbody) return;
+                    tbody.innerHTML = '';
+                    if(data.promotions.length===0){
+                        tbody.innerHTML = '<tr><td colspan="8" class="px-3 py-6 text-center text-gray-500">No promos found.</td></tr>';
+                    } else {
+                        data.promotions.forEach(p=>{
+                            const discountLabel = (p.promo_discount_type||'none') + (p.promo_discount_value?(': '+p.promo_discount_value):'');
+                            const limits = `${p.promo_usage_limit?p.promo_usage_limit:'∞'} / ${p.promo_per_user_limit?p.promo_per_user_limit:'∞'}`;
+                            const windowTxt = `${p.promo_starts_at?p.promo_starts_at.split(' ')[0]:'—'} → ${p.promo_ends_at?p.promo_ends_at.split(' ')[0]:'—'}`;
+                            const activeBadge = p.promo_active==1 ? '<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-green-100 text-green-700 border border-green-200">Active</span>' : '<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-gray-100 text-gray-600 border border-gray-200">Inactive</span>';
+                            const tr = document.createElement('tr');
+                            tr.className='border-b last:border-b-0 hover:bg-orange-50/50';
+                            tr.innerHTML = `
+                                <td class='px-3 py-2 align-top'><div class="font-medium text-gray-800 truncate max-w-[160px]" title="${escapeHtml(p.promo_name||'')}">${escapeHtml(p.promo_name||'')}</div><div class="text-xs text-gray-500">Code: ${escapeHtml(p.promo_code||'—')}</div></td>
+                                <td class='px-3 py-2 align-top text-xs capitalize'>${escapeHtml(p.promo_type||'')}</td>
+                                <td class='px-3 py-2 align-top text-xs'><div class="font-medium">${escapeHtml(p.promo_discount_type||'none')}</div><div class="text-gray-500">${p.promo_discount_value?escapeHtml(p.promo_discount_value):'—'}</div></td>
+                                <td class='px-3 py-2 align-top text-xs'>${p.promo_points_cost || '—'}</td>
+                                <td class='px-3 py-2 align-top text-xs'>${limits}</td>
+                                <td class='px-3 py-2 align-top text-xs leading-tight'>${windowTxt}</td>
+                                <td class='px-3 py-2 align-top'>${activeBadge}</td>
+                                <td class='px-3 py-2 align-top text-xs'><div class='flex items-center gap-2 flex-wrap'>
+                                    <button data-promo-edit='${p.promo_id}' class='px-2 py-1 rounded border border-blue-300 bg-blue-50 text-blue-600 hover:bg-blue-100 text-[11px]'>Edit</button>
+                                    <button data-promo-toggle='${p.promo_id}' data-to='${p.promo_active==1?0:1}' class='px-2 py-1 rounded border text-[11px] ${p.promo_active==1?'bg-white hover:bg-gray-50':'bg-green-600 border-green-600 text-white hover:bg-green-700'}'>${p.promo_active==1?'Deactivate':'Activate'}</button>
+                                    <button data-promo-delete='${p.promo_id}' class='px-2 py-1 rounded border border-red-300 bg-red-50 text-red-600 hover:bg-red-100 text-[11px]'>Delete</button>
+                                </div></td>`;
+                            tbody.appendChild(tr);
+                        });
+                    }
+                    lucide.createIcons();
+                } catch(e){ console.error('Failed to refresh promos', e); }
+            }
+
+            addPromoForm?.addEventListener('submit', async function(e){
+                e.preventDefault();
+                hidePromoFeedback();
+                const fd = new FormData(addPromoForm);
+                fd.append('action','add');
+                try {
+                    const res = await fetch('../../controllers/admin/promocontroller.php', { method:'POST', body:fd, credentials:'same-origin' });
+                    const data = await res.json();
+                    if(!data.success){ showPromoFeedback(data.message||'Failed to add promo','error'); return; }
+                    showPromoFeedback('Promo saved!','success');
+                    await refreshPromos();
+                    setTimeout(()=>{ closeAddPromo(); }, 600);
+                } catch(err){ console.error(err); showPromoFeedback('Network or server error','error'); }
+            });
+
+            document.addEventListener('click', async function(e){
+                const toggleBtn = e.target.closest('[data-promo-toggle]');
+                const delBtn = e.target.closest('[data-promo-delete]');
+                const editBtn = e.target.closest('[data-promo-edit]');
+                if(toggleBtn){
+                    const id = toggleBtn.getAttribute('data-promo-toggle');
+                    const to = toggleBtn.getAttribute('data-to');
+                    const fd = new FormData(); fd.append('action','toggle'); fd.append('promo_id',id); fd.append('to',to);
+                    try { await fetch('../../controllers/admin/promocontroller.php', { method:'POST', body:fd, credentials:'same-origin' }); refreshPromos(); } catch(err){ console.error(err); }
+                } else if(delBtn){
+                    if(!confirm('Delete this promotion?')) return;
+                    const id = delBtn.getAttribute('data-promo-delete');
+                    const fd = new FormData(); fd.append('action','delete'); fd.append('promo_id',id);
+                    try { await fetch('../../controllers/admin/promocontroller.php', { method:'POST', body:fd, credentials:'same-origin' }); refreshPromos(); } catch(err){ console.error(err); }
+                } else if(editBtn){
+                    const id = editBtn.getAttribute('data-promo-edit');
+                    await openEditPromo(id);
+                }
+            });
+
+            // Edit promo modal logic
+            const editPromoModal = document.getElementById('editPromoModal');
+            const closeEditPromoBtn = document.getElementById('closeEditPromoBtn');
+            const cancelEditPromoBtn = document.getElementById('cancelEditPromoBtn');
+            const editPromoForm = document.getElementById('editPromoForm');
+            const editPromoFeedback = document.getElementById('editPromoFeedback');
+
+            function showEditModal(){ editPromoModal.classList.remove('hidden'); editPromoModal.classList.add('flex'); }
+            function hideEditModal(){ editPromoModal.classList.add('hidden'); editPromoModal.classList.remove('flex'); editPromoForm.reset(); hideEditFeedback(); }
+            function showEditFeedback(msg,type='error'){
+                if(!editPromoFeedback) return;
+                editPromoFeedback.textContent = msg;
+                editPromoFeedback.className = 'block text-sm rounded-md p-3 ' + (type==='success' ? 'bg-green-50 border border-green-200 text-green-700' : 'bg-red-50 border border-red-200 text-red-700');
+            }
+            function hideEditFeedback(){ if(editPromoFeedback){ editPromoFeedback.classList.add('hidden'); editPromoFeedback.textContent=''; } }
+            closeEditPromoBtn?.addEventListener('click', hideEditModal);
+            cancelEditPromoBtn?.addEventListener('click', (e)=>{ e.preventDefault(); hideEditModal(); });
+            editPromoModal?.addEventListener('click', (e)=>{ if(e.target===editPromoModal) hideEditModal(); });
+
+            async function openEditPromo(id){
+                hideEditFeedback();
+                try {
+                    const res = await fetch('../../controllers/admin/promocontroller.php?action=get&promo_id='+encodeURIComponent(id), {credentials:'same-origin'});
+                    const data = await res.json();
+                    if(!data.success){ alert(data.message||'Failed to load promo'); return; }
+                    const p = data.promo;
+                    document.getElementById('edit_promo_id').value = p.promo_id;
+                    document.getElementById('edit_promo_type').value = p.promo_type||'';
+                    document.getElementById('edit_promo_code').value = p.promo_code||'';
+                    document.getElementById('edit_promo_name').value = p.promo_name||'';
+                    document.getElementById('edit_promo_description').value = p.promo_description||'';
+                    document.getElementById('edit_promo_discount_type').value = p.promo_discount_type||'none';
+                    document.getElementById('edit_promo_discount_value').value = p.promo_discount_value!==null? p.promo_discount_value:'';
+                    document.getElementById('edit_promo_points_cost').value = p.promo_points_cost!==null? p.promo_points_cost:'';
+                    document.getElementById('edit_promo_min_purchase_amount').value = p.promo_min_purchase_amount!==null? p.promo_min_purchase_amount:'';
+                    document.getElementById('edit_promo_usage_limit').value = p.promo_usage_limit!==null? p.promo_usage_limit:'';
+                    document.getElementById('edit_promo_per_user_limit').value = p.promo_per_user_limit!==null? p.promo_per_user_limit:'';
+                    document.getElementById('edit_promo_require_active_subscription').checked = p.promo_require_active_subscription==1;
+                    document.getElementById('edit_promo_active').checked = p.promo_active==1;
+                    // Convert timestamps to datetime-local value (YYYY-MM-DDTHH:MM)
+                    function toLocal(dt){ if(!dt) return ''; return dt.replace(' ','T').substring(0,16); }
+                    document.getElementById('edit_promo_starts_at').value = toLocal(p.promo_starts_at);
+                    document.getElementById('edit_promo_ends_at').value = toLocal(p.promo_ends_at);
+                    showEditModal();
+                    lucide.createIcons();
+                } catch(err){ console.error(err); alert('Network error loading promo'); }
+            }
+
+            editPromoForm?.addEventListener('submit', async function(e){
+                e.preventDefault();
+                hideEditFeedback();
+                const fd = new FormData(editPromoForm);
+                fd.append('action','update');
+                // Adjust checkboxes (explicit 0 if unchecked)
+                if(!fd.get('promo_require_active_subscription')) fd.append('promo_require_active_subscription','0');
+                if(!fd.get('promo_active')) fd.append('promo_active','0');
+                try {
+                    const res = await fetch('../../controllers/admin/promocontroller.php', { method:'POST', body:fd, credentials:'same-origin' });
+                    const data = await res.json();
+                    if(!data.success){ showEditFeedback(data.message||'Update failed','error'); return; }
+                    showEditFeedback('Updated successfully','success');
+                    await refreshPromos();
+                    setTimeout(()=>{ hideEditModal(); },600);
+                } catch(err){ console.error(err); showEditFeedback('Network or server error','error'); }
+            });
+
+            function escapeHtml(str){ return (str||'').replace(/[&<>"']/g, c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;' }[c]||c)); }
+            // Load promos when navigating to section
+            const promosNav = document.querySelector('[data-section="promos"]');
+            promosNav?.addEventListener('click', ()=>{ refreshPromos(); });
             // Orders edit/delete handlers
             function initOrders(){
                 const editModal = document.getElementById('orderEditModal');
@@ -3157,7 +3630,7 @@ function resolveImageUrl($path) {
         function setActiveSection(section) {
             // Hide all sections
             // Include 'orders' so it hides when navigating to other sections
-            const sections = ['dashboard', 'products', 'orders', 'sitters', 'appointments', 'pets', 'subscribers'];
+            const sections = ['dashboard', 'products', 'orders', 'sitters', 'appointments', 'pets', 'subscribers','promos'];
             sections.forEach(s => {
                 document.getElementById(`${s}-section`).classList.add('hidden');
             });

@@ -236,12 +236,37 @@ function resolveImageUrl($path) {
         
         .stats-card {
             transition: all 0.3s ease;
+            position: relative;
+            isolation: isolate;
         }
-        
-        .stats-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-        }
+        .stats-card:hover { transform: translateY(-2px); box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+        /* Dark Mode Base */
+        body.dark { background-color:#0f172a; }
+        body.dark h1,body.dark h2,body.dark h3,body.dark p,body.dark label,body.dark span { color:#e2e8f0; }
+        body.dark .stats-card { border-color:rgba(255,255,255,0.08)!important; }
+        body.dark .stats-card::before { content:""; position:absolute; inset:0; background:radial-gradient(circle at 30% 25%,rgba(255,255,255,0.08),transparent 70%); opacity:.85; z-index:0; }
+        body.dark .stats-card > * { position:relative; z-index:1; }
+        /* Metric Themes */
+        body.dark .stats-card[data-metric="sales"] { background:linear-gradient(135deg,#1e293b,#0f172a); box-shadow:0 4px 18px -2px rgba(249,115,22,0.35); }
+        body.dark .stats-card[data-metric="sales"] .metric-number { color:#fb923c!important; }
+        body.dark .stats-card[data-metric="sales"] p { color:#fed7aa!important; }
+        body.dark .stats-card[data-metric="appointments"] { background:linear-gradient(135deg,#1e3a8a,#172554); box-shadow:0 4px 18px -2px rgba(59,130,246,0.35); }
+        body.dark .stats-card[data-metric="appointments"] .metric-number { color:#93c5fd!important; }
+        body.dark .stats-card[data-metric="appointments"] p { color:#bfdbfe!important; }
+        body.dark .stats-card[data-metric="sitters"] { background:linear-gradient(135deg,#064e3b,#022c22); box-shadow:0 4px 18px -2px rgba(16,185,129,0.35); }
+        body.dark .stats-card[data-metric="sitters"] .metric-number { color:#6ee7b7!important; }
+        body.dark .stats-card[data-metric="sitters"] p { color:#a7f3d0!important; }
+        body.dark .stats-card[data-metric="owners"] { background:linear-gradient(135deg,#4c1d95,#312e81); box-shadow:0 4px 18px -2px rgba(139,92,246,0.35); }
+        body.dark .stats-card[data-metric="owners"] .metric-number { color:#c4b5fd!important; }
+        body.dark .stats-card[data-metric="owners"] p { color:#ddd6fe!important; }
+        body.dark .stats-card[data-metric="active"] { background:linear-gradient(135deg,#831843,#500724); box-shadow:0 4px 18px -2px rgba(244,63,94,0.35); }
+        body.dark .stats-card[data-metric="active"] .metric-number { color:#fda4af!important; }
+        body.dark .stats-card[data-metric="active"] p { color:#fecdd3!important; }
+        body.dark .stats-card .icon-circle { box-shadow:0 0 0 2px rgba(255,255,255,0.05),0 4px 10px -2px rgba(0,0,0,0.6); }
+        /* Toggle */
+        .dark-toggle-btn { border:1px solid #e2e8f0; }
+        body.dark .dark-toggle-btn { border-color:#334155; background:#1e293b; color:#f1f5f9; }
+        body.dark .dark-toggle-btn:hover { background:#334155; }
 
         /* Smooth scaling/transition for sidebar + content shift */
         .sidebar-transition {
@@ -296,6 +321,111 @@ function resolveImageUrl($path) {
             background: linear-gradient(180deg, #f97316, #f59e0b);
         }
 
+         /* Existing styles omitted for brevity ... */
+        /* --- Dark Mode Badge Readability Enhancements --- */
+        body.dark .badge, body.dark .status-badge { filter:none; }
+        body.dark .badge-green, body.dark .status-active { background:rgba(16,185,129,0.18); color:#6ee7b7; border:1px solid rgba(16,185,129,0.35); }
+        body.dark .badge-red, body.dark .status-inactive { background:rgba(244,63,94,0.16); color:#fda4af; border:1px solid rgba(244,63,94,0.35); }
+        body.dark .badge-amber { background:rgba(245,158,11,0.18); color:#fcd34d; border:1px solid rgba(245,158,11,0.35); }
+        body.dark .badge-blue { background:rgba(59,130,246,0.18); color:#93c5fd; border:1px solid rgba(59,130,246,0.35); }
+        body.dark .badge-purple { background:rgba(139,92,246,0.18); color:#d8b4fe; border:1px solid rgba(139,92,246,0.35); }
+        body.dark .badge-rose { background:rgba(244,114,182,0.18); color:#f9a8d4; border:1px solid rgba(244,114,182,0.35); }
+    /* --- Pet Sitter Specialty Badges (Dark Mode Readability) --- */
+    /* Add explicit overrides for all Tailwind utility classes used by specClass() so text is pastel & background translucent. */
+    body.dark .bg-orange-100 { background:rgba(249,115,22,0.18)!important; }
+    body.dark .text-orange-800 { color:#fdba74!important; }
+    body.dark .border-orange-200 { border-color:rgba(249,115,22,0.40)!important; }
+    body.dark .bg-purple-100 { background:rgba(139,92,246,0.18)!important; }
+    body.dark .text-purple-800 { color:#d8b4fe!important; }
+    body.dark .border-purple-200 { border-color:rgba(139,92,246,0.40)!important; }
+    body.dark .bg-blue-100 { background:rgba(59,130,246,0.18)!important; }
+    body.dark .text-blue-800 { color:#93c5fd!important; }
+    body.dark .border-blue-200 { border-color:rgba(59,130,246,0.40)!important; }
+    body.dark .bg-cyan-100 { background:rgba(6,182,212,0.20)!important; }
+    body.dark .text-cyan-800 { color:#a5f3fc!important; }
+    body.dark .border-cyan-200 { border-color:rgba(6,182,212,0.45)!important; }
+    body.dark .bg-emerald-100 { background:rgba(16,185,129,0.22)!important; }
+    body.dark .text-emerald-800 { color:#6ee7b7!important; }
+    body.dark .border-emerald-200 { border-color:rgba(16,185,129,0.45)!important; }
+    body.dark .bg-pink-100 { background:rgba(236,72,153,0.20)!important; }
+    body.dark .text-pink-800 { color:#f9a8d4!important; }
+    body.dark .border-pink-200 { border-color:rgba(236,72,153,0.45)!important; }
+    body.dark .bg-yellow-100 { background:rgba(250,204,21,0.20)!important; }
+    body.dark .text-yellow-800 { color:#fde68a!important; }
+    body.dark .border-yellow-200 { border-color:rgba(250,204,21,0.45)!important; }
+    body.dark .bg-lime-100 { background:rgba(132,204,22,0.22)!important; }
+    body.dark .text-lime-800 { color:#bef264!important; }
+    body.dark .border-lime-200 { border-color:rgba(132,204,22,0.45)!important; }
+    body.dark .bg-amber-100 { background:rgba(217,119,6,0.22)!important; }
+    body.dark .text-amber-800 { color:#fcd34d!important; }
+    body.dark .border-amber-200 { border-color:rgba(217,119,6,0.45)!important; }
+    body.dark .bg-rose-100 { background:rgba(244,63,94,0.20)!important; }
+    body.dark .text-rose-800 { color:#fda4af!important; }
+    body.dark .border-rose-200 { border-color:rgba(244,63,94,0.45)!important; }
+    body.dark .bg-indigo-100 { background:rgba(99,102,241,0.22)!important; }
+    body.dark .text-indigo-800 { color:#c7d2fe!important; }
+    body.dark .border-indigo-200 { border-color:rgba(99,102,241,0.50)!important; }
+    body.dark .bg-gray-100 { background:rgba(71,85,105,0.35)!important; }
+    body.dark .text-gray-800 { color:#e2e8f0!important; }
+    body.dark .border-gray-200 { border-color:#475569!important; }
+    .specialty-badge { font-weight:500; letter-spacing:.25px; }
+    body.dark .specialty-badge { box-shadow:0 0 0 1px rgba(255,255,255,0.03), 0 1px 2px rgba(0,0,0,0.4); }
+    /* Additional generic light badge utility remaps for dark mode readability */
+    body.dark .bg-yellow-100 { background:rgba(245,158,11,0.18)!important; }
+    body.dark .text-yellow-700 { color:#fcd34d!important; }
+    body.dark .bg-red-100 { background:rgba(239,68,68,0.20)!important; }
+    body.dark .text-red-700 { color:#fca5a5!important; }
+    body.dark .border-red-200 { border-color:rgba(239,68,68,0.40)!important; }
+    body.dark .bg-indigo-100 { background:rgba(99,102,241,0.20)!important; }
+    body.dark .text-indigo-700 { color:#a5b4fc!important; }
+    body.dark .border-indigo-200 { border-color:rgba(99,102,241,0.45)!important; }
+    body.dark .bg-sky-100 { background:rgba(14,165,233,0.22)!important; }
+    body.dark .text-sky-700 { color:#7dd3fc!important; }
+    body.dark .border-sky-200 { border-color:rgba(14,165,233,0.45)!important; }
+    body.dark .bg-emerald-100 { background:rgba(16,185,129,0.22)!important; }
+    body.dark .text-emerald-700 { color:#6ee7b7!important; }
+    body.dark .border-emerald-200 { border-color:rgba(16,185,129,0.40)!important; }
+
+    /* Order status semantic classes (light) */
+    .order-status { display:inline-flex; align-items:center; gap:4px; font-weight:500; font-size:11px; letter-spacing:.25px; padding:4px 10px; border-radius:9999px; border:1px solid transparent; text-transform:capitalize; }
+    .order-status-processing { background:#fefce8; border-color:#fde68a; color:#b45309; }
+    .order-status-out_for_delivery { background:#eef2ff; border-color:#c7d2fe; color:#4338ca; }
+    .order-status-delivered { background:#ecfdf5; border-color:#a7f3d0; color:#047857; }
+    .order-status-cancelled { background:#fef2f2; border-color:#fecaca; color:#b91c1c; }
+    .order-status-pending { background:#f1f5f9; border-color:#cbd5e1; color:#475569; }
+    /* Dark variants */
+    body.dark .order-status-processing { background:rgba(245,158,11,0.18); border-color:rgba(245,158,11,0.45); color:#fcd34d; }
+    body.dark .order-status-out_for_delivery { background:rgba(99,102,241,0.22); border-color:rgba(99,102,241,0.45); color:#c7d2fe; }
+    body.dark .order-status-delivered { background:rgba(16,185,129,0.22); border-color:rgba(16,185,129,0.45); color:#6ee7b7; }
+    body.dark .order-status-cancelled { background:rgba(239,68,68,0.22); border-color:rgba(239,68,68,0.45); color:#fca5a5; }
+    body.dark .order-status-pending { background:rgba(71,85,105,0.35); border-color:#475569; color:#cbd5e1; }
+        body.dark table thead th { background:#1e293b; color:#e2e8f0; }
+        body.dark table tbody tr { border-color:#24324b; }
+        body.dark .table-divider { border-color:#24324b; }
+
+        /* Generic auto badge classes if existing markup uses utility backgrounds */
+        body.dark .bg-green-50 { background:rgba(16,185,129,0.12)!important; }
+        body.dark .text-green-700 { color:#6ee7b7!important; }
+    /* Status badge (Active) uses bg-green-100 text-green-700 border-green-200 in light; give a clearer dark variant */
+    body.dark .bg-green-100 { background:rgba(16,185,129,0.22)!important; }
+    body.dark .border-green-200 { border-color:rgba(16,185,129,0.40)!important; }
+    /* Status badge (Inactive) often bg-gray-100 text-gray-600 border-gray-200 */
+    body.dark .bg-gray-100 { background:rgba(75,85,99,0.35)!important; }
+    body.dark .text-gray-600 { color:#cbd5e1!important; }
+    body.dark .border-gray-200 { border-color:#475569!important; }
+        body.dark .bg-indigo-50 { background:rgba(99,102,241,0.12)!important; }
+        body.dark .text-indigo-700 { color:#a5b4fc!important; }
+        body.dark .bg-amber-50 { background:rgba(245,158,11,0.12)!important; }
+        body.dark .text-amber-700 { color:#fcd34d!important; }
+        body.dark .bg-sky-50 { background:rgba(14,165,233,0.15)!important; }
+        body.dark .text-sky-700 { color:#7dd3fc!important; }
+        body.dark .bg-rose-50 { background:rgba(244,114,182,0.15)!important; }
+        body.dark .text-rose-700 { color:#f9a8d4!important; }
+        body.dark .bg-purple-50 { background:rgba(139,92,246,0.14)!important; }
+        body.dark .text-purple-700 { color:#d8b4fe!important; }
+
+       
+
         @keyframes 
         fadeInUp { 
             from { opacity:0; transform: translateY(4px);} 
@@ -303,7 +433,7 @@ function resolveImageUrl($path) {
             
         .animate-fade-in { animation: fadeInUp .25s ease-out; transition: opacity .25s, transform .25s; }
     </style>
-        
+       
 </head>
 <body class="bg-gray-50 font-sans">
     <!-- Admin Dashboard Container -->
@@ -414,11 +544,15 @@ function resolveImageUrl($path) {
                 </div>
 
                 <div class="flex items-center gap-4">
-                    <button class="relative p-2 rounded-md hover:bg-gray-100">
+                    <button id="notificationsBtn" class="relative p-2 rounded-md hover:bg-gray-100" title="Recent Activity">
                         <i data-lucide="bell" class="w-4 h-4"></i>
-                        <div class="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full text-xs flex items-center justify-center text-white font-semibold">3</div>
+                        <div id="activityBadge" class="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full text-xs flex items-center justify-center text-white font-semibold hidden"></div>
                     </button>
-                    <button class="p-2 rounded-md hover:bg-gray-100">
+                    <!-- Quick Dark Mode Toggle (synchronized with Settings + Section button) -->
+                    <button id="darkModeQuickBtn" class="p-2 rounded-md hover:bg-gray-100" title="Toggle dark mode">
+                        <i data-lucide="moon" class="w-4 h-4"></i>
+                    </button>
+                    <button id="openSettingsBtn" class="p-2 rounded-md hover:bg-gray-100" title="Go to Settings">
                         <i data-lucide="settings" class="w-4 h-4"></i>
                     </button>
                     <div id="profileMenuWrapper" class="relative">
@@ -451,6 +585,23 @@ function resolveImageUrl($path) {
                 </div>
             </header>
 
+            <!-- Recent Activity Panel -->
+            <div id="recentActivityPanel" class="hidden absolute right-6 top-16 mt-2 w-96 bg-white dark:bg-[#1f2937] border border-gray-200 dark:border-[#334155] rounded-lg shadow-xl z-50 overflow-hidden">
+                <div class="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-[#334155] bg-gray-50 dark:bg-[#1e293b]">
+                    <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-200">Recent Activity</h3>
+                    <button id="closeActivityBtn" class="p-1 rounded hover:bg-gray-100 dark:hover:bg-[#334155]">
+                        <i data-lucide="x" class="w-4 h-4"></i>
+                    </button>
+                </div>
+                <div id="activityList" class="max-h-80 overflow-y-auto divide-y divide-gray-100 dark:divide-[#334155]">
+                    <!-- Filled dynamically -->
+                </div>
+                <div class="px-4 py-2 text-xs text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-[#1e293b] flex justify-between items-center">
+                    <span id="activityMeta">0 items</span>
+                    <button id="clearActivityBtn" class="text-orange-600 hover:text-orange-700 dark:text-orange-400 dark:hover:text-orange-300 font-medium">Clear</button>
+                </div>
+            </div>
+
             <!-- Page Content -->
             <main class="p-6">
                 <!-- Dashboard Section -->
@@ -466,6 +617,11 @@ function resolveImageUrl($path) {
                             </p>
                         </div>
                         <div class="flex items-center gap-3">
+                            <!-- Section Header Dark Mode Button (synchronized) -->
+                            <button id="darkModeSectionBtn" type="button" class="dark-toggle-btn flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium bg-white hover:bg-gray-100 text-gray-700 transition" title="Toggle dark mode">
+                                <i data-lucide="moon" class="w-4 h-4"></i>
+                                <span class="hidden sm:inline mode-label">Dark</span>
+                            </button>
                             <select id="timeFilter" onchange="updateTimeFilter()" class="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500">
                                 <option value="daily">Daily</option>
                                 <option value="weekly">Weekly</option>
@@ -482,12 +638,12 @@ function resolveImageUrl($path) {
                     <!-- Stats Cards (Dynamic) -->
                     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
                         <!-- Total Sales -->
-                        <div id="totalSalesCard" class="cursor-pointer stats-card bg-gradient-to-br from-orange-50 to-amber-50 border border-orange-200 rounded-lg relative overflow-hidden hover:shadow-md transition-shadow" title="View top selling products">
+                        <div id="totalSalesCard" data-metric="sales" class="cursor-pointer stats-card bg-gradient-to-br from-orange-50 to-amber-50 border border-orange-200 rounded-lg relative overflow-hidden hover:shadow-md transition-shadow" title="View top selling products">
                             <div class="p-6 space-y-2">
                                 <div class="flex items-start justify-between">
                                     <div>
                                         <p class="text-xs font-semibold tracking-wide text-orange-600">TOTAL SALES</p>
-                                        <p class="text-2xl font-bold text-orange-700">₱<?php echo number_format($kpi['total_sales'],2); ?></p>
+                                        <p class="text-2xl font-bold text-orange-700 metric-number">₱<?php echo number_format($kpi['total_sales'],2); ?></p>
                                     </div>
                                     <div class="w-12 h-12 bg-orange-500 rounded-full flex items-center justify-center shadow-inner">
                                         <i data-lucide="dollar-sign" class="w-6 h-6 text-white"></i>
@@ -497,12 +653,12 @@ function resolveImageUrl($path) {
                             </div>
                         </div>
                         <!-- Appointments Booked -->
-                        <div class="stats-card bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-lg relative overflow-hidden">
+                        <div class="stats-card bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-lg relative overflow-hidden" data-metric="appointments">
                             <div class="p-6 space-y-2">
                                 <div class="flex items-start justify-between">
                                     <div>
                                         <p class="text-xs font-semibold tracking-wide text-blue-600">APPOINTMENTS BOOKED</p>
-                                        <p class="text-2xl font-bold text-blue-700"><?php echo number_format($kpi['appointments']); ?></p>
+                                        <p class="text-2xl font-bold text-blue-700 metric-number"><?php echo number_format($kpi['appointments']); ?></p>
                                     </div>
                                     <div class="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center shadow-inner">
                                         <i data-lucide="calendar-check" class="w-6 h-6 text-white"></i>
@@ -512,12 +668,12 @@ function resolveImageUrl($path) {
                             </div>
                         </div>
                         <!-- Pet Sitters -->
-                        <div class="stats-card bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-lg relative overflow-hidden">
+                        <div class="stats-card bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-lg relative overflow-hidden" data-metric="sitters">
                             <div class="p-6 space-y-2">
                                 <div class="flex items-start justify-between">
                                     <div>
                                         <p class="text-xs font-semibold tracking-wide text-green-600">PET SITTERS</p>
-                                        <p class="text-2xl font-bold text-green-700"><?php echo number_format($kpi['sitters']); ?></p>
+                                        <p class="text-2xl font-bold text-green-700 metric-number"><?php echo number_format($kpi['sitters']); ?></p>
                                     </div>
                                     <div class="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center shadow-inner">
                                         <i data-lucide="users" class="w-6 h-6 text-white"></i>
@@ -527,12 +683,12 @@ function resolveImageUrl($path) {
                             </div>
                         </div>
                         <!-- Pet Owners -->
-                        <div class="stats-card bg-gradient-to-br from-purple-50 to-violet-50 border border-purple-200 rounded-lg relative overflow-hidden">
+                        <div class="stats-card bg-gradient-to-br from-purple-50 to-violet-50 border border-purple-200 rounded-lg relative overflow-hidden" data-metric="owners">
                             <div class="p-6 space-y-2">
                                 <div class="flex items-start justify-between">
                                     <div>
                                         <p class="text-xs font-semibold tracking-wide text-purple-600">PET OWNERS</p>
-                                        <p class="text-2xl font-bold text-purple-700"><?php echo number_format($kpi['owners']); ?></p>
+                                        <p class="text-2xl font-bold text-purple-700 metric-number"><?php echo number_format($kpi['owners']); ?></p>
                                     </div>
                                     <div class="w-12 h-12 bg-purple-500 rounded-full flex items-center justify-center shadow-inner">
                                         <i data-lucide="paw-print" class="w-6 h-6 text-white"></i>
@@ -542,12 +698,12 @@ function resolveImageUrl($path) {
                             </div>
                         </div>
                         <!-- Active Users -->
-                        <div class="stats-card bg-gradient-to-br from-rose-50 to-pink-50 border border-rose-200 rounded-lg relative overflow-hidden">
+                        <div class="stats-card bg-gradient-to-br from-rose-50 to-pink-50 border border-rose-200 rounded-lg relative overflow-hidden" data-metric="active">
                             <div class="p-6 space-y-2">
                                 <div class="flex items-start justify-between">
                                     <div>
                                         <p class="text-xs font-semibold tracking-wide text-rose-600">ACTIVE USERS (30D)</p>
-                                        <p class="text-2xl font-bold text-rose-700"><?php echo number_format($kpi['active_users']); ?></p>
+                                        <p class="text-2xl font-bold text-rose-700 metric-number"><?php echo number_format($kpi['active_users']); ?></p>
                                     </div>
                                     <div class="w-12 h-12 bg-rose-500 rounded-full flex items-center justify-center shadow-inner">
                                         <i data-lucide="user-check" class="w-6 h-6 text-white"></i>
@@ -1337,28 +1493,28 @@ function resolveImageUrl($path) {
                                 const k = String(name||'').trim().toLowerCase();
                                 switch(k){
                                     case 'dog':
-                                    case 'dogs': return 'bg-orange-100 text-orange-800 border border-orange-200';
+                                    case 'dogs': return 'specialty-badge bg-orange-100 text-orange-800 border border-orange-200';
                                     case 'cat':
-                                    case 'cats': return 'bg-purple-100 text-purple-800 border border-purple-200';
+                                    case 'cats': return 'specialty-badge bg-purple-100 text-purple-800 border border-purple-200';
                                     case 'bird':
-                                    case 'birds': return 'bg-blue-100 text-blue-800 border border-blue-200';
+                                    case 'birds': return 'specialty-badge bg-blue-100 text-blue-800 border border-blue-200';
                                     case 'fish':
-                                    case 'fishes': return 'bg-cyan-100 text-cyan-800 border border-cyan-200';
+                                    case 'fishes': return 'specialty-badge bg-cyan-100 text-cyan-800 border border-cyan-200';
                                     case 'small pet':
-                                    case 'small pets': return 'bg-emerald-100 text-emerald-800 border border-emerald-200';
+                                    case 'small pets': return 'specialty-badge bg-emerald-100 text-emerald-800 border border-emerald-200';
                                     case 'rabbit':
-                                    case 'rabbits': return 'bg-pink-100 text-pink-800 border border-pink-200';
+                                    case 'rabbits': return 'specialty-badge bg-pink-100 text-pink-800 border border-pink-200';
                                     case 'hamster':
-                                    case 'hamsters': return 'bg-yellow-100 text-yellow-800 border border-yellow-200';
+                                    case 'hamsters': return 'specialty-badge bg-yellow-100 text-yellow-800 border border-yellow-200';
                                     case 'guinea pig':
-                                    case 'guinea pigs': return 'bg-lime-100 text-lime-800 border border-lime-200';
+                                    case 'guinea pigs': return 'specialty-badge bg-lime-100 text-lime-800 border border-lime-200';
                                     case 'reptile':
-                                    case 'reptiles': return 'bg-amber-100 text-amber-800 border border-amber-200';
+                                    case 'reptiles': return 'specialty-badge bg-amber-100 text-amber-800 border border-amber-200';
                                     case 'ferret':
-                                    case 'ferrets': return 'bg-rose-100 text-rose-800 border border-rose-200';
+                                    case 'ferrets': return 'specialty-badge bg-rose-100 text-rose-800 border border-rose-200';
                                     case 'exotic pet':
-                                    case 'exotic pets': return 'bg-indigo-100 text-indigo-800 border border-indigo-200';
-                                    default: return 'bg-gray-100 text-gray-800 border border-gray-200';
+                                    case 'exotic pets': return 'specialty-badge bg-indigo-100 text-indigo-800 border border-indigo-200';
+                                    default: return 'specialty-badge bg-gray-100 text-gray-800 border border-gray-200';
                                 }
                             }
                             function esc(s){ const d=document.createElement('div'); d.textContent=s??''; return d.innerHTML; }
@@ -1991,6 +2147,65 @@ function resolveImageUrl($path) {
                             <h3 class="font-semibold text-gray-700 flex items-center gap-2"><i data-lucide="list" class="w-4 h-4 text-gray-500"></i>Promo List</h3>
                             <div class="text-xs text-gray-500">Total: <?= count($promotions) ?></div>
                         </div>
+                        <!-- Filters Bar -->
+                        <div class="p-4 border-b bg-gray-50/60 flex flex-wrap gap-3 text-xs items-end promo-filters-dark" id="promoFiltersBar">
+                            <div class="flex flex-col">
+                                <label for="promoFilterType" class="text-[11px] font-medium text-gray-600">Type</label>
+                                <select id="promoFilterType" class="px-2 py-1 border rounded-md text-xs bg-white">
+                                    <option value="">All</option>
+                                </select>
+                            </div>
+                            <div class="flex flex-col">
+                                <label for="promoFilterDiscount" class="text-[11px] font-medium text-gray-600">Discount</label>
+                                <select id="promoFilterDiscount" class="px-2 py-1 border rounded-md text-xs bg-white">
+                                    <option value="">All</option>
+                                    <option value="percent">Percent</option>
+                                    <option value="fixed">Fixed</option>
+                                    <option value="points_bonus">Points Bonus</option>
+                                    <option value="free_item">Free Item</option>
+                                    <option value="none">None</option>
+                                </select>
+                            </div>
+                            <div class="flex flex-col">
+                                <label for="promoFilterPoints" class="text-[11px] font-medium text-gray-600">Points</label>
+                                <select id="promoFilterPoints" class="px-2 py-1 border rounded-md text-xs bg-white">
+                                    <option value="">All</option>
+                                    <option value="required">Requires Points</option>
+                                    <option value="free">No Points</option>
+                                </select>
+                            </div>
+                            <div class="flex flex-col">
+                                <label for="promoFilterLimits" class="text-[11px] font-medium text-gray-600">Limits</label>
+                                <select id="promoFilterLimits" class="px-2 py-1 border rounded-md text-xs bg-white" title="Usage / Per-user limits classification">
+                                    <option value="">All</option>
+                                    <option value="limited">Limited</option>
+                                    <option value="global_unlimited">Global ∞</option>
+                                    <option value="user_unlimited">Per-user ∞</option>
+                                    <option value="fully_unlimited">Both ∞</option>
+                                </select>
+                            </div>
+                            <div class="flex flex-col">
+                                <label for="promoFilterWindow" class="text-[11px] font-medium text-gray-600">Window</label>
+                                <select id="promoFilterWindow" class="px-2 py-1 border rounded-md text-xs bg-white">
+                                    <option value="">All</option>
+                                    <option value="active">Active Now</option>
+                                    <option value="upcoming">Upcoming</option>
+                                    <option value="expired">Expired</option>
+                                    <option value="perpetual">Perpetual</option>
+                                </select>
+                            </div>
+                            <div class="flex flex-col">
+                                <label for="promoFilterStatus" class="text-[11px] font-medium text-gray-600">Status</label>
+                                <select id="promoFilterStatus" class="px-2 py-1 border rounded-md text-xs bg-white">
+                                    <option value="">All</option>
+                                    <option value="1">Active</option>
+                                    <option value="0">Inactive</option>
+                                </select>
+                            </div>
+                            <div class="ml-auto flex items-center gap-2">
+                                <button id="promoFiltersReset" type="button" class="text-[11px] px-3 py-1.5 rounded-md border border-gray-300 bg-white hover:bg-gray-100 promo-reset-btn">Reset</button>
+                            </div>
+                        </div>
                         <div class="overflow-x-auto">
                             <table class="w-full text-sm">
                                 <thead class="bg-gray-50 text-xs uppercase text-gray-500">
@@ -2035,6 +2250,15 @@ function resolveImageUrl($path) {
                                 </tbody>
                             </table>
                         </div>
+                        <!-- Pagination Footer -->
+                        <div class="p-3 border-t border-gray-200 flex flex-col md:flex-row md:items-center gap-3 md:justify-between text-[11px] text-gray-600" id="promosFooter">
+                            <div id="promosCountSummary" class="leading-snug">Showing <span id="promosShown">0</span> of <span id="promosTotalFiltered">0</span><span class="hidden md:inline"> (Total <span id="promosTotalAll">0</span>)</span></div>
+                            <div class="flex items-center gap-2" id="promoPager" style="display:none;">
+                                <button id="promoPrev" class="px-2 py-1 rounded border border-gray-300 disabled:opacity-40">Prev</button>
+                                <div id="promoPageNums" class="flex items-center gap-1"></div>
+                                <button id="promoNext" class="px-2 py-1 rounded border border-gray-300 disabled:opacity-40">Next</button>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -2053,7 +2277,7 @@ function resolveImageUrl($path) {
                                     <p class="text-xs text-gray-500">Toggle dark theme for the admin dashboard.</p>
                                 </div>
                                 <label class="inline-flex items-center cursor-pointer select-none">
-                                    <input type="checkbox" id="darkModeToggle" class="sr-only">
+                                    <input type="checkbox" id="darkModeMasterToggle" class="sr-only">
                                     <span class="w-10 h-5 flex items-center bg-gray-300 rounded-full p-1 transition-all" id="darkModeSlider">
                                         <span class="bg-white w-4 h-4 rounded-full shadow transition-all" id="darkModeKnob"></span>
                                     </span>
@@ -2109,29 +2333,29 @@ function resolveImageUrl($path) {
 
                     <!-- Small stat cards -->
                     <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3" id="auditStats">
-                        <div class="p-3 rounded-lg border border-gray-200 bg-white">
-                            <div class="text-[11px] text-gray-500">All</div>
-                            <div class="text-xl font-semibold" id="auditStatAll">0</div>
+                        <div class="audit-card p-3 rounded-lg border border-gray-200 bg-white" data-metric="all">
+                            <div class="text-[11px] text-gray-500 label">All</div>
+                            <div class="text-xl font-semibold metric-num" id="auditStatAll">0</div>
                         </div>
-                        <div class="p-3 rounded-lg border border-green-200 bg-green-50">
-                            <div class="text-[11px] text-green-700">Additions</div>
-                            <div class="text-xl font-semibold text-green-700" id="auditStatAdd">0</div>
+                        <div class="audit-card p-3 rounded-lg border border-green-200 bg-green-50" data-metric="additions">
+                            <div class="text-[11px] text-green-700 label">Additions</div>
+                            <div class="text-xl font-semibold text-green-700 metric-num" id="auditStatAdd">0</div>
                         </div>
-                        <div class="p-3 rounded-lg border border-indigo-200 bg-indigo-50">
-                            <div class="text-[11px] text-indigo-700">Updates</div>
-                            <div class="text-xl font-semibold text-indigo-700" id="auditStatUpd">0</div>
+                        <div class="audit-card p-3 rounded-lg border border-indigo-200 bg-indigo-50" data-metric="updates">
+                            <div class="text-[11px] text-indigo-700 label">Updates</div>
+                            <div class="text-xl font-semibold text-indigo-700 metric-num" id="auditStatUpd">0</div>
                         </div>
-                        <div class="p-3 rounded-lg border border-amber-200 bg-amber-50">
-                            <div class="text-[11px] text-amber-700">Price</div>
-                            <div class="text-xl font-semibold text-amber-700" id="auditStatPrice">0</div>
+                        <div class="audit-card p-3 rounded-lg border border-amber-200 bg-amber-50" data-metric="price">
+                            <div class="text-[11px] text-amber-700 label">Price</div>
+                            <div class="text-xl font-semibold text-amber-700 metric-num" id="auditStatPrice">0</div>
                         </div>
-                        <div class="p-3 rounded-lg border border-sky-200 bg-sky-50">
-                            <div class="text-[11px] text-sky-700">Stock</div>
-                            <div class="text-xl font-semibold text-sky-700" id="auditStatStock">0</div>
+                        <div class="audit-card p-3 rounded-lg border border-sky-200 bg-sky-50" data-metric="stock">
+                            <div class="text-[11px] text-sky-700 label">Stock</div>
+                            <div class="text-xl font-semibold text-sky-700 metric-num" id="auditStatStock">0</div>
                         </div>
-                        <div class="p-3 rounded-lg border border-gray-200 bg-white">
-                            <div class="text-[11px] text-gray-700">Other</div>
-                            <div class="text-xl font-semibold text-gray-800" id="auditStatOther">0</div>
+                        <div class="audit-card p-3 rounded-lg border border-gray-200 bg-white" data-metric="other">
+                            <div class="text-[11px] text-gray-700 label">Other</div>
+                            <div class="text-xl font-semibold text-gray-800 metric-num" id="auditStatOther">0</div>
                         </div>
                     </div>
 
@@ -2801,6 +3025,148 @@ function resolveImageUrl($path) {
             initSitters();
             initTopSellingModal();
             initSettingsSection();
+            // Unified Dark Mode (quick button + section button + settings switch)
+            (function(){
+                const STORAGE_KEY='admin_theme_mode';
+                const quickBtn = document.getElementById('darkModeQuickBtn');
+                const sectionBtn = document.getElementById('darkModeSectionBtn');
+                const masterToggle = document.getElementById('darkModeMasterToggle');
+                const knob = document.getElementById('darkModeKnob');
+                const slider = document.getElementById('darkModeSlider');
+                const statusEl = document.getElementById('darkModeStatus');
+
+                function applyState(on){
+                    document.body.classList.toggle('dark', on);
+                    document.documentElement.classList.toggle('dark', on);
+                    if(masterToggle) masterToggle.checked = on;
+                    if(knob && slider){
+                        knob.style.transform = on ? 'translateX(1.25rem)' : 'translateX(0)';
+                        slider.classList.toggle('bg-indigo-600', on);
+                        slider.classList.toggle('bg-gray-300', !on);
+                    }
+                    [quickBtn, sectionBtn].forEach(btn=>{
+                        if(!btn) return;
+                        const icon = btn.querySelector('i');
+                        if(icon){ icon.setAttribute('data-lucide', on ? 'sun' : 'moon'); }
+                        const lbl = btn.querySelector('.mode-label');
+                        if(lbl) lbl.textContent = on ? 'Light' : 'Dark';
+                        btn.classList.toggle('bg-gray-800', on);
+                        btn.classList.toggle('text-white', on);
+                    });
+                    if(statusEl) statusEl.textContent = 'Theme: ' + (on?'Dark':'Light');
+                    try{ localStorage.setItem(STORAGE_KEY, on?'dark':'light'); }catch(e){}
+                    if(window.lucide){ lucide.createIcons(); }
+                }
+                function toggle(){ applyState(!document.body.classList.contains('dark')); }
+                let saved=null; try{ saved=localStorage.getItem(STORAGE_KEY);}catch(e){}
+                applyState(saved==='dark');
+                quickBtn?.addEventListener('click', toggle);
+                sectionBtn?.addEventListener('click', toggle);
+                masterToggle?.addEventListener('change', ()=> applyState(masterToggle.checked));
+            })();
+            // Recent Activity & Notifications
+            (function(){
+                const STORAGE_KEY='admin_recent_activity';
+                const POLL_KEY='admin_recent_activity_latest_ts';
+                const panel = document.getElementById('recentActivityPanel');
+                const listEl = document.getElementById('activityList');
+                const metaEl = document.getElementById('activityMeta');
+                const badge = document.getElementById('activityBadge');
+                const btn = document.getElementById('notificationsBtn');
+                const closeBtn = document.getElementById('closeActivityBtn');
+                const clearBtn = document.getElementById('clearActivityBtn');
+                const openSettingsBtn = document.getElementById('openSettingsBtn');
+
+                function load(){
+                    try { return JSON.parse(localStorage.getItem(STORAGE_KEY)||'[]'); } catch(e){ return []; }
+                }
+                function save(items){ try { localStorage.setItem(STORAGE_KEY, JSON.stringify(items.slice(0,100))); } catch(e){} }
+                function add(type, message, meta={}){
+                    const items = load();
+                    items.unshift({ id:Date.now()+Math.random().toString(36).slice(2), type, message, meta, ts: Date.now(), read:false });
+                    save(items); render();
+                }
+                function addRawEvent(ev){
+                    // Avoid duplicates by composite key (type-id)
+                    const key = `${ev.type}-${ev.id}`;
+                    const items = load();
+                    if(items.some(i=>i.meta && i.meta.key === key)) return; // skip existing
+                    const labelMap = {
+                        appointment: 'New appointment booked: '+ev.label,
+                        order: 'Products checkout completed: '+ev.label,
+                        user: 'New user registered: '+ev.label,
+                        subscriber: 'New subscriber activated: '+ev.label,
+                        sitter: 'New pet sitter: '+ev.label,
+                        pet: 'New pet registered: '+ev.label
+                    };
+                    items.unshift({ id: key+ '-' + ev.ts, type: ev.type, message: labelMap[ev.type]||ev.label, meta:{key}, ts: ev.ts, read:false });
+                    save(items); render();
+                }
+                function timeAgo(ts){
+                    const diff = Date.now()-ts; const sec=Math.floor(diff/1000);
+                    if(sec<60) return sec+'s ago'; const m=Math.floor(sec/60); if(m<60) return m+'m ago'; const h=Math.floor(m/60); if(h<24) return h+'h ago'; const d=Math.floor(h/24); return d+'d ago';
+                }
+                function iconFor(type){
+                    switch(type){
+                        case 'order': return 'package';
+                        case 'appointment': return 'calendar';
+                        case 'promo': return 'ticket';
+                        case 'user': return 'user';
+                        default: return 'activity';
+                    }
+                }
+                function render(){
+                    if(!listEl) return; const items = load();
+                    const unread = items.filter(i=>!i.read).length;
+                    if(badge){ badge.textContent = unread>9?'9+':String(unread); badge.classList.toggle('hidden', unread===0); }
+                    if(metaEl) metaEl.textContent = items.length+ ' item'+(items.length===1?'':'s');
+                    if(items.length===0){ listEl.innerHTML = '<div class="p-6 text-sm text-gray-500 dark:text-gray-400 text-center">No recent activity.</div>'; return; }
+                    listEl.innerHTML = items.map(i=>`
+                        <button data-id="${i.id}" class="w-full text-left px-4 py-3 flex gap-3 hover:bg-gray-50 dark:hover:bg-[#273349] focus:outline-none transition group ${i.read?'opacity-70':''}">
+                            <div class="mt-0.5 w-9 h-9 rounded-full flex items-center justify-center bg-gray-100 dark:bg-[#273349] group-hover:scale-105 transition">
+                                <i data-lucide="${iconFor(i.type)}" class="w-4 h-4 text-orange-600 dark:text-orange-400"></i>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <p class="text-xs font-medium text-gray-700 dark:text-gray-200 line-clamp-2">${i.message}</p>
+                                <p class="mt-0.5 text-[10px] uppercase tracking-wide text-gray-400 dark:text-gray-500 flex items-center gap-2">${timeAgo(i.ts)} ${i.read?'':'<span class="inline-block w-1.5 h-1.5 rounded-full bg-orange-500"></span>'}</p>
+                            </div>
+                        </button>`).join('');
+                    if(window.lucide){ lucide.createIcons(); }
+                }
+                function markAllRead(){ const items = load().map(i=>({...i,read:true})); save(items); render(); }
+                function togglePanel(show){ if(!panel) return; panel.classList.toggle('hidden', show===false ? true : panel.classList.contains('hidden')?false:true); if(!panel.classList.contains('hidden')){ markAllRead(); } }
+
+                // Seed sample events on first load
+                (function seed(){ const items = load(); if(items.length===0){
+                    add('order','New order placed (Ref #'+Math.floor(Math.random()*10000)+')');
+                    add('appointment','Appointment booked for tomorrow');
+                    add('promo','Promo SPRING10 was created');
+                }} )();
+                render();
+
+                // Poll server for new domain events
+                let latestTs = 0; try { latestTs = parseInt(localStorage.getItem(POLL_KEY)||'0'); } catch(e){}
+                async function poll(){
+                    try {
+                        const r = await fetch('../../controllers/admin/activitypoll.php?since='+latestTs+'&_=' + Date.now());
+                        if(!r.ok) return; const data = await r.json(); if(!data.success) return;
+                        if(Array.isArray(data.items)) data.items.reverse().forEach(addRawEvent); // reverse to keep chronological insertion
+                        if(data.latest && data.latest>latestTs){ latestTs = data.latest; try { localStorage.setItem(POLL_KEY,String(latestTs)); } catch(e){} }
+                    } catch(e){ /* silent */ }
+                }
+                poll();
+                setInterval(poll, 15000);
+
+                btn?.addEventListener('click', (e)=>{ e.stopPropagation(); togglePanel(); });
+                closeBtn?.addEventListener('click', ()=> togglePanel(false));
+                clearBtn?.addEventListener('click', ()=>{ save([]); render(); });
+                document.addEventListener('click', (e)=>{ if(panel && !panel.contains(e.target) && e.target!==btn && !btn.contains(e.target)){ panel.classList.add('hidden'); } });
+                listEl?.addEventListener('click', (e)=>{ const b=e.target.closest('button[data-id]'); if(!b) return; /* potential item action later */ });
+                // Settings navigation
+                openSettingsBtn?.addEventListener('click', ()=>{ if(typeof showSection==='function'){ showSection('settings'); } });
+                // Expose helper to global (optional future use)
+                window.AdminActivity = { add };
+            })();
             // Section isolation logic: ensure only active section's UI is visible
             function showSection(id){
                 // Hide all existing *-section containers dynamically
@@ -2871,38 +3237,145 @@ function resolveImageUrl($path) {
                     const res = await fetch('../../controllers/admin/promocontroller.php?action=list',{credentials:'same-origin'});
                     const data = await res.json();
                     if(!data.success) return;
-                    const tbody = document.getElementById('promosTbody');
-                    if(!tbody) return;
-                    tbody.innerHTML = '';
-                    if(data.promotions.length===0){
-                        tbody.innerHTML = '<tr><td colspan="8" class="px-3 py-6 text-center text-gray-500">No promos found.</td></tr>';
-                    } else {
-                        data.promotions.forEach(p=>{
-                            const discountLabel = (p.promo_discount_type||'none') + (p.promo_discount_value?(': '+p.promo_discount_value):'');
-                            const limits = `${p.promo_usage_limit?p.promo_usage_limit:'∞'} / ${p.promo_per_user_limit?p.promo_per_user_limit:'∞'}`;
-                            const windowTxt = `${p.promo_starts_at?p.promo_starts_at.split(' ')[0]:'—'} → ${p.promo_ends_at?p.promo_ends_at.split(' ')[0]:'—'}`;
-                            const activeBadge = p.promo_active==1 ? '<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-green-100 text-green-700 border border-green-200">Active</span>' : '<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-gray-100 text-gray-600 border border-gray-200">Inactive</span>';
-                            const tr = document.createElement('tr');
-                            tr.className='border-b last:border-b-0 hover:bg-orange-50/50';
-                            tr.innerHTML = `
-                                <td class='px-3 py-2 align-top'><div class="font-medium text-gray-800 truncate max-w-[160px]" title="${escapeHtml(p.promo_name||'')}">${escapeHtml(p.promo_name||'')}</div><div class="text-xs text-gray-500">Code: ${escapeHtml(p.promo_code||'—')}</div></td>
-                                <td class='px-3 py-2 align-top text-xs capitalize'>${escapeHtml(p.promo_type||'')}</td>
-                                <td class='px-3 py-2 align-top text-xs'><div class="font-medium">${escapeHtml(p.promo_discount_type||'none')}</div><div class="text-gray-500">${p.promo_discount_value?escapeHtml(p.promo_discount_value):'—'}</div></td>
-                                <td class='px-3 py-2 align-top text-xs'>${p.promo_points_cost || '—'}</td>
-                                <td class='px-3 py-2 align-top text-xs'>${limits}</td>
-                                <td class='px-3 py-2 align-top text-xs leading-tight'>${windowTxt}</td>
-                                <td class='px-3 py-2 align-top'>${activeBadge}</td>
-                                <td class='px-3 py-2 align-top text-xs'><div class='flex items-center gap-2 flex-wrap'>
-                                    <button data-promo-edit='${p.promo_id}' class='px-2 py-1 rounded border border-blue-300 bg-blue-50 text-blue-600 hover:bg-blue-100 text-[11px]'>Edit</button>
-                                    <button data-promo-toggle='${p.promo_id}' data-to='${p.promo_active==1?0:1}' class='px-2 py-1 rounded border text-[11px] ${p.promo_active==1?'bg-white hover:bg-gray-50':'bg-green-600 border-green-600 text-white hover:bg-green-700'}'>${p.promo_active==1?'Deactivate':'Activate'}</button>
-                                    <button data-promo-delete='${p.promo_id}' class='px-2 py-1 rounded border border-red-300 bg-red-50 text-red-600 hover:bg-red-100 text-[11px]'>Delete</button>
-                                </div></td>`;
-                            tbody.appendChild(tr);
-                        });
-                    }
-                    lucide.createIcons();
+                    window.__allPromos = data.promotions || [];
+                    buildPromoTypeFilter();
+                    applyPromoFilters();
                 } catch(e){ console.error('Failed to refresh promos', e); }
             }
+
+            // === Promo Filtering & Pagination ===
+            const promoFilterType = document.getElementById('promoFilterType');
+            const promoFilterDiscount = document.getElementById('promoFilterDiscount');
+            const promoFilterPoints = document.getElementById('promoFilterPoints');
+            const promoFilterLimits = document.getElementById('promoFilterLimits');
+            const promoFilterWindow = document.getElementById('promoFilterWindow');
+            const promoFilterStatus = document.getElementById('promoFilterStatus');
+            const promoFiltersReset = document.getElementById('promoFiltersReset');
+            const promosShownEl = document.getElementById('promosShown');
+            const promosTotalFilteredEl = document.getElementById('promosTotalFiltered');
+            const promosTotalAllEl = document.getElementById('promosTotalAll');
+            const promoPrev = document.getElementById('promoPrev');
+            const promoNext = document.getElementById('promoNext');
+            const promoPageNums = document.getElementById('promoPageNums');
+            const promoPager = document.getElementById('promoPager');
+            let promoPage = 1; const PROMO_PAGE_SIZE = 15;
+
+            function buildPromoTypeFilter(){
+                if(!promoFilterType) return;
+                const types = Array.from(new Set((window.__allPromos||[]).map(p=>p.promo_type||'').filter(v=>v!==''))).sort();
+                const current = promoFilterType.value;
+                promoFilterType.innerHTML = '<option value="">All</option>' + types.map(t=>`<option value="${escapeHtml(t)}">${escapeHtml(t)}</option>`).join('');
+                if(types.includes(current)) promoFilterType.value=current; // preserve
+            }
+
+            function classifyLimits(p){
+                const g = p.promo_usage_limit == null ? '∞' : 'L';
+                const u = p.promo_per_user_limit == null ? '∞' : 'L';
+                if(g==='∞' && u==='∞') return 'fully_unlimited';
+                if(g==='∞' && u==='L') return 'global_unlimited';
+                if(g==='L' && u==='∞') return 'user_unlimited';
+                return 'limited';
+            }
+            function classifyWindow(p){
+                const now = new Date();
+                const start = p.promo_starts_at? new Date(p.promo_starts_at.replace(' ','T')): null;
+                const end = p.promo_ends_at? new Date(p.promo_ends_at.replace(' ','T')): null;
+                if(!start && !end) return 'perpetual';
+                if(start && now < start) return 'upcoming';
+                if(end && now > end) return 'expired';
+                return 'active';
+            }
+
+            function applyPromoFilters(){
+                const all = window.__allPromos || [];
+                promosTotalAllEl && (promosTotalAllEl.textContent = all.length.toString());
+                let filtered = all.filter(p=>{
+                    if(promoFilterType?.value && p.promo_type!==promoFilterType.value) return false;
+                    if(promoFilterDiscount?.value && (p.promo_discount_type||'')!==promoFilterDiscount.value) return false;
+                    if(promoFilterPoints?.value){
+                        if(promoFilterPoints.value==='required' && (p.promo_points_cost==null || p.promo_points_cost==='')) return false;
+                        if(promoFilterPoints.value==='free' && (p.promo_points_cost!=null && p.promo_points_cost!=='')) return false;
+                    }
+                    if(promoFilterLimits?.value && classifyLimits(p)!==promoFilterLimits.value) return false;
+                    if(promoFilterWindow?.value && classifyWindow(p)!==promoFilterWindow.value) return false;
+                    if(promoFilterStatus?.value!=='' && String(p.promo_active)!==promoFilterStatus.value) return false;
+                    return true;
+                });
+                const totalFiltered = filtered.length;
+                if(promoPage>Math.max(1,Math.ceil(totalFiltered / PROMO_PAGE_SIZE))) promoPage = 1; // reset if overflow
+                promosTotalFilteredEl && (promosTotalFilteredEl.textContent = totalFiltered.toString());
+
+                const start = (promoPage-1)*PROMO_PAGE_SIZE;
+                const pageItems = filtered.slice(start, start + PROMO_PAGE_SIZE);
+                const tbody = document.getElementById('promosTbody');
+                if(!tbody) return;
+                tbody.innerHTML = '';
+                if(pageItems.length===0){
+                    tbody.innerHTML = '<tr><td colspan="8" class="px-3 py-6 text-center text-gray-500">No promos match the filters.</td></tr>';
+                } else {
+                    pageItems.forEach(p=>{
+                        const limitsTxt = `${p.promo_usage_limit?p.promo_usage_limit:'∞'} / ${p.promo_per_user_limit?p.promo_per_user_limit:'∞'}`;
+                        const windowTxt = `${p.promo_starts_at?p.promo_starts_at.split(' ')[0]:'—'} → ${p.promo_ends_at?p.promo_ends_at.split(' ')[0]:'—'}`;
+                        const activeBadge = p.promo_active==1 ? '<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-green-100 text-green-700 border border-green-200">Active</span>' : '<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-gray-100 text-gray-600 border border-gray-200">Inactive</span>';
+                        const tr = document.createElement('tr');
+                        tr.className='border-b last:border-b-0 hover:bg-orange-50/50';
+                        tr.innerHTML = `
+                            <td class='px-3 py-2 align-top'><div class="font-medium text-gray-800 truncate max-w-[160px]" title="${escapeHtml(p.promo_name||'')}">${escapeHtml(p.promo_name||'')}</div><div class="text-xs text-gray-500">Code: ${escapeHtml(p.promo_code||'—')}</div></td>
+                            <td class='px-3 py-2 align-top text-xs capitalize'>${escapeHtml(p.promo_type||'')}</td>
+                            <td class='px-3 py-2 align-top text-xs'><div class="font-medium">${escapeHtml(p.promo_discount_type||'none')}</div><div class="text-gray-500">${p.promo_discount_value?escapeHtml(p.promo_discount_value):'—'}</div></td>
+                            <td class='px-3 py-2 align-top text-xs'>${p.promo_points_cost || '—'}</td>
+                            <td class='px-3 py-2 align-top text-xs'>${limitsTxt}</td>
+                            <td class='px-3 py-2 align-top text-xs leading-tight'>${windowTxt}</td>
+                            <td class='px-3 py-2 align-top'>${activeBadge}</td>
+                            <td class='px-3 py-2 align-top text-xs'><div class='flex items-center gap-2 flex-wrap'>
+                                <button data-promo-edit='${p.promo_id}' class='px-2 py-1 rounded border border-blue-300 bg-blue-50 text-blue-600 hover:bg-blue-100 text-[11px]'>Edit</button>
+                                <button data-promo-toggle='${p.promo_id}' data-to='${p.promo_active==1?0:1}' class='px-2 py-1 rounded border text-[11px] ${p.promo_active==1?'bg-white hover:bg-gray-50':'bg-green-600 border-green-600 text-white hover:bg-green-700'}'>${p.promo_active==1?'Deactivate':'Activate'}</button>
+                                <button data-promo-delete='${p.promo_id}' class='px-2 py-1 rounded border border-red-300 bg-red-50 text-red-600 hover:bg-red-100 text-[11px]'>Delete</button>
+                            </div></td>`;
+                        tbody.appendChild(tr);
+                    });
+                }
+                // counts
+                promosShownEl && (promosShownEl.textContent = totalFiltered===0? '0' : `${start+1}-${start+pageItems.length}`);
+                buildPromoPagination(totalFiltered);
+                lucide.createIcons();
+            }
+
+            function buildPromoPagination(total){
+                if(!promoPager || !promoPageNums) return;
+                const pages = Math.max(1, Math.ceil(total / PROMO_PAGE_SIZE));
+                if(total <= PROMO_PAGE_SIZE){ promoPager.style.display='none'; return; }
+                promoPager.style.display='flex';
+                promoPrev.disabled = promoPage<=1; promoNext.disabled = promoPage>=pages;
+                promoPageNums.innerHTML='';
+                const range = promoPaginationRange(promoPage, pages, 7);
+                range.forEach(r=>{
+                    const b = document.createElement('button');
+                    b.className = 'px-2 py-1 rounded border text-[11px] ' + (r===promoPage?'bg-orange-600 border-orange-600 text-white':'border-gray-300 bg-white hover:bg-gray-100');
+                    b.textContent = r==='...' ? '...' : r;
+                    if(r!=='...') b.addEventListener('click', ()=>{ promoPage = r; applyPromoFilters(); });
+                    promoPageNums.appendChild(b);
+                });
+            }
+            function promoPaginationRange(current,total,maxButtons){
+                const out=[]; if(total<=maxButtons){ for(let i=1;i<=total;i++) out.push(i); return out; }
+                const half=Math.floor(maxButtons/2); let start=Math.max(1,current-half); let end=start+maxButtons-1; if(end>total){ end=total; start=end-maxButtons+1; }
+                if(start>1){ out.push(1); if(start>2) out.push('...'); }
+                for(let i=start;i<=end;i++) out.push(i);
+                if(end<total){ if(end<total-1) out.push('...'); out.push(total); }
+                return out;
+            }
+
+            // Event bindings for filters
+            [promoFilterType,promoFilterDiscount,promoFilterPoints,promoFilterLimits,promoFilterWindow,promoFilterStatus].forEach(el=>{
+                el && el.addEventListener('change', ()=>{ promoPage=1; applyPromoFilters(); });
+            });
+            promoFiltersReset?.addEventListener('click', ()=>{
+                [promoFilterType,promoFilterDiscount,promoFilterPoints,promoFilterLimits,promoFilterWindow,promoFilterStatus].forEach(el=>{ if(el) el.value=''; });
+                promoPage=1; applyPromoFilters();
+            });
+            promoPrev?.addEventListener('click', ()=>{ if(promoPage>1){ promoPage--; applyPromoFilters(); }});
+            promoNext?.addEventListener('click', ()=>{ promoPage++; applyPromoFilters(); });
 
             addPromoForm?.addEventListener('submit', async function(e){
                 e.preventDefault();
@@ -3111,12 +3584,8 @@ function resolveImageUrl($path) {
                             const statusCell = targetRow.querySelector('td:nth-child(5)');
                             if(statusCell){
                                 const st = statusSel.value;
-                                let cls='bg-gray-100 text-gray-700';
-                                if(st==='delivered') cls='bg-green-100 text-green-700 border border-green-200';
-                                else if(st==='out_for_delivery') cls='bg-indigo-100 text-indigo-700 border border-indigo-200';
-                                else if(st==='cancelled') cls='bg-red-100 text-red-700 border border-red-200';
-                                else if(st==='processing') cls='bg-yellow-100 text-yellow-700 border border-yellow-200';
-                                statusCell.innerHTML = `<span class=\"px-2 py-1 rounded-full ${cls}\">${st.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase())}</span>`;
+                                const cls = `order-status order-status-${st}`;
+                                statusCell.innerHTML = `<span class=\"${cls}\">${st.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase())}</span>`;
                             }
                             const etaCell = targetRow.querySelector('td:nth-child(6)');
                             if(etaCell) etaCell.textContent = etaInput.value;
@@ -3550,12 +4019,60 @@ function resolveImageUrl($path) {
                         closeEdit();
                         applyFilters();
                         showApptToast('Appointment updated');
+                        try {
+                            if (data.points_awarded && parseInt(data.points_awarded) > 0) {
+                                const awarded = parseInt(data.points_awarded);
+                                const newBal = (data.new_points_balance !== undefined && data.new_points_balance !== null) ? parseInt(data.new_points_balance) : null;
+                                // Distinct toast styling (reuse showApptToast fallback)
+                                const msg = `+${awarded} PawPoints awarded to user` + (newBal!==null? ` (New Balance: ${newBal.toLocaleString()})`:'');
+                                showApptToast(msg,'success');
+                                // Mark row visually as awarded
+                                if (row) {
+                                    row.classList.add('ring-2','ring-amber-400','ring-offset-1');
+                                    if(!row.querySelector('.appt-awarded-badge')){
+                                        const badge = document.createElement('span');
+                                        badge.className='appt-awarded-badge ml-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-gradient-to-r from-orange-500 to-amber-500 text-white text-[10px] font-semibold tracking-wide shadow';
+                                        badge.innerHTML='<svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>POINTS';
+                                        const statusCell = row.querySelector('td:nth-last-child(2)');
+                                        if(statusCell) statusCell.appendChild(badge);
+                                    }
+                                }
+                            }
+                        } catch(_){ /* ignore toast errors */ }
                     } catch(err){ alert('Network error updating'); }
                 });
 
                 // Initial apply
                 applyFilters();
             }
+
+            // --- Award Badge Polling for Appointments ---
+            (function initAwardPolling(){
+                const table = document.querySelector('#appointmentsTable');
+                if(!table) return;
+                async function syncAwarded(){
+                    try {
+                        const r = await fetch('../../controllers/admin/appointmentcontroller.php?action=award_status');
+                        const j = await r.json();
+                        if(!j.success) return;
+                        const awarded = new Set(j.awarded || []);
+                        table.querySelectorAll('tbody tr[data-id]').forEach(tr=>{
+                            const id = parseInt(tr.getAttribute('data-id')||'0',10);
+                            if(awarded.has(id)){
+                                if(!tr.querySelector('.appt-awarded-badge')){
+                                    const badge = document.createElement('span');
+                                    badge.className='appt-awarded-badge ml-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-gradient-to-r from-orange-500 to-amber-500 text-white text-[10px] font-semibold tracking-wide shadow';
+                                    badge.innerHTML='<svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>POINTS';
+                                    const statusCell = tr.querySelector('td:nth-last-child(2)');
+                                    if(statusCell) statusCell.appendChild(badge);
+                                }
+                            }
+                        });
+                    } catch(e){}
+                }
+                syncAwarded();
+                setInterval(syncAwarded, 15000);
+            })();
 
             function initSitters(){
                 const search = document.getElementById('sittersSearch');
@@ -4430,11 +4947,7 @@ function resolveImageUrl($path) {
 
         // ========== Settings Section (Dark Mode + Block Appointments) ==========
         function initSettingsSection(){
-            const toggle = document.getElementById('darkModeToggle');
-            const knob = document.getElementById('darkModeKnob');
-            const slider = document.getElementById('darkModeSlider');
-            const status = document.getElementById('darkModeStatus');
-            const root = document.documentElement;
+            // Dark mode is now managed by unified IIFE; only handle appointment blocking UI here.
             const blockDateInput = document.getElementById('blockDate'); // legacy single
             const blockDateStart = document.getElementById('blockDateStart');
             const blockDateEnd = document.getElementById('blockDateEnd');
@@ -4443,42 +4956,11 @@ function resolveImageUrl($path) {
             const blockRangeBtn = document.getElementById('blockRangeBtn');
             const clearBlockBtn = document.getElementById('clearBlockBtn');
             const blockStatus = document.getElementById('blockStatus');
-            if(!toggle || !slider) return; // safety
-
             // Persistence keys
-            const THEME_KEY = 'admin_theme_mode';
-            const BLOCK_KEY = 'appointments_block_date'; // legacy single date for backward compat
-            const BLOCK_RANGE_KEY = 'appointments_block_range'; // JSON: {start:'YYYY-MM-DD', end:'YYYY-MM-DD'}
+            const BLOCK_KEY = 'appointments_block_date';
+            const BLOCK_RANGE_KEY = 'appointments_block_range';
 
-            // Load persisted theme
-            let saved = null; try { saved = localStorage.getItem(THEME_KEY); } catch(e){}
-            function applyDark(on){
-                if(on){
-                    document.body.classList.add('dark');
-                    root.classList.add('dark');
-                    slider.classList.remove('bg-gray-300');
-                    slider.classList.add('bg-indigo-600');
-                    knob.classList.add('translate-x-5');
-                    status.textContent = 'Theme: Dark';
-                } else {
-                    document.body.classList.remove('dark');
-                    root.classList.remove('dark');
-                    slider.classList.add('bg-gray-300');
-                    slider.classList.remove('bg-indigo-600');
-                    knob.classList.remove('translate-x-5');
-                    status.textContent = 'Theme: Light';
-                }
-            }
-            const initialDark = saved === 'dark';
-            toggle.checked = initialDark;
-            applyDark(initialDark);
-            toggle.addEventListener('change', ()=>{
-                const on = toggle.checked;
-                applyDark(on);
-                try { localStorage.setItem(THEME_KEY, on?'dark':'light'); } catch(e){}
-            });
-
-            // Basic dark mode CSS injection (minimal to avoid altering existing styles drastically)
+            // Basic dark mode CSS injection if not already present (legacy support)
             if(!document.getElementById('adminDarkModeStyles')){
                 const style = document.createElement('style');
                 style.id='adminDarkModeStyles';
@@ -4586,6 +5068,18 @@ function resolveImageUrl($path) {
 
                 /* Toast override for dark mode */
                 .dark #adminToastWrap .bg-gray-800 { background:#1e293b !important; border-color:#334155 !important; }
+
+                /* Promo Filters Bar */
+                .dark #promoFiltersBar { background:linear-gradient(135deg,#1e293b,#0f172a) !important; border-color:#334155 !important; }
+                .dark #promoFiltersBar label { color:#cbd5e1 !important; }
+                .dark #promoFiltersBar select { background:#0f172a !important; border-color:#334155 !important; color:#f1f5f9 !important; }
+                .dark #promoFiltersBar select:focus { border-color:#f59e0b !important; box-shadow:0 0 0 1px #f59e0b; }
+                .dark #promoFiltersBar .promo-reset-btn { background:#1f2937 !important; border-color:#334155 !important; color:#e2e8f0 !important; }
+                .dark #promoFiltersBar .promo-reset-btn:hover { background:#273349 !important; }
+                .dark #promosFooter { background:#1e293b !important; border-color:#334155 !important; }
+                .dark #promosFooter button { background:#1f2937; border-color:#334155; color:#e2e8f0; }
+                .dark #promosFooter button:hover { background:#273349; }
+                .dark #promosFooter button[disabled] { opacity:.35; }
                 `;
                 document.head.appendChild(style);
             }

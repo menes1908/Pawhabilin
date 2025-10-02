@@ -63,12 +63,38 @@ if($_SERVER['REQUEST_METHOD']==='POST' && ($_POST['action'] ?? '')==='mark_recei
             if($row=mysqli_fetch_assoc($rs)){ $sigged = !empty($row['deliveries_recipient_signature']); $status = strtolower((string)$row['deliveries_delivery_status']); }
             mysqli_stmt_close($st);
             if(!$sigged){
+                $changed=false;
                 if($up = mysqli_prepare($connections, "UPDATE deliveries SET deliveries_recipient_signature=CONCAT('Received ',NOW()), deliveries_actual_delivery_date=IF(deliveries_actual_delivery_date IS NULL,NOW(),deliveries_actual_delivery_date), deliveries_delivery_status='delivered' WHERE transactions_id=?")){
                     mysqli_stmt_bind_param($up,'i',$tid);
                     mysqli_stmt_execute($up);
+                    $changed = mysqli_stmt_affected_rows($up)>0;
                     mysqli_stmt_close($up);
-                    set_orders_flash('Order marked as received.','success');
                 }
+                // Points awarding if changed just now
+                if($changed){
+                    if($rsAmt = mysqli_query($connections, "SELECT transactions_amount FROM transactions WHERE transactions_id=$tid AND users_id=$usersId LIMIT 1")){
+                        if($rowAmt=mysqli_fetch_assoc($rsAmt)){
+                            $amount=(float)$rowAmt['transactions_amount'];
+                            $has_sub=false; if($rsS=mysqli_query($connections, "SELECT 1 FROM user_subscriptions WHERE users_id=$usersId AND us_status='active' AND (us_end_date IS NULL OR us_end_date>=NOW()) LIMIT 1")){ if(mysqli_fetch_row($rsS)) $has_sub=true; mysqli_free_result($rsS);}                            
+                            if($has_sub && $amount>0){
+                                @mysqli_query($connections, "CREATE TABLE IF NOT EXISTS user_points_balance (users_id INT PRIMARY KEY, upb_points INT NOT NULL DEFAULT 0, upb_updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;");
+                                @mysqli_query($connections, "CREATE TABLE IF NOT EXISTS user_points_ledger (upl_id INT AUTO_INCREMENT PRIMARY KEY, users_id INT NOT NULL, upl_points INT NOT NULL, upl_reason VARCHAR(100), upl_source_type VARCHAR(50), upl_source_id INT, upl_created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, UNIQUE KEY uniq_source(users_id,upl_source_type,upl_source_id), KEY idx_user(users_id)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;");
+                                $calc = (int)floor($amount/100)*10;
+                                if($calc>0){
+                                    if($ins=mysqli_prepare($connections, "INSERT IGNORE INTO user_points_ledger (users_id,upl_points,upl_reason,upl_source_type,upl_source_id) VALUES (?,?,?,?,?)")){
+                                        $reason='Order Received'; $stype='order'; $pts=$calc; $src=$tid; mysqli_stmt_bind_param($ins,'iissi',$usersId,$pts,$reason,$stype,$src);
+                                        if(mysqli_stmt_execute($ins) && mysqli_stmt_affected_rows($ins)===1){
+                                            mysqli_query($connections, "INSERT INTO user_points_balance (users_id,upb_points) VALUES ($usersId,$pts) ON DUPLICATE KEY UPDATE upb_points=upb_points+VALUES(upb_points)");
+                                        }
+                                        mysqli_stmt_close($ins);
+                                    }
+                                }
+                            }
+                        }
+                        mysqli_free_result($rsAmt);
+                    }
+                }
+                set_orders_flash('Order marked as received.','success');
             } else {
                 set_orders_flash('Order already marked as received.','info');
             }

@@ -661,10 +661,51 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (($_POST['action'] ?? '') === 'mark
         echo json_encode(['success'=>true,'message'=>'Already received.']);
         exit();
     }
+    $justUpdated=false; // track if we transitioned to received now
     if ($upd = mysqli_prepare($connections, "UPDATE deliveries SET deliveries_recipient_signature = CONCAT('Received ', NOW()), deliveries_actual_delivery_date = IF(deliveries_actual_delivery_date IS NULL, NOW(), deliveries_actual_delivery_date), deliveries_delivery_status = 'delivered' WHERE transactions_id = ?")) {
         mysqli_stmt_bind_param($upd,'i',$tid);
         mysqli_stmt_execute($upd);
+        $justUpdated = mysqli_stmt_affected_rows($upd) > 0; // if we changed something
         mysqli_stmt_close($upd);
+    }
+    // Points awarding: only attempt if we just marked received (avoid double) & user has active subscription
+    $points_awarded = 0; $new_points_balance = null;
+    if($justUpdated){
+        // fetch amount
+        if($rsAmt = mysqli_query($connections, "SELECT transactions_amount FROM transactions WHERE transactions_id=$tid AND users_id=$usersId LIMIT 1")){
+            if($rowAmt = mysqli_fetch_assoc($rsAmt)){
+                $amount = (float)$rowAmt['transactions_amount'];
+                // subscription check
+                $has_sub=false; if($rsS=mysqli_query($connections, "SELECT 1 FROM user_subscriptions WHERE users_id=$usersId AND us_status='active' AND (us_end_date IS NULL OR us_end_date>=NOW()) LIMIT 1")){ if(mysqli_fetch_row($rsS)) $has_sub=true; mysqli_free_result($rsS);}                
+                if($has_sub && $amount>0){
+                    // ensure tables
+                    @mysqli_query($connections, "CREATE TABLE IF NOT EXISTS user_points_balance (users_id INT PRIMARY KEY, upb_points INT NOT NULL DEFAULT 0, upb_updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;");
+                    @mysqli_query($connections, "CREATE TABLE IF NOT EXISTS user_points_ledger (upl_id INT AUTO_INCREMENT PRIMARY KEY, users_id INT NOT NULL, upl_points INT NOT NULL, upl_reason VARCHAR(100), upl_source_type VARCHAR(50), upl_source_id INT, upl_created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, UNIQUE KEY uniq_source(users_id,upl_source_type,upl_source_id), KEY idx_user(users_id)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;");
+                    $calc = (int)floor($amount/100)*10; // 10 points per 100 pesos
+                    if($calc>0){
+                        if($ins = mysqli_prepare($connections, "INSERT IGNORE INTO user_points_ledger (users_id,upl_points,upl_reason,upl_source_type,upl_source_id) VALUES (?,?,?,?,?)")){
+                            $reason='Order Received'; $stype='order'; $pts=$calc; $src=$tid; mysqli_stmt_bind_param($ins,'iissi',$usersId,$pts,$reason,$stype,$src);
+                            if(mysqli_stmt_execute($ins)){
+                                if(mysqli_stmt_affected_rows($ins)===1){
+                                    mysqli_query($connections, "INSERT INTO user_points_balance (users_id,upb_points) VALUES ($usersId,$pts) ON DUPLICATE KEY UPDATE upb_points=upb_points+VALUES(upb_points)");
+                                    if($rb=mysqli_query($connections, "SELECT upb_points FROM user_points_balance WHERE users_id=$usersId LIMIT 1")){
+                                        if($br=mysqli_fetch_assoc($rb)){ $new_points_balance=(int)$br['upb_points']; $points_awarded=$pts; }
+                                        mysqli_free_result($rb);
+                                    }
+                                } else {
+                                    if($rb2=mysqli_query($connections, "SELECT upb_points FROM user_points_balance WHERE users_id=$usersId LIMIT 1")){
+                                        if($br2=mysqli_fetch_assoc($rb2)){ $new_points_balance=(int)$br2['upb_points']; }
+                                        mysqli_free_result($rb2);
+                                    }
+                                }
+                            }
+                            mysqli_stmt_close($ins);
+                        }
+                    }
+                }
+            }
+            mysqli_free_result($rsAmt);
+        }
     }
     // Re-fetch updated order with items
     $order = null; $items = [];
@@ -695,7 +736,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (($_POST['action'] ?? '') === 'mark
         }
         $order['items'] = $items;
     }
-    echo json_encode(['success'=> (bool)$order, 'order'=>$order]);
+    echo json_encode(['success'=> (bool)$order, 'order'=>$order, 'points_awarded'=>$points_awarded, 'new_points_balance'=>$new_points_balance]);
     exit();
 }
 

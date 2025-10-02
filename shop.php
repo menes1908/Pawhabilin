@@ -5,10 +5,10 @@ require_once __DIR__.'/database.php';
 require_once __DIR__.'/models/product.php';
 function h($v){ return htmlspecialchars($v ?? '', ENT_QUOTES,'UTF-8'); }
 if(empty($_SESSION['csrf'])) $_SESSION['csrf']=bin2hex(random_bytes(16)); $csrf=$_SESSION['csrf'];
-$q=trim($_GET['q']??''); $cat=$_GET['cat']??''; $sort=$_GET['sort']??'new'; $page=(int)($_GET['page']??1);
+$q=trim($_GET['q']??''); $cat=$_GET['cat']??''; $ptype=$_GET['ptype']??''; $sort=$_GET['sort']??'new'; $page=(int)($_GET['page']??1);
 // Derive cart count from session (after server add)
 $cartCount = 0; if(!empty($_SESSION['cart']) && is_array($_SESSION['cart'])){ foreach($_SESSION['cart'] as $c){ $cartCount += (int)($c['qty']??0); } }
-$filters=['q'=>$q,'cat'=>$cat,'page'=>$page,'limit'=>20,'sort'=>$sort,'include_inactive'=>true]; // limit changed 12->20
+$filters=['q'=>$q,'cat'=>$cat,'ptype'=>$ptype,'page'=>$page,'limit'=>20,'sort'=>$sort,'include_inactive'=>true]; // limit changed 12->20
 $res=product_fetch_paginated($connections,$filters); $items=$res['items']; $total=$res['total']; $pages=$res['pages']; $page=$res['page'];
 // If partial request (?partial=1) return only the products grid + pagination fragments for AJAX
 if(($_GET['partial']??'')==='1'){
@@ -17,7 +17,7 @@ if(($_GET['partial']??'')==='1'){
     <div class="paw-grid" id="products-grid">
         <?php if($total===0): ?>
             <p class="text-center col-span-full text-sm text-gray-500">No products found.</p>
-        <?php else: foreach($items as $p): $stock=(int)($p['products_stock']??0); $img=$p['products_image_url']??''; if($img && !preg_match('/^https?:/i',$img)) $img=ltrim($img,'/'); $inactive = !(int)($p['products_active'] ?? 0); $disabled = $stock<=0 || $inactive; ?>
+    <?php else: foreach($items as $p): $stock=(int)($p['products_stock']??0); $img=$p['products_image_url']??''; if($img && !preg_match('/^https?:/i',$img)) $img=ltrim($img,'/'); $inactive = !(int)($p['products_active'] ?? 0); $disabled = $stock<=0 || $inactive; ?>
             <div class="product-card relative" data-product-id="<?= (int)$p['products_id'] ?>" data-category="<?= h($p['products_category']) ?>" data-name="<?= strtolower(h($p['products_name'])) ?>">
                 <?php if($stock<=0): ?>
                     <div class="product-badge" style="background:linear-gradient(135deg,#6b7280,#374151)">Out</div>
@@ -41,27 +41,31 @@ if(($_GET['partial']??'')==='1'){
                                 </span>
                             <?php endif; ?>
                             <span class="text-[10px] text-gray-400">Stock: <?= $stock ?></span>
-                            <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold <?= $inactive ? 'bg-red-100 text-red-700 border border-red-300' : 'bg-green-100 text-green-700 border border-green-300' ?>"><?= $inactive ? 'Not Available' : 'Available' ?></span>
+                            <!-- Availability badge moved next to price -->
                         </div>
                     </div>
                     <div class="flex items-center justify-between gap-2">
                         <span class="text-xl font-bold text-orange-600">₱<?= number_format((float)$p['products_price'],2) ?></span>
-                        <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold <?= $inactive ? 'bg-red-100 text-red-700 border border-red-300' : 'bg-green-100 text-green-700 border border-green-300' ?>">
-                            <?= $inactive ? 'Not Available' : 'Available' ?>
+                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold <?= $inactive ? 'bg-red-100 text-red-700 border border-red-300' : 'bg-green-100 text-green-700 border border-green-300' ?>">
+                            <?= $inactive ? 'Unavailable' : 'Available' ?>
                         </span>
                     </div>
-                    <div class="flex gap-2">
-                        <button type="button" data-qv="<?= (int)$p['products_id'] ?>" class="quick-view-btn flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-2 px-4 rounded-lg transition-all duration-200 flex items-center justify-center gap-2 text-sm">
+                    <div class="flex gap-2 items-stretch">
+                        <button type="button" data-qv="<?= (int)$p['products_id'] ?>" class="quick-view-btn flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-2 px-3 rounded-lg transition-all duration-200 flex items-center justify-center gap-2 text-sm">
                             <i data-lucide="eye" class="w-4 h-4"></i> Quick View
                         </button>
-                        <form method="post" action="shop/cart_add.php" class="flex gap-2 ajax-cart-add" data-product-id="<?= (int)$p['products_id'] ?>" style="flex:1;">
-                            <input type="hidden" name="csrf" value="<?= h($csrf) ?>" />
-                            <input type="hidden" name="product_id" value="<?= (int)$p['products_id'] ?>" />
-                            <input type="number" name="qty" value="1" min="1" max="<?= max(1,$stock) ?>" class="w-20 rounded-lg border border-gray-300 px-2 py-2 text-sm" <?= $disabled?'disabled':''; ?> />
-                            <button type="submit" class="flex-1 <?= $disabled?'bg-gray-300 cursor-not-allowed':'bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700' ?> text-white font-medium py-2 px-4 rounded-lg transition-all duration-200 flex items-center justify-center gap-2 text-sm" <?= $disabled?'disabled':''; ?>>
-                                <i data-lucide="shopping-cart" class="w-4 h-4"></i> <?= $inactive ? 'Unavailable' : 'Add' ?>
-                            </button>
-                        </form>
+                        <?php if($disabled): ?>
+                            <span class="inline-flex flex-1 items-center justify-center px-2 py-1 rounded-md bg-red-100 text-red-700 border border-red-300 text-[10px] font-semibold tracking-tight leading-none">Unavailable</span>
+                        <?php else: ?>
+                            <form method="post" action="shop/cart_add.php" class="flex gap-2 ajax-cart-add" data-product-id="<?= (int)$p['products_id'] ?>" style="flex:1;">
+                                <input type="hidden" name="csrf" value="<?= h($csrf) ?>" />
+                                <input type="hidden" name="product_id" value="<?= (int)$p['products_id'] ?>" />
+                                <input type="number" name="qty" value="1" min="1" max="<?= max(1,$stock) ?>" class="w-16 rounded-lg border border-gray-300 px-2 py-2 text-xs" />
+                                <button type="submit" class="flex-1 bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white font-medium py-2 px-3 rounded-lg transition-all duration-200 flex items-center justify-center gap-1 text-xs">
+                                    <i data-lucide="shopping-cart" class="w-4 h-4"></i><span>Add</span>
+                                </button>
+                            </form>
+                        <?php endif; ?>
                     </div>
                 </div>
             </div>
@@ -631,10 +635,14 @@ if(($_GET['partial']??'')==='1'){
                                         <input id="search-input" type="text" name="q" class="search-input" placeholder="Search for products..." value="<?= h($q) ?>" />
                                         <i data-lucide="search" class="search-icon w-5 h-5"></i>
                                     </div>
-                                    <div class="sort-wrapper">
+                                    <div class="sort-wrapper" style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;">
                                         <label style="font-size:12px;color:#6b7280;">Sort:</label>
-                                        <select name="sort" onchange="this.form.submit()">
+                                        <select name="sort" id="sort-select">
                                             <?php $opts=['new'=>'Newest','price_asc'=>'Price ↑','price_desc'=>'Price ↓','name_asc'=>'Name A-Z','name_desc'=>'Name Z-A','stock_desc'=>'Stock']; foreach($opts as $k=>$label){ $sel=$sort===$k?'selected':''; echo '<option value="'.h($k).'" '.$sel.'>'.h($label).'</option>'; } ?>
+                                        </select>
+                                        <label style="font-size:12px;color:#6b7280;">Pet Type:</label>
+                                        <select name="ptype" id="ptype-select">
+                                            <?php $petTypes=[''=>'All','Dog'=>'Dog','Cat'=>'Cat','Bird'=>'Bird','Fish'=>'Fish','Reptile'=>'Reptile','Small Pet'=>'Small Pet','Other'=>'Other']; foreach($petTypes as $val=>$label){ $sel=$ptype===$val?'selected':''; echo '<option value="'.h($val).'" '.$sel.'>'.h($label).'</option>'; } ?>
                                         </select>
                                     </div>
                                 </div>
@@ -665,7 +673,7 @@ if(($_GET['partial']??'')==='1'){
                         <div class="paw-grid" id="products-grid">
                             <?php if($total===0): ?>
                                 <p class="text-center col-span-full text-sm text-gray-500">No products found.</p>
-                            <?php else: foreach($items as $p): $stock=(int)($p['products_stock']??0); $img=$p['products_image_url']??''; if($img && !preg_match('/^https?:/i',$img)) $img=ltrim($img,'/'); $disabled=$stock<=0; ?>
+                            <?php else: foreach($items as $p): $stock=(int)($p['products_stock']??0); $img=$p['products_image_url']??''; if($img && !preg_match('/^https?:/i',$img)) $img=ltrim($img,'/'); $inactive = !(int)($p['products_active'] ?? 0); $disabled=$stock<=0 || $inactive; ?>
                                 <div class="product-card" data-product-id="<?= (int)$p['products_id'] ?>" data-category="<?= h($p['products_category']) ?>" data-name="<?= strtolower(h($p['products_name'])) ?>">
                                     <?php if($stock<=0): ?><div class="product-badge" style="background:linear-gradient(135deg,#6b7280,#374151)">Out</div><?php endif; ?>
                                     <div class="product-image">
@@ -689,19 +697,26 @@ if(($_GET['partial']??'')==='1'){
                                                 <span class="text-[10px] text-gray-400">Stock: <?= $stock ?></span>
                                             </div>
                                         </div>
-                                        <div class="flex items-center justify-between">
+                                        <div class="flex items-center justify-between gap-2">
                                             <span class="text-xl font-bold text-orange-600">₱<?= number_format((float)$p['products_price'],2) ?></span>
+                                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold <?= $inactive ? 'bg-red-100 text-red-700 border border-red-300' : 'bg-green-100 text-green-700 border border-green-300' ?>">
+                                                <?= $inactive ? 'Unavailable' : 'Available' ?>
+                                            </span>
                                         </div>
-                                        <div class="flex gap-2">
-                                            <button type="button" data-qv="<?= (int)$p['products_id'] ?>" class="quick-view-btn flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-2 px-4 rounded-lg transition-all duration-200 flex items-center justify-center gap-2 text-sm">
-                                                <i data-lucide="eye" class="w-4 h-4"></i> Quick View
+                                        <div class="flex gap-2 items-stretch">
+                                            <button type="button" data-qv="<?= (int)$p['products_id'] ?>" class="quick-view-btn flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-2 px-3 rounded-lg transition-all duration-200 flex items-center justify-center gap-1.5 text-sm">
+                                                <i data-lucide="eye" class="w-4 h-4"></i> <span class="hidden sm:inline">Quick View</span>
                                             </button>
-                                            <form method="post" action="shop/cart_add.php" class="flex gap-2 ajax-cart-add" data-product-id="<?= (int)$p['products_id'] ?>" style="flex:1;">
-                                                <input type="hidden" name="csrf" value="<?= h($csrf) ?>" />
-                                                <input type="hidden" name="product_id" value="<?= (int)$p['products_id'] ?>" />
-                                                <input type="number" name="qty" value="1" min="1" max="<?= max(1,$stock) ?>" class="w-20 rounded-lg border border-gray-300 px-2 py-2 text-sm" <?= $disabled?'disabled':''; ?> />
-                                                <button type="submit" class="flex-1 bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white font-medium py-2 px-4 rounded-lg transition-all duration-200 flex items-center justify-center gap-2 text-sm" <?= $disabled?'disabled':''; ?>><i data-lucide="shopping-cart" class="w-4 h-4"></i> Add</button>
-                                            </form>
+                                            <?php if($disabled): ?>
+                                                <span class="inline-flex flex-1 items-center justify-center px-2 py-1 rounded-md bg-red-100 text-red-700 border border-red-300 text-[10px] font-semibold tracking-tight leading-none">Unavailable</span>
+                                            <?php else: ?>
+                                                <form method="post" action="shop/cart_add.php" class="flex gap-2 ajax-cart-add" data-product-id="<?= (int)$p['products_id'] ?>" style="flex:1;">
+                                                    <input type="hidden" name="csrf" value="<?= h($csrf) ?>" />
+                                                    <input type="hidden" name="product_id" value="<?= (int)$p['products_id'] ?>" />
+                                                    <input type="number" name="qty" value="1" min="1" max="<?= max(1,$stock) ?>" class="w-16 rounded-lg border border-gray-300 px-2 py-1.5 text-xs" />
+                                                    <button type="submit" class="flex-1 bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white font-medium py-2 px-3 rounded-lg transition-all duration-200 flex items-center justify-center gap-1.5 text-sm"><i data-lucide="shopping-cart" class="w-4 h-4"></i><span class="hidden sm:inline">Add</span></button>
+                                                </form>
+                                            <?php endif; ?>
                                         </div>
                                     </div>
                                 </div>
@@ -710,7 +725,7 @@ if(($_GET['partial']??'')==='1'){
                         <div id="pagination-wrapper">
                         <?php if($pages>1): ?>
                             <div class="mt-10 flex flex-wrap gap-2 justify-center text-sm">
-                                <?php $qs=[]; if($q!=='') $qs['q']=$q; if($cat!=='') $qs['cat']=$cat; if($sort!=='new') $qs['sort']=$sort; for($i=1;$i<=$pages;$i++){ $qs['page']=$i; $href='?'.http_build_query($qs); $active=$i===$page?'background:linear-gradient(135deg,#f97316,#fb923c);color:#fff;border-color:#f97316':'background:#fff;color:#374151;'; echo '<a class="page-link" data-page="'.h($i).'" style="padding:10px 16px;border:2px solid #fcd9b6;border-radius:14px;font-weight:500;'.$active.'" href="'.h($href).'">'.$i.'</a>'; } ?>
+                                <?php $qs=[]; if($q!=='') $qs['q']=$q; if($cat!=='') $qs['cat']=$cat; if($ptype!=='') $qs['ptype']=$ptype; if($sort!=='new') $qs['sort']=$sort; for($i=1;$i<=$pages;$i++){ $qs['page']=$i; $href='?'.http_build_query($qs); $active=$i===$page?'background:linear-gradient(135deg,#f97316,#fb923c);color:#fff;border-color:#f97316':'background:#fff;color:#374151;'; echo '<a class="page-link" data-page="'.h($i).'" style="padding:10px 16px;border:2px solid #fcd9b6;border-radius:14px;font-weight:500;'.$active.'" href="'.h($href).'">'.$i.'</a>'; } ?>
                             </div>
                         <?php endif; ?>
                         </div><!-- /pagination-wrapper -->
@@ -947,33 +962,66 @@ if(($_GET['partial']??'')==='1'){
             }catch(err){ showDrawerNotification('Remove failed','error'); }
         }
     });
-    // Debounced server-side search submit
-    (function initDebouncedSearch(){
+    // AJAX search + direct open if single/exact match
+    (function initAjaxSearch(){
         const input=document.getElementById('search-input');
-        if(!input) return;
-        let timer; const form=input.closest('form');
-        input.addEventListener('input',()=>{
-            clearTimeout(timer);
-            timer=setTimeout(()=>{ if(form) form.submit(); }, 450); // 450ms debounce
-        });
-        // Submit on Enter immediately
-        input.addEventListener('keydown',e=>{ if(e.key==='Enter'){ clearTimeout(timer); if(form) form.submit(); }});
+        const form=input?input.closest('form'):null;
+        if(!input||!form) return;
+        let timer;
+        form.addEventListener('submit',e=>{ e.preventDefault(); performSearch(); });
+        input.addEventListener('input',()=>{ clearTimeout(timer); timer=setTimeout(performSearch,400); });
+        input.addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); clearTimeout(timer); performSearch(true); }});
+        async function performSearch(openIfSingle=false){
+            const fd=new FormData(form);
+            const params=new URLSearchParams(fd).toString();
+            const url=window.location.pathname+'?'+params+'&partial=1';
+            const productsWrapper=document.getElementById('products-wrapper');
+            try{
+                productsWrapper.classList.add('opacity-50');
+                const res=await fetch(url,{headers:{'X-Requested-With':'fetch'}});
+                const html=await res.text();
+                const temp=document.createElement('div'); temp.innerHTML=html;
+                const newGrid=temp.querySelector('#products-grid');
+                const newPagination=temp.querySelector('#pagination-wrapper');
+                if(newGrid && document.getElementById('products-grid')) document.getElementById('products-grid').replaceWith(newGrid);
+                if(newPagination && document.getElementById('pagination-wrapper')) document.getElementById('pagination-wrapper').replaceWith(newPagination);
+                if(window.lucide) lucide.createIcons();
+                document.dispatchEvent(new CustomEvent('ajax:products-updated'));
+                window.history.replaceState({},'',window.location.pathname+'?'+params);
+                productsWrapper.classList.remove('opacity-50');
+                if(openIfSingle){
+                    const cards=document.querySelectorAll('#products-grid .product-card');
+                    if(cards.length===1){ const id=cards[0].getAttribute('data-product-id'); if(id) openQuickViewDb(id); }
+                    else {
+                        const q=input.value.trim().toLowerCase();
+                        if(q){
+                            for(const c of cards){
+                                const name=c.getAttribute('data-name')||'';
+                                if(name===q){ const id=c.getAttribute('data-product-id'); if(id){ openQuickViewDb(id); break; } }
+                            }
+                        }
+                    }
+                }
+            }catch(err){ productsWrapper.classList.remove('opacity-50'); console.error(err); }
+        }
     })();
 
-    // Category tabs + pagination AJAX (no full refresh)
+    // Category tabs + pagination + sort + pet type AJAX (no full refresh, preserve scroll)
     (function initAjaxCategoryAndPagination(){
         const form=document.querySelector('.search-container form');
         const catInput=document.getElementById('cat-input');
+        const ptypeSelect=document.getElementById('ptype-select');
+        const sortSelect=document.getElementById('sort-select');
         const productsWrapper=document.getElementById('products-wrapper');
         function serialize(){ const fd=new FormData(form); return new URLSearchParams(fd).toString(); }
         function setActive(cat){ document.querySelectorAll('.category-tab').forEach(b=>{ b.classList.toggle('active', (b.getAttribute('data-cat')||'')===cat || (cat==='' && (b.getAttribute('data-cat')||'')==='all')); }); }
         async function fetchAndRender(params){
             try {
+                const previousScroll = window.scrollY;
                 productsWrapper.classList.add('opacity-50');
                 const url=window.location.pathname+'?'+params+'&partial=1';
                 const res=await fetch(url,{headers:{'X-Requested-With':'fetch'}});
                 const html=await res.text();
-                // Expect server returns only inner HTML fragments (grid + pagination)
                 const temp=document.createElement('div'); temp.innerHTML=html;
                 const newGrid=temp.querySelector('#products-grid');
                 const newPagination=temp.querySelector('#pagination-wrapper');
@@ -982,12 +1030,15 @@ if(($_GET['partial']??'')==='1'){
                 if(window.lucide) lucide.createIcons();
                 document.dispatchEvent(new CustomEvent('ajax:products-updated'));
                 productsWrapper.classList.remove('opacity-50');
+                window.scrollTo({top:previousScroll, behavior:'instant'});
             } catch(e){ productsWrapper.classList.remove('opacity-50'); console.error(e); }
         }
         function updateUrl(params){ const newUrl=window.location.pathname+'?'+params; window.history.replaceState({},'',newUrl); }
         function onCategoryClick(e){ const btn=e.target.closest('.category-tab'); if(!btn) return; const val=btn.getAttribute('data-cat')||''; const normalized=(val==='all')?'':val; if(catInput) catInput.value=normalized; setActive(val); const params=serialize(); updateUrl(params); fetchAndRender(params); }
         function onPaginationClick(e){ const link=e.target.closest('.page-link'); if(!link) return; e.preventDefault(); const page=link.getAttribute('data-page'); const fd=new FormData(form); fd.set('page', page); const params=new URLSearchParams(fd).toString(); updateUrl(params); fetchAndRender(params); }
         document.getElementById('category-tabs')?.addEventListener('click',onCategoryClick);
+        if(ptypeSelect){ ptypeSelect.addEventListener('change',()=>{ const params=serialize(); updateUrl(params); fetchAndRender(params); }); }
+        if(sortSelect){ sortSelect.addEventListener('change',()=>{ const params=serialize(); updateUrl(params); fetchAndRender(params); }); }
         document.addEventListener('click',onPaginationClick);
     })();
 

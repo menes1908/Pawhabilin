@@ -3,6 +3,21 @@ header('Content-Type: application/json');
 require_once __DIR__ . '/../../database.php';
 require_once __DIR__ . '/../../utils/helper.php';
 
+// Ensure points tables & required columns exist (self-healing migration)
+function ensure_points_schema($conn){
+    if(!$conn) return;
+    // Create tables if missing (matching expected columns)
+    @mysqli_query($conn, "CREATE TABLE IF NOT EXISTS user_points_balance (users_id INT PRIMARY KEY, upb_points INT NOT NULL DEFAULT 0, upb_updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;");
+    @mysqli_query($conn, "CREATE TABLE IF NOT EXISTS user_points_ledger (upl_id INT AUTO_INCREMENT PRIMARY KEY, users_id INT NOT NULL, upl_points INT NOT NULL, upl_reason VARCHAR(100), upl_source_type VARCHAR(50), upl_source_id INT, upl_created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, UNIQUE KEY uniq_source(users_id,upl_source_type,upl_source_id), KEY idx_user(users_id)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;");
+    // Add missing columns defensively (older installs may lack them)
+    // Suppress errors if they already exist
+    @mysqli_query($conn, "ALTER TABLE user_points_balance ADD COLUMN upb_points INT NOT NULL DEFAULT 0 AFTER users_id");
+    @mysqli_query($conn, "ALTER TABLE user_points_ledger ADD COLUMN upl_points INT NOT NULL DEFAULT 0 AFTER users_id");
+    @mysqli_query($conn, "ALTER TABLE user_points_ledger ADD COLUMN upl_reason VARCHAR(100) AFTER upl_points");
+    @mysqli_query($conn, "ALTER TABLE user_points_ledger ADD COLUMN upl_source_type VARCHAR(50) AFTER upl_reason");
+    @mysqli_query($conn, "ALTER TABLE user_points_ledger ADD COLUMN upl_source_id INT AFTER upl_source_type");
+}
+
 function json_out($ok, $payload = []){
     echo json_encode($ok ? array_merge(['success'=>true], $payload) : array_merge(['success'=>false], $payload));
     exit;
@@ -46,9 +61,32 @@ if ($action === 'get') {
     json_out(false, ['error'=>'Query failed']);
 }
 
+if ($action === 'award_status') {
+    // Return list of appointment IDs that have ledger entries (points awarded)
+    $ids = [];
+    // Ensure ledger table exists quietly
+    @mysqli_query($connections, "CREATE TABLE IF NOT EXISTS user_points_ledger (upl_id INT AUTO_INCREMENT PRIMARY KEY, users_id INT NOT NULL, upl_points INT NOT NULL, upl_reason VARCHAR(100), upl_source_type VARCHAR(50), upl_source_id INT, upl_created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, UNIQUE KEY uniq_source(users_id,upl_source_type,upl_source_id), KEY idx_user(users_id)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;");
+    if ($res = mysqli_query($connections, "SELECT DISTINCT upl_source_id FROM user_points_ledger WHERE upl_source_type='appointment'")) {
+        while($r = mysqli_fetch_row($res)) { $ids[] = (int)$r[0]; }
+        mysqli_free_result($res);
+    }
+    json_out(true, ['awarded'=>$ids]);
+}
+
 if ($action === 'update') {
     $id = intval($_POST['appointments_id'] ?? 0);
     if ($id <= 0) json_out(false, ['error'=>'Invalid id']);
+
+    // Fetch previous state (users_id + status) to detect status transition
+    $prev_status = null; $appt_user_id = null;
+    if ($stmt0 = mysqli_prepare($connections, "SELECT users_id, appointments_status FROM appointments WHERE appointments_id=? LIMIT 1")) {
+        mysqli_stmt_bind_param($stmt0,'i',$id);
+        if (mysqli_stmt_execute($stmt0)) {
+            mysqli_stmt_bind_result($stmt0,$uid_prev,$status_prev);
+            if (mysqli_stmt_fetch($stmt0)) { $appt_user_id = (int)$uid_prev; $prev_status = $status_prev; }
+        }
+        mysqli_stmt_close($stmt0);
+    }
 
     $full = trim($_POST['appointments_full_name'] ?? '');
     $email = trim($_POST['appointments_email'] ?? '');
@@ -59,7 +97,8 @@ if ($action === 'update') {
     $age = trim($_POST['appointments_pet_age_years'] ?? '');
     $type = trim($_POST['appointments_type'] ?? 'pet_sitting');
     $dtIso = trim($_POST['appointments_date'] ?? '');
-    $status = trim($_POST['appointments_status'] ?? 'pending');
+    // Normalize status to lowercase for consistent comparisons (UI may send 'Completed')
+    $status = strtolower(trim($_POST['appointments_status'] ?? 'pending'));
     $aa_notes = trim($_POST['aa_notes'] ?? '');
 
     $dt = $dtIso ? str_replace('T', ' ', $dtIso) : null;
@@ -109,6 +148,40 @@ if ($action === 'update') {
         ]
     ]);
 
+    // Points awarding (30) if status transitioned to completed for a subscribed user
+    $awarded = false; $award_points = 30; $new_balance = null;
+    if ($status === 'completed' && $prev_status !== 'completed' && $appt_user_id) {
+        // Check active subscription requirement
+        $has_sub = false;
+        if ($res_sub = mysqli_query($connections, "SELECT 1 FROM user_subscriptions WHERE users_id=".(int)$appt_user_id." AND us_status='active' AND (us_end_date IS NULL OR us_end_date >= NOW()) LIMIT 1")) {
+            if (mysqli_fetch_row($res_sub)) $has_sub = true; mysqli_free_result($res_sub);
+        }
+        if ($has_sub) {
+            // Ensure schema consistent
+            ensure_points_schema($connections);
+            // Insert ledger entry (IGNORE duplicates to prevent double-award)
+            if ($stmtL = mysqli_prepare($connections, "INSERT IGNORE INTO user_points_ledger (users_id,upl_points,upl_reason,upl_source_type,upl_source_id) VALUES (?,?,?,?,?)")) {
+                $reason = 'Appointment Completed'; $stype='appointment'; $srcId=$id; $pts=$award_points; $uid_ins=$appt_user_id;
+                mysqli_stmt_bind_param($stmtL,'iissi',$uid_ins,$pts,$reason,$stype,$srcId);
+                if (mysqli_stmt_execute($stmtL)) {
+                    if (mysqli_stmt_affected_rows($stmtL) === 1) {
+                        // Upsert balance
+                        mysqli_query($connections, "INSERT INTO user_points_balance (users_id, upb_points) VALUES ($uid_ins, $pts) ON DUPLICATE KEY UPDATE upb_points = upb_points + VALUES(upb_points)");
+                        // Fetch new balance
+                        if ($resB = mysqli_query($connections, "SELECT upb_points FROM user_points_balance WHERE users_id=$uid_ins LIMIT 1")) {
+                            if ($rowB = mysqli_fetch_assoc($resB)) { $new_balance = (int)$rowB['upb_points']; $awarded = true; }
+                            mysqli_free_result($resB);
+                        }
+                    } else {
+                        // Duplicate (already awarded)
+                        if ($resB2 = mysqli_query($connections, "SELECT upb_points FROM user_points_balance WHERE users_id=$uid_ins LIMIT 1")) { if ($rowB2 = mysqli_fetch_assoc($resB2)) { $new_balance = (int)$rowB2['upb_points']; } mysqli_free_result($resB2); }
+                    }
+                }
+                mysqli_stmt_close($stmtL);
+            }
+        }
+    }
+
     json_out(true, ['item'=>[
         'id'=>$id,
         'full_name'=>$full,
@@ -124,7 +197,7 @@ if ($action === 'update') {
         'status'=>$status,
         'status_chip_html'=>$chip,
         'notes'=>$aa_notes
-    ]]);
+    ], 'points_awarded'=>$awarded? $award_points:0, 'new_points_balance'=>$new_balance]);
 }
 
 if ($action === 'delete') {

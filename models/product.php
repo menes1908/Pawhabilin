@@ -62,6 +62,16 @@ if (!function_exists('product_build_where')) {
             $params[] = $filters['cat'];
             $types .= 's';
         }
+        // Pet type filtering (exact match). We accept only a limited set of safe values to avoid unexpected injections.
+        if (!empty($filters['ptype'])) {
+            // Whitelist common pet types (adjust as needed)
+            $allowed = ['Dog','Cat','Bird','Fish','Reptile','Small Pet','Other'];
+            if (in_array($filters['ptype'], $allowed, true)) {
+                $clauses[] = 'products_pet_type = ?';
+                $params[] = $filters['ptype'];
+                $types .= 's';
+            }
+        }
         if (!$clauses) {
             return ''; // No WHERE clause needed (select all, including inactive)
         }

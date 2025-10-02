@@ -1763,11 +1763,23 @@ function resolveImageUrl($path) {
                     <div class="bg-white rounded-lg border border-gray-200">
                         <div class="p-6 border-b border-gray-200">
                             <div class="flex flex-col gap-3">
-                                <div class="flex items-center justify-between gap-3">
+                                <div class="flex items-center justify-between gap-3 flex-wrap">
                                     <h3 class="text-lg font-semibold">All Appointments</h3>
-                                    <div class="relative">
-                                        <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4"></i>
-                                        <input id="appointmentsSearch" type="text" placeholder="Search appointments..." class="pl-9 pr-3 py-2 border border-gray-300 rounded-md w-72" />
+                                    <div class="flex items-center gap-3">
+                                        <div class="relative">
+                                            <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4"></i>
+                                            <input id="appointmentsSearch" type="text" placeholder="Search appointments..." class="pl-9 pr-3 py-2 border border-gray-300 rounded-md w-72" />
+                                        </div>
+                                        <div class="flex items-center gap-2">
+                                            <label for="apptStatusFilter" class="text-sm text-gray-600">Status:</label>
+                                            <select id="apptStatusFilter" class="px-2 py-1 border border-gray-300 rounded-md text-sm">
+                                                <option value="">All</option>
+                                                <option value="pending">Pending</option>
+                                                <option value="confirmed">Confirmed</option>
+                                                <option value="completed">Completed</option>
+                                                <option value="cancelled">Cancelled</option>
+                                            </select>
+                                        </div>
                                     </div>
                                 </div>
                                 <div id="apptTabs" class="flex items-center gap-2">
@@ -3752,6 +3764,7 @@ function resolveImageUrl($path) {
                 const timeFrom = document.getElementById('apptTimeFrom');
                 const timeTo = document.getElementById('apptTimeTo');
                 const resetBtn = document.getElementById('resetApptFilters');
+                const statusFilter = document.getElementById('apptStatusFilter');
 
                 let currentService = 'all';
 
@@ -3773,6 +3786,11 @@ function resolveImageUrl($path) {
                     if (q) {
                         const hay = tr.getAttribute('data-search') || '';
                         if (!hay.includes(q)) return false;
+                    }
+                    // Status filter
+                    if (statusFilter && statusFilter.value) {
+                        const rowStatus = (tr.getAttribute('data-status') || '').toLowerCase();
+                        if (rowStatus !== statusFilter.value.toLowerCase()) return false;
                     }
                     return true;
                 }
@@ -3869,12 +3887,14 @@ function resolveImageUrl($path) {
 
                 [search, dateFrom, dateTo, timeFrom, timeTo].forEach(el => { if (el) el.addEventListener('input', applyFilters); });
                 [dateFrom, dateTo, timeFrom, timeTo].forEach(el => { if (el) el.addEventListener('change', applyFilters); });
+                if (statusFilter) statusFilter.addEventListener('change', applyFilters);
                 if (resetBtn) resetBtn.addEventListener('click', () => {
                     if (dateFrom) dateFrom.value = '';
                     if (dateTo) dateTo.value = '';
                     if (timeFrom) timeFrom.value = '';
                     if (timeTo) timeTo.value = '';
                     if (search) search.value = '';
+                    if (statusFilter) statusFilter.value = '';
                     currentService = 'all';
                     // activate All tab
                     const allTab = document.querySelector('#apptTabs [data-appt-filter="all"]');

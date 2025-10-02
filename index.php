@@ -1,3 +1,8 @@
+<?php
+// Attempt silent session restore early for root landing page
+if (session_status() !== PHP_SESSION_ACTIVE) { @session_start(); }
+require_once __DIR__ . '/utils/auth_persist.php';
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>

@@ -44,6 +44,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         'users_image_url' => (string)($row['users_image_url'] ?? ''),
                         'users_role' => (string)$row['users_role'],
                     ];
+                    // Ensure compatibility with access control (admin.php expects these root keys)
+                    $_SESSION['users_id'] = (int)$row['users_id'];
+                    $_SESSION['users_role'] = (string)$row['users_role'];
 
                     // Audit: login success
                     log_admin_action($connections, 'auth_login', [

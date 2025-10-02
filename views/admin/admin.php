@@ -1,5 +1,7 @@
 <?php
+// --- Access Control & Admin Session Bootstrap ---
 session_start();
+require_once __DIR__ . '/../../utils/auth_persist.php'; // maintain login across visits
 require_once __DIR__ . '/../../database.php';
 
 $admin = [
@@ -8,57 +10,42 @@ $admin = [
     'users_lastname' => '',
     'users_username' => '',
     'users_email' => '',
-    'users_image_url' => ''
+    'users_image_url' => '',
+    'users_role' => ''
 ];
 
-$adminId = isset($_SESSION['users_id']) ? intval($_SESSION['users_id']) : null;
-if (!$adminId && !empty($_SESSION['users_email'])) {
-    if ($stmt = mysqli_prepare($connections, "SELECT users_id FROM users WHERE users_email = ? LIMIT 1")) {
-        mysqli_stmt_bind_param($stmt, 's', $_SESSION['users_email']);
-        mysqli_stmt_execute($stmt);
-        mysqli_stmt_bind_result($stmt, $foundId);
-        if (mysqli_stmt_fetch($stmt)) { $adminId = intval($foundId); }
-        mysqli_stmt_close($stmt);
-    }
+// 1. If NO logged-in user -> redirect guest to public landing (root index)
+if (empty($_SESSION['users_id'])) {
+    header('Location: ../../error.php');
+    exit; // stop further processing
 }
 
-if ($adminId) {
-    if ($stmt = mysqli_prepare($connections, "SELECT users_id, users_firstname, users_lastname, users_username, users_email, users_image_url, users_role FROM users WHERE users_id = ? LIMIT 1")) {
-        mysqli_stmt_bind_param($stmt, 'i', $adminId);
-        mysqli_stmt_execute($stmt);
-        mysqli_stmt_bind_result($stmt, $uid, $fn, $ln, $un, $em, $img, $role);
-        if (mysqli_stmt_fetch($stmt)) {
-            $admin = [
-                'users_id' => $uid,
-                'users_firstname' => $fn,
-                'users_lastname' => $ln,
-                'users_username' => $un,
-                'users_email' => $em,
-                'users_image_url' => $img ?? ''
-            ];
-        }
-        mysqli_stmt_close($stmt);
+$currentUserId = (int)$_SESSION['users_id'];
+
+// 2. Fetch the current user record (role required for gate)
+if ($stmt = mysqli_prepare($connections, "SELECT users_id, users_firstname, users_lastname, users_username, users_email, users_image_url, users_role FROM users WHERE users_id = ? LIMIT 1")) {
+    mysqli_stmt_bind_param($stmt, 'i', $currentUserId);
+    mysqli_stmt_execute($stmt);
+    mysqli_stmt_bind_result($stmt, $uid, $fn, $ln, $un, $em, $img, $role);
+    if (mysqli_stmt_fetch($stmt)) {
+        $admin['users_id'] = $uid;
+        $admin['users_firstname'] = $fn;
+        $admin['users_lastname'] = $ln;
+        $admin['users_username'] = $un;
+        $admin['users_email'] = $em;
+        $admin['users_image_url'] = $img;
+        $admin['users_role'] = (string)$role;
     }
+    mysqli_stmt_close($stmt);
 }
 
-// If still no admin id, fallback to first admin-role user
-if (!$adminId) {
-    if ($stmt = mysqli_prepare($connections, "SELECT users_id, users_firstname, users_lastname, users_username, users_email, users_image_url FROM users WHERE users_role = '1' ORDER BY users_id ASC LIMIT 1")) {
-        mysqli_stmt_execute($stmt);
-        mysqli_stmt_bind_result($stmt, $uid, $fn, $ln, $un, $em, $img);
-        if (mysqli_stmt_fetch($stmt)) {
-            $admin = [
-                'users_id' => $uid,
-                'users_firstname' => $fn,
-                'users_lastname' => $ln,
-                'users_username' => $un,
-                'users_email' => $em,
-                'users_image_url' => $img ?? ''
-            ];
-        }
-        mysqli_stmt_close($stmt);
-    }
+// 3. If logged-in user is NOT an admin (role != '1') -> redirect to user homepage (no error page flash)
+if (($admin['users_role'] ?? '') !== '1') {
+    header('Location: ../users/error403.php');
+    exit;
 }
+
+// (Removed insecure fallback that auto-selected the first admin account.)
 
 $admin_fullname = trim(($admin['users_firstname'] ?? '') . ' ' . ($admin['users_lastname'] ?? '')) ?: 'Admin User';
 $admin_initial = strtoupper(substr(($admin['users_firstname'] ?? '') !== '' ? $admin['users_firstname'] : ($admin['users_username'] ?? 'A'), 0, 1));
@@ -212,6 +199,8 @@ function resolveImageUrl($path) {
     return '../../' . ltrim($path, '/');
 }
 ?>
+
+
 <!DOCTYPE html>
 <html lang="en">
 <head>

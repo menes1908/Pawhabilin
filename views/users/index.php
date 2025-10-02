@@ -1,7 +1,8 @@
 <?php
-// Ensure session is started before any output so header-users can detect auth state
+// Ensure session & persistent auth restoration before any output
 require_once __DIR__ . '/../../utils/session.php';
 session_start_if_needed();
+require_once __DIR__ . '/../../utils/auth_persist.php'; // silent auto-restore if cookie present
 ?>
 <!DOCTYPE html>
 <html lang="en">

@@ -248,19 +248,19 @@ if(isset($connections) && $connections && $usersId>0){
                                 <div class="flex flex-wrap items-center gap-2">
                                     <?php if(!$sig): ?>
                                         <?php if(in_array($status,['processing','pending'])): ?>
-                                            <form method="post" onsubmit="return confirm('Cancel this order?');" class="inline">
+                                            <form method="post" target="_self" onsubmit="return confirm('Cancel this order?');" class="inline">
                                                 <input type="hidden" name="action" value="cancel_order" />
                                                 <input type="hidden" name="transactions_id" value="<?php echo $tid; ?>" />
-                                                <button class="px-2 py-1 rounded-md border text-gray-600 hover:bg-gray-50">Cancel</button>
+                                                <button type="submit" class="px-2 py-1 rounded-md border text-gray-600 hover:bg-gray-50">Cancel</button>
                                             </form>
                                         <?php elseif($status==='out_for_delivery'): ?>
                                             <button type="button" disabled title="Already out for delivery – cancellation disabled" class="px-2 py-1 rounded-md border text-gray-400 bg-gray-50 cursor-not-allowed opacity-60">Cancel</button>
                                         <?php endif; ?>
                                         <?php if(in_array($status,['out_for_delivery','processing','pending','delivered']) && !$sig): ?>
-                                            <form method="post" onsubmit="return confirm('Mark as received?');" class="inline">
+                                            <form method="post" target="_self" onsubmit="return confirm('Mark as received?');" class="inline">
                                                 <input type="hidden" name="action" value="mark_received" />
                                                 <input type="hidden" name="transactions_id" value="<?php echo $tid; ?>" />
-                                                <button class="px-2 py-1 rounded-md border text-emerald-600 hover:bg-emerald-50">Received</button>
+                                                <button type="submit" class="px-2 py-1 rounded-md border text-emerald-600 hover:bg-emerald-50">Received</button>
                                             </form>
                                         <?php endif; ?>
                                     <?php else: ?>

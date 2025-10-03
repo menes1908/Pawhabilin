@@ -745,6 +745,21 @@ if(($_GET['partial']??'')==='1'){
     <script>
     document.addEventListener('DOMContentLoaded',()=>{ if(window.lucide) lucide.createIcons(); ensureDrawerRoot(); });
 
+    // Smooth scroll helper for hero "Shop Now" button
+    function scrollToProducts(){
+        const target = document.getElementById('products-section');
+        if(!target) return;
+        try{ closeQuickView(); }catch(_){ }
+        const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        const top = target.getBoundingClientRect().top + window.pageYOffset - 20;
+        if('scrollBehavior' in document.documentElement.style && !prefersReduced){
+            window.scrollTo({ top, behavior:'smooth' });
+        } else {
+            window.scrollTo(0, top);
+        }
+        if(!prefersReduced){ setTimeout(()=>{ try{ target.setAttribute('tabindex','-1'); target.focus({preventScroll:true}); }catch(_){} },700); }
+    }
+
     // Ensure relative DB image paths work in this page (views/users/*) by prefixing project base
     const IMAGE_BASE='../../';
     function normalizeImageUrl(u){

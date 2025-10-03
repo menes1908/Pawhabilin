@@ -735,6 +735,25 @@ if(($_GET['partial']??'')==='1'){
     <script>
     document.addEventListener('DOMContentLoaded',()=>{ if(window.lucide) lucide.createIcons(); ensureDrawerRoot(); });
 
+    // Smooth scroll helper for hero "Shop Now" button
+    function scrollToProducts(){
+        const target = document.getElementById('products-section');
+        if(!target){ return; }
+        // If drawer open, close it first to avoid overlay during scroll
+        try{ closeQuickView(); }catch(_){ }
+        const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        const top = target.getBoundingClientRect().top + window.pageYOffset - 20; // slight offset
+        if('scrollBehavior' in document.documentElement.style && !prefersReduced){
+            window.scrollTo({ top, behavior:'smooth' });
+        } else {
+            window.scrollTo(0, top);
+        }
+        // Optional subtle focus style for accessibility after scroll completes
+        if(!prefersReduced){
+            setTimeout(()=>{ try{ target.setAttribute('tabindex','-1'); target.focus({preventScroll:true}); }catch(_){} }, 700);
+        }
+    }
+
     // Quick View (DB powered)
     async function openQuickViewDb(id){
         // Show drawer immediately with loading skeleton for responsiveness
@@ -1076,6 +1095,19 @@ function updateCartCount(n){
     const el=document.getElementById('cart-count');
     if(el) el.textContent = n;
     try{ syncDrawerCartCount(); }catch(_){ }
+}
+
+// Guest add-to-cart interception: if not logged in, redirect to login with redirect target
+const IS_LOGGED_IN = <?php echo isset($_SESSION['user']) ? 'true':'false'; ?>;
+if(!IS_LOGGED_IN){
+    document.addEventListener('submit', (e)=>{
+        const f = e.target;
+        if(f.matches('form.ajax-cart-add')){
+            e.preventDefault();
+            window.location.href = 'login.php?redirect=' + encodeURIComponent('views/users/buy_products.php');
+        }
+    });
+    // Also disable AJAX binding that would otherwise attempt add
 }
 
 // Bind on initial load and after AJAX fragment swaps

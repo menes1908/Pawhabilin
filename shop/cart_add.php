@@ -3,6 +3,15 @@
 if (session_status() === PHP_SESSION_NONE) session_start();
 require_once __DIR__.'/../database.php';
 require_once __DIR__.'/../models/product.php';
+// If user not logged in, redirect to login with redirect to authenticated shop (buy_products.php)
+if (empty($_SESSION['user'])) {
+    // Preserve intended action (product + qty) via query params optionally if desired later
+    $target = 'views/users/buy_products.php';
+    // Basic protection: only allow relative internal redirect
+    $redir = $target;
+    header('Location: ../login.php?redirect=' . urlencode($redir));
+    exit;
+}
 
 function redirect_with($params){
     // Preserve existing query parameters (search/category/sort/page) when redirecting back

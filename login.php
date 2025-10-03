@@ -20,6 +20,8 @@ if (isset($_GET['registered'])) {
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email = trim(filter_var($_POST['email'] ?? '', FILTER_SANITIZE_EMAIL));
     $password = $_POST['password'] ?? '';
+    // Capture redirect target from POST (fallback from GET)
+    $login_redirect_target = isset($_POST['redirect']) ? (string)$_POST['redirect'] : (isset($_GET['redirect']) ? (string)$_GET['redirect'] : '');
 
     if ($email === '' || $password === '') {
         $error_message = 'Please fill in all fields.';
@@ -62,7 +64,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     if ($role === '1' || (int)$role === 1) {
                         header('Location: views/admin/admin.php');
                     } else {
-                        $redirect = isset($_GET['redirect']) ? (string)$_GET['redirect'] : '';
+                        // Prefer POST hidden redirect (survives form submission) then GET
+                        $redirect = $login_redirect_target;
+                        // Basic safety: only allow internal relative paths (no scheme)
+                        if ($redirect !== '' && preg_match('/^(https?:\/\/|javascript:)/i',$redirect)) {
+                            $redirect = '';
+                        }
                         if ($redirect !== '') {
                             header('Location: ' . $redirect);
                         } else {
@@ -405,7 +412,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         </div>
 
                         <!-- Login Form -->
-                        <form method="POST" action="login" class="space-y-5" id="loginForm">
+                        <form method="POST" action="login.php<?php echo isset($_GET['redirect']) ? '?redirect='.urlencode($_GET['redirect']) : '';?>" class="space-y-5" id="loginForm">
+                            <?php if(isset($_GET['redirect']) && $_GET['redirect']!==''): ?>
+                                <input type="hidden" name="redirect" value="<?php echo htmlspecialchars($_GET['redirect'],ENT_QUOTES,'UTF-8'); ?>" />
+                            <?php endif; ?>
                             <!-- Email Field -->
                             <div class="space-y-2">
                                 <label class="text-sm font-medium text-gray-700">Email Address</label>

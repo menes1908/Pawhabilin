@@ -321,7 +321,24 @@ function getTypeIcon($type) {
                 const r = await fetch(promosEndpoint+'?action=list',{credentials:'same-origin'}); const j = await r.json();
                 promosLoading.style.display='none';
                 if(!j.success){ fb(availFb,j.message||'Failed'); return; }
-                availablePromos = j.promotions||[]; currentUserPts = j.user_points||0; updatePointsDisplay(currentUserPts); promosPage = 1; renderPromosPage();
+                availablePromos = j.promotions||[]; 
+                // Reorder: unclaimed promos first, claimed promos (where up_id present) pushed to bottom.
+                availablePromos.sort((a,b)=>{
+                    const aClaimed = a.up_id != null;
+                    const bClaimed = b.up_id != null;
+                    if(aClaimed !== bClaimed) return aClaimed - bClaimed; // false (0) before true (1)
+                    // Secondary sort: earlier end date first to surface expiring promos
+                    const aEnd = a.promo_ends_at || '';
+                    const bEnd = b.promo_ends_at || '';
+                    if(aEnd && bEnd && aEnd !== bEnd) return aEnd.localeCompare(bEnd);
+                    // Tertiary: lower points cost first (easier claims)
+                    const aCost = parseInt(a.promo_points_cost||0,10);
+                    const bCost = parseInt(b.promo_points_cost||0,10);
+                    if(aCost !== bCost) return aCost - bCost;
+                    // Finally alphabetical by name for stability
+                    return (a.promo_name||'').localeCompare(b.promo_name||'');
+                });
+                currentUserPts = j.user_points||0; updatePointsDisplay(currentUserPts); promosPage = 1; renderPromosPage();
             } catch(e){ promosLoading.style.display='none'; fb(availFb,'Network error'); }
         }
         function renderPromosPage(){
@@ -514,7 +531,23 @@ function getTypeIcon($type) {
             document.body.appendChild(wrap); lucide.createIcons();
         }
 
-        refreshPromosBtn?.addEventListener('click', ()=>{ loadAvailable(); });
+        // Unified refresh: refreshes available promos + claimed coupons (and optional ledger)
+        async function refreshAllRewards(){
+            if(!refreshPromosBtn) return; 
+            const original = refreshPromosBtn.innerHTML;
+            refreshPromosBtn.disabled = true;
+            refreshPromosBtn.innerHTML = '<i data-lucide="refresh-cw" class="w-3 h-3 animate-spin"></i>Refreshing';
+            try {
+                await Promise.all([loadAvailable(), loadClaimed()]);
+                // Optionally also refresh ledger points summary so new points costs reflect (uncomment if desired)
+                // await loadLedger();
+            } finally {
+                refreshPromosBtn.disabled = false;
+                refreshPromosBtn.innerHTML = original;
+                lucide.createIcons();
+            }
+        }
+        refreshPromosBtn?.addEventListener('click', refreshAllRewards);
         document.addEventListener('click', (e)=>{
             if(e.target.id==='promosPrev'){ if(promosPage>1){ promosPage--; renderPromosPage(); } }
             if(e.target.id==='promosNext'){ promosPage++; renderPromosPage(); }

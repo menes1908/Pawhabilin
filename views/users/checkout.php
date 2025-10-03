@@ -147,8 +147,17 @@ function h($v){return htmlspecialchars($v??'',ENT_QUOTES,'UTF-8');}
             <div class="space-y-3" id="summary-lines">
                 <div class="flex justify-between"><span>Subtotal (<?php echo $itemCount; ?> items)</span><span class="font-semibold" id="sum-subtotal">₱<?php echo number_format($subtotal,2); ?></span></div>
                 <?php if($hasDiscount): ?><div class="flex justify-between text-green-600" id="sum-discount"><span class="flex items-center gap-1"><i data-lucide=star class="w-4 h-4"></i> Subscriber Discount (10%)</span><span>-₱<?php echo number_format($discount,2); ?></span></div><?php endif; ?>
+                <!-- Coupon Discount (dynamic) -->
+                <div class="flex justify-between text-emerald-600 hidden" id="sum-coupon"><span class="flex items-center gap-1"><i data-lucide=tag class="w-4 h-4"></i> Coupon <span id="sum-coupon-code" class="ml-1 font-mono text-xs px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 border border-emerald-300"></span></span><span id="sum-coupon-amount">-₱0.00</span></div>
                 <div class="flex justify-between"><span>Delivery Fee</span><span id="sum-delivery">₱<?php echo number_format($deliveryFee,2); ?></span></div>
                 <div class="border-t pt-3 flex justify-between items-center"><span class="text-lg font-bold">Total</span><span class="text-2xl font-bold text-orange-600" id="sum-total">₱<?php echo number_format($total,2); ?></span></div>
+            </div>
+            <!-- Claimed Discount Coupons List (Cart Step) -->
+            <div class="mt-6" id="claimed-coupons-box">
+                <h4 class="text-sm font-semibold text-gray-700 flex items-center gap-2 mb-2"><i data-lucide="tags" class="w-4 h-4 text-orange-500"></i> Your Discount Coupons</h4>
+                <div id="claimed-coupons-list" class="space-y-2">
+                    <p class="text-xs text-gray-500" id="claimed-coupons-empty">Loading coupons...</p>
+                </div>
             </div>
             <div class="pt-4 text-sm flex items-center gap-2 text-green-600"><i data-lucide=truck class="w-4 h-4"></i><span>Estimated delivery: 2-3 days</span></div>
         </div></div>
@@ -210,7 +219,9 @@ function h($v){return htmlspecialchars($v??'',ENT_QUOTES,'UTF-8');}
             <div class="hidden" id="payment-amount-section"><div class="p-4 bg-yellow-50 border border-yellow-200 rounded-lg"><label class="block text-base font-semibold text-yellow-800">Payment Amount (Must be exact)</label><input type="number" step="0.01" id="client_amount" class="mt-2 w-full border-yellow-300 rounded-md text-base px-3 py-2" placeholder="₱<?php echo number_format($total,2); ?>" /><p class="text-sm text-yellow-700 mt-2">Please enter exactly ₱<?php echo number_format($total,2); ?></p><div class="hidden text-sm text-red-600 mt-1" id="payment-error">Amount must match total.</div></div></div>
         </div></div>
      </div>
-     <div class="lg:col-span-1"><div class="sticky top-6"><div class="bg-white rounded-xl border border-gray-200 p-6" id="confirm-summary-box"><h3 class="text-lg font-semibold mb-4">Order Summary</h3><div class="space-y-3"><div class="flex justify-between"><span>Subtotal</span><span id="c-subtotal">₱<?php echo number_format($subtotal,2); ?></span></div><?php if($hasDiscount): ?><div class="flex justify-between text-green-600"><span>Subscriber Discount</span><span id="c-discount">-₱<?php echo number_format($discount,2); ?></span></div><?php endif; ?><div class="flex justify-between"><span>Delivery Fee</span><span id="c-delivery">₱<?php echo number_format($deliveryFee,2); ?></span></div><div class="border-t pt-3 flex justify-between font-bold text-lg"><span>Total</span><span class="text-orange-600" id="c-total">₱<?php echo number_format($total,2); ?></span></div></div><div class="p-4 bg-green-50 rounded-lg border border-green-200 mt-4"><div class="flex items-center gap-2 text-green-700 mb-2"><i data-lucide=truck class="w-4 h-4"></i><span class="font-semibold">Estimated Delivery</span></div><p class="text-green-600 text-sm"><?php echo date('M j, Y',strtotime('+2 days')); ?> - <?php echo date('M j, Y',strtotime('+3 days')); ?></p></div><button onclick="placeOrder()" id="place-order-btn" class="btn btn-primary w-full mt-6"><i data-lucide=check-circle class="w-5 h-5"></i> Place Order</button><p id="order-error" class="text-xs text-red-600 mt-3 hidden"></p></div></div></div>
+    <div class="lg:col-span-1"><div class="sticky top-6"><div class="bg-white rounded-xl border border-gray-200 p-6" id="confirm-summary-box"><h3 class="text-lg font-semibold mb-4">Order Summary</h3><div class="space-y-3"><div class="flex justify-between"><span>Subtotal</span><span id="c-subtotal">₱<?php echo number_format($subtotal,2); ?></span></div><?php if($hasDiscount): ?><div class="flex justify-between text-green-600"><span>Subscriber Discount</span><span id="c-discount">-₱<?php echo number_format($discount,2); ?></span></div><?php endif; ?><div class="flex justify-between text-emerald-600 hidden" id="c-coupon"><span class="flex items-center gap-1"><i data-lucide=tag class="w-4 h-4"></i> Coupon <span id="c-coupon-code" class="ml-1 font-mono text-[10px] px-1 py-0.5 rounded bg-emerald-100 text-emerald-700 border border-emerald-300"></span></span><span id="c-coupon-amount">-₱0.00</span></div><div class="flex justify-between"><span>Delivery Fee</span><span id="c-delivery">₱<?php echo number_format($deliveryFee,2); ?></span></div><div class="border-t pt-3 flex justify-between font-bold text-lg"><span>Total</span><span class="text-orange-600" id="c-total">₱<?php echo number_format($total,2); ?></span></div></div><div class="p-4 bg-green-50 rounded-lg border border-green-200 mt-4"><div class="flex items-center gap-2 text-green-700 mb-2"><i data-lucide=truck class="w-4 h-4"></i><span class="font-semibold">Estimated Delivery</span></div><p class="text-green-600 text-sm"><?php echo date('M j, Y',strtotime('+2 days')); ?> - <?php echo date('M j, Y',strtotime('+3 days')); ?></p></div><button onclick="placeOrder()" id="place-order-btn" class="btn btn-primary w-full mt-6"><i data-lucide=check-circle class="w-5 h-5"></i> Place Order</button><p id="order-error" class="text-xs text-red-600 mt-3 hidden"></p>
+    <div class="mt-6" id="claimed-coupons-box-checkout"><h4 class="text-sm font-semibold text-gray-700 flex items-center gap-2 mb-2"><i data-lucide="tags" class="w-4 h-4 text-orange-500"></i> Your Product Coupons</h4><div id="claimed-coupons-list-checkout" class="space-y-2"><p class="text-xs text-gray-500" id="claimed-coupons-empty-checkout">Loading coupons...</p></div></div>
+    </div></div></div>
     </div>
  </div>
 </main>
@@ -243,7 +254,10 @@ function h($v){return htmlspecialchars($v??'',ENT_QUOTES,'UTF-8');}
 <script>
 const CSRF = <?php echo json_encode($csrf); ?>;
 const SUBTOTAL_INIT = <?php echo json_encode($subtotal); ?>;
+let appliedCoupon = null; // { code, amount }
+let couponDiscount = 0;
 let currentStep=1;
+let lastComputedTotal = <?php echo json_encode($total); ?>;
 document.addEventListener('DOMContentLoaded',()=>{if(window.lucide) lucide.createIcons();initPayment();updateStepDisplay();});
 function showCartStep(){currentStep=1;document.getElementById('cart-step-content').classList.remove('hidden');document.getElementById('checkout-step-content').classList.add('hidden');updateStepDisplay();}
 function showCheckoutStep(){currentStep=2;document.getElementById('cart-step-content').classList.add('hidden');document.getElementById('checkout-step-content').classList.remove('hidden');updateStepDisplay();}
@@ -251,19 +265,76 @@ function updateStepDisplay(){const step1=document.getElementById('step-1'),step2
 function changeQty(id,delta){const input=document.querySelector(`[data-product-id="${id}"] .quantity-input`);if(!input)return;let v=parseInt(input.value||'1',10)+delta;if(v<1) v=1;setQty(id,v);}function setQty(id,v){v=parseInt(v,10);if(isNaN(v)||v<1) v=1;updateQtyRequest(id,v);}async function updateQtyRequest(id,qty){const fd=new FormData();fd.append('csrf',CSRF);fd.append('product_id',id);fd.append('qty',qty);const res=await fetch('../../shop/cart_update.php',{method:'POST',body:fd});const data=await res.json();if(!data.ok){toast('Update failed','error');return;}if(!data.item){document.querySelector(`[data-product-id="${id}"]`)?.remove();}else{const row=document.querySelector(`[data-product-id="${id}"]`);if(row){row.querySelector('.quantity-input').value=data.item.qty;const price=parseFloat(data.item.price);row.querySelector('.line-total').textContent='₱'+(price*data.item.qty).toFixed(2);} }recalcSummary(data.subtotal);}async function removeItem(id){const fd=new FormData();fd.append('csrf',CSRF);fd.append('product_id',id);fd.append('qty',0);const res=await fetch('../../shop/cart_update.php',{method:'POST',body:fd});const data=await res.json();if(data.ok){document.querySelector(`[data-product-id="${id}"]`)?.remove();recalcSummary(data.subtotal);if(!data.item && data.cartCount===0){location.href='buy_products.php';}}}
 function currentFulfillment(){return 'delivery';}
 function recalcSummary(subtotal){
-    const hasDiscountEl=document.getElementById('sum-discount');
-    let discount=0; if(hasDiscountEl) discount=parseFloat(<?php echo $hasDiscount? '0.10':'0'; ?>)*subtotal;
-    const delivery = 50; // always delivery
-    const total = subtotal - discount + delivery;
+    const subscriberRate = parseFloat(<?php echo $hasDiscount? '0.10':'0'; ?>);
+    // 1. Coupon discount base (product subtotal or scoped products)
+    if(appliedCoupon){
+        let couponBase = 0;
+        if(appliedCoupon.scope === 'cart'){
+            document.querySelectorAll('#cart-items-wrapper .line-total').forEach(el=>{
+                const v=parseFloat((el.textContent||'').replace(/[^0-9.]/g,''));
+                if(!isNaN(v)) couponBase += v;
+            });
+        } else if(Array.isArray(appliedCoupon.productIds)) {
+            appliedCoupon.productIds.forEach(pid=>{
+                const row=document.querySelector(`[data-product-id="${pid}"]`);
+                if(row){
+                    const lineTxt=row.querySelector('.line-total')?.textContent.replace(/[^0-9.]/g,'');
+                    const line=parseFloat(lineTxt||'0'); if(!isNaN(line)) couponBase+=line;
+                }
+            });
+        } else {
+            couponBase = subtotal;
+        }
+        if(appliedCoupon.kind==='percent') couponDiscount = couponBase * appliedCoupon.value; 
+        else if(appliedCoupon.kind==='fixed') couponDiscount = Math.min(appliedCoupon.value,couponBase); 
+        else couponDiscount=0;
+    } else { couponDiscount=0; }
+    couponDiscount = Math.max(0, Math.min(couponDiscount, subtotal));
+    // 2. Subscription discount applies AFTER coupon (backend logic)
+    const subtotalAfterCoupon = subtotal - couponDiscount;
+    let discount = subscriberRate>0 ? subtotalAfterCoupon * subscriberRate : 0;
+    // 3. Total with delivery
+    const delivery = 50;
+    const total = subtotalAfterCoupon - discount + delivery;
     ['sum-subtotal','c-subtotal'].forEach(id=>{const el=document.getElementById(id);if(el) el.textContent='₱'+subtotal.toFixed(2);});
     if(document.getElementById('sum-total')) document.getElementById('sum-total').textContent='₱'+total.toFixed(2);
     if(document.getElementById('c-total')) document.getElementById('c-total').textContent='₱'+total.toFixed(2);
     if(document.getElementById('c-discount')) document.getElementById('c-discount').textContent='-₱'+discount.toFixed(2);
     if(document.getElementById('sum-discount')) document.getElementById('sum-discount').querySelector('span:last-child').textContent='-₱'+discount.toFixed(2);
+    const couponRow=document.getElementById('sum-coupon');
+    if(couponRow){
+        if(couponDiscount>0){
+            couponRow.classList.remove('hidden');
+            document.getElementById('sum-coupon-amount').textContent='-₱'+couponDiscount.toFixed(2);
+            document.getElementById('sum-coupon-code').textContent=(appliedCoupon?.displayCode||appliedCoupon?.code||'');
+        } else { couponRow.classList.add('hidden'); }
+    }
+    const couponRow2=document.getElementById('c-coupon');
+    if(couponRow2){
+        if(couponDiscount>0){
+            couponRow2.classList.remove('hidden');
+            document.getElementById('c-coupon-amount').textContent='-₱'+couponDiscount.toFixed(2);
+            document.getElementById('c-coupon-code').textContent=(appliedCoupon?.displayCode||appliedCoupon?.code||'');
+        } else { couponRow2.classList.add('hidden'); }
+    }
     if(document.getElementById('sum-delivery')) document.getElementById('sum-delivery').textContent='₱'+delivery.toFixed(2);
     if(document.getElementById('c-delivery')) document.getElementById('c-delivery').textContent='₱'+delivery.toFixed(2);
     const ca=document.getElementById('client_amount');
-    if(ca){ca.setAttribute('placeholder','₱'+total.toFixed(2));const helper=ca.parentElement?.querySelector('p.text-sm.text-yellow-700');if(helper) helper.innerHTML='Please enter exactly <strong>₱'+total.toFixed(2)+'</strong>';}
+    if(ca){
+        ca.setAttribute('placeholder','₱'+total.toFixed(2));
+        const helper=ca.parentElement?.querySelector('p.text-sm.text-yellow-700');
+        if(helper) helper.innerHTML='Please enter exactly <strong>₱'+total.toFixed(2)+'</strong>';
+        const payMethod=document.querySelector('input[name="payment_method"]:checked')?.value;
+        // Auto-sync amount field if user hasn't manually changed to a different value (or using digital wallet)
+        if(payMethod==='gcash' || payMethod==='maya'){
+            const currentVal=parseFloat(ca.value||'0');
+            if(!ca.dataset.userEdited || Math.abs(currentVal - lastComputedTotal) < 0.005){
+                ca.value = total.toFixed(2);
+            }
+        }
+        ca.addEventListener('input',()=>{ca.dataset.userEdited='1';},{once:true});
+    }
+    lastComputedTotal = total;
 }
 // Removed fulfillment radio logic – delivery only
 document.addEventListener('DOMContentLoaded',()=>{ /* delivery only */ });
@@ -319,7 +390,72 @@ function enhanceAddressSelection(){
         });
     });
 }
-document.addEventListener('DOMContentLoaded',()=>{enhanceAddressSelection();refreshAddressesFromServer(false);});
+document.addEventListener('DOMContentLoaded',()=>{enhanceAddressSelection();refreshAddressesFromServer(false);loadClaimedCoupons();});
+
+// Claimed discount coupons listing + application
+let claimedCoupons = [];
+async function loadClaimedCoupons(){
+    const listEl=document.getElementById('claimed-coupons-list');
+    const listEl2=document.getElementById('claimed-coupons-list-checkout');
+    try {
+        const res = await fetch('../../controllers/users/userpromoscontroller.php?action=claimed');
+        if(!res.ok) throw new Error('fetch_failed');
+        const data = await res.json();
+        if(Array.isArray(data.promotions)){
+            // Filter to promo_type === 'discount'
+            // Keep only product-type promos (exclude appointment / other types)
+            claimedCoupons = data.promotions.filter(p=> (p.promo_type||'').toLowerCase()==='product' && (p.promo_active==1 || p.promo_active==='1'));
+        } else if(Array.isArray(data.claimed)) { // fallback naming
+            claimedCoupons = data.claimed.filter(p=> (p.promo_type||'').toLowerCase()==='product' && (p.promo_active==1 || p.promo_active==='1'));
+        } else {
+            claimedCoupons = [];
+        }
+    } catch(e){
+        claimedCoupons = [];
+    }
+    renderClaimedCoupons();
+    if(window.lucide) lucide.createIcons();
+}
+function renderClaimedCoupons(){
+    const container1=document.getElementById('claimed-coupons-list');
+    const container2=document.getElementById('claimed-coupons-list-checkout');
+    const empty1=document.getElementById('claimed-coupons-empty');
+    const empty2=document.getElementById('claimed-coupons-empty-checkout');
+    const html = claimedCoupons.map(p=>{
+        const baseCode = p.promo_code || '';
+        const userCode = p.up_code || p.user_code || baseCode || 'CODE';
+        const isApplied = appliedCoupon && appliedCoupon.code===userCode;
+        const isPercent = (p.promo_discount_type==='percent');
+        const valueLabel = isPercent ? (parseFloat(p.promo_discount_value)||0)+'% OFF' : '₱'+(parseFloat(p.promo_discount_value)||0).toFixed(2)+' OFF';
+        const perUserLimit = parseInt(p.promo_per_user_limit||0,10);
+        const usageCount = parseInt(p.usage_count||0,10);
+        const exhausted = perUserLimit>0 && usageCount >= perUserLimit;
+        const disabledState = exhausted || isApplied;
+        const btnLabel = exhausted ? 'Used Up' : (isApplied ? 'Applied' : 'Use');
+        return `<div class=\"flex items-center justify-between px-3 py-2 rounded-md border text-xs ${isApplied?'bg-emerald-50 border-emerald-300':exhausted?'bg-gray-100 border-gray-300 opacity-70':'bg-gray-50 border-gray-200'}\">\n            <div class=\"flex flex-col\">\n                <span class=\"font-semibold tracking-wide\">${escapeHtml(userCode)}</span>\n                <span class=\"text-[10px] text-gray-500\">${valueLabel}${perUserLimit>0?` · ${Math.min(usageCount,perUserLimit)}/${perUserLimit}`:''}</span>\n            </div>\n            <button type=\"button\" class=\"apply-coupon-btn px-2 py-1 rounded text-white text-[11px] font-medium ${disabledState?'bg-gray-400 cursor-not-allowed': 'bg-orange-600 hover:bg-orange-700'}\" data-code=\"${escapeHtml(userCode)}\" data-base-code=\"${escapeHtml(baseCode)}\" data-discount-type=\"${escapeHtml(p.promo_discount_type||'')}\" data-discount-value=\"${escapeHtml(p.promo_discount_value||'')}\" ${disabledState?'disabled':''}>${btnLabel}</button>\n        </div>`;
+    }).join('');
+    if(container1){ if(!claimedCoupons.length){ if(empty1) empty1.textContent='No discount coupons'; } else { container1.innerHTML=html; } }
+    if(container2){ if(!claimedCoupons.length){ if(empty2) empty2.textContent='No discount coupons'; } else { container2.innerHTML=html; } }
+}
+function currentCartSubtotal(){
+    let sum=0; document.querySelectorAll('#cart-items-wrapper .line-total').forEach(el=>{ const v=parseFloat((el.textContent||'').replace(/[^0-9.]/g,'')); if(!isNaN(v)) sum+=v; }); return sum;
+}
+document.addEventListener('click',e=>{
+    if(e.target.classList.contains('apply-coupon-btn')){
+        const btn=e.target;
+        if(btn.disabled || btn.textContent==='Applied' || btn.textContent==='Used Up') return; // already applied or exhausted
+        const displayCode=btn.getAttribute('data-code');
+        // Use base code for backend lookup if available (user-specific code may include suffixes)
+        const baseCode = btn.getAttribute('data-base-code') || displayCode;
+        const type=(btn.getAttribute('data-discount-type')||'').toLowerCase();
+        const rawVal=parseFloat(btn.getAttribute('data-discount-value')||'0');
+        let kind='percent', value=0; if(type==='percent'){ value=rawVal/100; kind='percent'; } else { kind='fixed'; value=rawVal; }
+        appliedCoupon={ code: baseCode, displayCode, kind, value, scope:'cart' };
+        recalcSummary(currentCartSubtotal());
+        renderClaimedCoupons();
+        toast('Coupon applied','success');
+    }
+});
 let lastSelectedAddressId = (function(){
     const r=document.querySelector('input[name="address_select"]:checked');
     return r?parseInt(r.value,10):null;
@@ -354,7 +490,7 @@ async function refreshAddressesFromServer(showToast){
     } catch(e){ if(showToast) toast('Could not refresh addresses','error'); }
 }
 async function placeOrder(){const payment=document.querySelector('input[name="payment_method"]:checked')?.value||'cod';const selectedRadio=document.querySelector('input[name="address_select"]:checked');const locationId=selectedRadio?selectedRadio.value:'';const clientAmtEl=document.getElementById('client_amount');const clientAmount=clientAmtEl && !clientAmtEl.closest('.hidden')?clientAmtEl.value:'';if((payment==='gcash'||payment==='maya') && clientAmount===''){showOrderError('Enter exact amount');return;}if(!locationId){showOrderError('Please add/select a delivery address');return;}
- const fd=new FormData();fd.append('csrf',CSRF);fd.append('location_id',locationId);fd.append('payment_method',payment);if(clientAmount) fd.append('client_amount',clientAmount);
+ const fd=new FormData();fd.append('csrf',CSRF);fd.append('location_id',locationId);fd.append('payment_method',payment);if(clientAmount) fd.append('client_amount',clientAmount);if(appliedCoupon && appliedCoupon.code){ fd.append('coupon_code', appliedCoupon.code); }
  togglePlaceBtn(true);try{const res=await fetch('../../shop/order_place.php',{method:'POST',body:fd});const data=await res.json();if(!data.ok) throw new Error(mapOrderError(data));showSuccess(data.transaction_id,data.total);}catch(e){showOrderError(e.message||'Order failed');}finally{togglePlaceBtn(false);} }
 function mapOrderError(d){switch(d.error){case'amount_mismatch':return 'Amount does not match total';case'no_location':return 'Please add an address first';case'stock_changed':return 'Stock changed for a product. Refresh cart.';default:return 'Order failed';}}
 function togglePlaceBtn(dis){const b=document.getElementById('place-order-btn');if(!b)return;b.disabled=dis;b.innerHTML=dis?'<div class="loading-spinner w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div> Processing...':'<i data-lucide=check-circle class="w-5 h-5"></i> Place Order';if(window.lucide) lucide.createIcons();}

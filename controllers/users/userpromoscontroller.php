@@ -54,8 +54,19 @@ if($action==='list'){
 	respond(true,'OK',[ 'promotions'=>$rows, 'user_points'=>$userPoints ]);
 }
 elseif($action==='claimed'){
-	$rows=[]; $res = mysqli_query($connections, "SELECT up.*, p.promo_name, p.promo_code, p.promo_discount_type, p.promo_discount_value FROM user_promos up JOIN promotions p ON p.promo_id=up.promo_id WHERE up.users_id=$uid ORDER BY up.up_claimed_at DESC");
-	if($res){ while($r=mysqli_fetch_assoc($res)) $rows[]=$r; mysqli_free_result($res);} respond(true,'OK',['claimed'=>$rows]);
+	$rows=[]; 
+	// Include per-user usage count (applied redemptions) & per-user limit to allow frontend disabling
+	$query = "SELECT up.*, p.promo_name, p.promo_code, p.promo_discount_type, p.promo_discount_value, p.promo_type, p.promo_active, p.promo_per_user_limit,
+		(SELECT COUNT(*) FROM promotion_redemptions pr WHERE pr.promo_id = p.promo_id AND pr.users_id = $uid AND pr.pr_status='applied') AS usage_count
+		FROM user_promos up
+		JOIN promotions p ON p.promo_id = up.promo_id
+		WHERE up.users_id = $uid
+		ORDER BY up.up_claimed_at DESC";
+	if($res = mysqli_query($connections,$query)){
+		while($r = mysqli_fetch_assoc($res)) $rows[] = $r; 
+		mysqli_free_result($res);
+	}
+	respond(true,'OK',['claimed'=>$rows]);
 }
 elseif($action==='claim'){
 	$promo_id = isset($_POST['promo_id'])? (int)$_POST['promo_id'] : 0; if($promo_id<=0) respond(false,'Invalid promo');

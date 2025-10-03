@@ -921,9 +921,9 @@ function resolveImageUrl($path) {
                     $orders = [];
                     $itemsByTxn = [];
                     if(isset($connections) && $connections){
-                        $sql = "SELECT t.transactions_id, t.users_id, u.users_firstname, u.users_lastname, t.transactions_amount, t.transactions_payment_method, t.transactions_created_at,
-                                        d.deliveries_delivery_status, d.deliveries_estimated_delivery_date, d.deliveries_actual_delivery_date, d.deliveries_recipient_signature,
-                                        l.location_address_line1, l.location_address_line2, l.location_city, l.location_province, l.location_barangay
+            $sql = "SELECT t.transactions_id, t.users_id, u.users_firstname, u.users_lastname, t.transactions_amount, t.transactions_payment_method, t.transactions_created_at,
+                    d.deliveries_delivery_status, d.deliveries_estimated_delivery_date, d.deliveries_actual_delivery_date, d.deliveries_recipient_signature,
+                    l.location_address_line1, l.location_address_line2, l.location_city, l.location_province, l.location_barangay, l.location_recipient_name
                                 FROM transactions t
                                 JOIN users u ON u.users_id = t.users_id
                                 LEFT JOIN deliveries d ON d.transactions_id = t.transactions_id
@@ -999,9 +999,9 @@ function resolveImageUrl($path) {
                                 <tbody id="ordersTableBody" class="divide-y divide-gray-100">
                                 <?php if(empty($orders)): ?>
                                     <tr><td colspan="9" class="px-4 py-6 text-center text-gray-500">No orders found.</td></tr>
-                                <?php else: foreach($orders as $ord): $tid=(int)$ord['transactions_id']; $buyer=trim(($ord['users_firstname']??'').' '.($ord['users_lastname']??'')); $items=$itemsByTxn[$tid]??[]; $status=$ord['deliveries_delivery_status']??''; $addressParts=array_filter([$ord['location_address_line1']??'', $ord['location_barangay']??'', $ord['location_city']??'', $ord['location_province']??'']); $address=implode(', ',$addressParts); $eta=$ord['deliveries_estimated_delivery_date']??''; ?>
+                                <?php else: foreach($orders as $ord): $tid=(int)$ord['transactions_id']; $recipient=trim($ord['location_recipient_name'] ?? ''); $buyer= $recipient !== '' ? $recipient : trim(($ord['users_firstname']??'').' '.($ord['users_lastname']??'')); $items=$itemsByTxn[$tid]??[]; $status=$ord['deliveries_delivery_status']??''; $addressParts=array_filter([$ord['location_address_line1']??'', $ord['location_barangay']??'', $ord['location_city']??'', $ord['location_province']??'']); $address=implode(', ',$addressParts); $eta=$ord['deliveries_estimated_delivery_date']??''; ?>
                                     <?php $itemsSearch = strtolower(implode(' ', array_map(fn($x)=>$x['products_name'],$items))); ?>
-                                    <tr data-tid="<?php echo $tid; ?>" data-buyer="<?php echo o_e(strtolower($buyer )); ?>" data-status="<?php echo o_e($status); ?>" data-payment="<?php echo o_e(strtolower($ord['transactions_payment_method']??'')); ?>" data-address="<?php echo o_e(strtolower($address)); ?>" data-items="<?php echo o_e($itemsSearch); ?>">
+                                    <tr data-tid="<?php echo $tid; ?>" data-buyer="<?php echo o_e(strtolower($buyer)); ?>" data-status="<?php echo o_e($status); ?>" data-payment="<?php echo o_e(strtolower($ord['transactions_payment_method']??'')); ?>" data-address="<?php echo o_e(strtolower($address)); ?>" data-items="<?php echo o_e($itemsSearch); ?>">
                                         <td class="px-4 py-3 align-top">
                                             <div class="font-medium text-gray-800"><?php echo o_e($buyer ?: 'User #'.$ord['users_id']); ?></div>
                                             <div class="text-[11px] text-gray-500">#<?php echo $tid; ?> • ₱<?php echo number_format((float)$ord['transactions_amount'],2); ?></div>
@@ -1711,13 +1711,13 @@ function resolveImageUrl($path) {
                     $appointments = [];
                     $counts = ['pet_sitting' => 0, 'grooming' => 0, 'vet' => 0];
                     if (isset($connections) && $connections) {
-            $sql = "SELECT a.appointments_id, a.users_id, a.appointments_full_name, a.appointments_email, a.appointments_phone,
-                    a.appointments_pet_name, a.appointments_pet_type, a.appointments_pet_breed, a.appointments_pet_age_years,
-                    a.appointments_type, a.appointments_date, a.appointments_status,
-                    aa.aa_type, aa.aa_address, aa.aa_city, aa.aa_province, aa.aa_postal_code, aa.aa_notes
-                                FROM appointments a
-                                LEFT JOIN appointment_address aa ON aa.aa_id = a.aa_id
-                                ORDER BY a.appointments_date DESC, a.appointments_id DESC";
+        $sql = "SELECT a.appointments_id, a.users_id, a.appointments_full_name, a.appointments_email, a.appointments_phone,
+            a.appointments_pet_name, a.appointments_pet_type, a.appointments_pet_breed, a.appointments_pet_age_years,
+            a.appointments_type, a.appointments_date, a.appointments_status, a.appointments_created_at,
+            aa.aa_type, aa.aa_address, aa.aa_city, aa.aa_province, aa.aa_postal_code, aa.aa_notes
+                FROM appointments a
+                LEFT JOIN appointment_address aa ON aa.aa_id = a.aa_id
+                ORDER BY a.appointments_created_at DESC, a.appointments_id DESC";
                         if ($res = mysqli_query($connections, $sql)) {
                             while ($row = mysqli_fetch_assoc($res)) {
                                 $appointments[] = $row;
@@ -1729,6 +1729,71 @@ function resolveImageUrl($path) {
                     }
 
                     function e($v){ return htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8'); }
+                    // Lightweight partial refresh for appointments (JSON: tbody HTML + counts summary) similar to orders
+                    if(isset($_GET['appointments_partial']) && $_GET['appointments_partial']=='1'){
+                        header('Content-Type: application/json; charset=UTF-8');
+                        $rowsHtml = '';
+                        if(empty($appointments)){
+                            $rowsHtml .= '<tr><td colspan="11" class="px-6 py-6 text-center text-gray-500">No appointments found.</td></tr>';
+                        } else {
+                            foreach($appointments as $ap){
+                                $type = (string)($ap['appointments_type'] ?? '');
+                                $aaType = (string)($ap['aa_type'] ?? '');
+                                $addr = trim(implode(', ', array_filter([
+                                    $ap['aa_address'] ?? '',
+                                    $ap['aa_city'] ?? '',
+                                    $ap['aa_province'] ?? '',
+                                ])), ', ');
+                                $typeDisplay = '';
+                                if ($type === 'pet_sitting') {
+                                    if ($aaType === 'home-sitting') {
+                                        $typeDisplay = 'Home-sitting' . ($addr !== '' ? ' — '. e($addr) : '');
+                                    } elseif ($aaType === 'drop_off') {
+                                        $typeDisplay = 'Drop Off';
+                                    } else { $typeDisplay = 'Pet Sitting'; }
+                                } elseif ($type === 'grooming') {
+                                    $typeDisplay = 'Grooming';
+                                } elseif ($type === 'vet') {
+                                    $typeDisplay = 'Veterinary';
+                                } else { $typeDisplay = ucfirst(str_replace('_',' ', $type)); }
+                                $dt = $ap['appointments_date'] ?? '';
+                                $iso=''; if($dt){ $iso = str_replace(' ', 'T', $dt); }
+                                $notes = trim((string)($ap['aa_notes'] ?? ''));
+                                $searchIndex = strtolower(($ap['appointments_full_name'] ?? '') . ' ' . ($ap['appointments_email'] ?? '') . ' ' . ($ap['appointments_phone'] ?? '') . ' ' . ($ap['appointments_pet_name'] ?? '') . ' ' . ($ap['appointments_pet_type'] ?? '') . ' ' . ($ap['appointments_pet_breed'] ?? ''));
+                                $rowsHtml .= '<tr data-id="'.(int)$ap['appointments_id'].'" data-type="'.e($type).'" data-status="'.e($ap['appointments_status'] ?? '').'" data-datetime="'.e($iso).'" data-search="'.e($searchIndex).'">';
+                                $rowsHtml .= '<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">'.e($ap['appointments_full_name'] ?? '').'</td>';
+                                $rowsHtml .= '<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">'.e(($ap['appointments_email'] ?? '') . '<br>' . ($ap['appointments_phone'] ?? '')).'</td>';
+                                $rowsHtml .= '<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">'.e($ap['appointments_pet_name'] ?? '').'</td>';
+                                $rowsHtml .= '<td class="px-6 py-4 whitespace-nowrap text-sm">'.e($ap['appointments_pet_type'] ?? '').'</td>';
+                                $rowsHtml .= '<td class="px-6 py-4 whitespace-nowrap text-sm">'.e($ap['appointments_pet_breed'] ?? '').'</td>';
+                                $rowsHtml .= '<td class="px-6 py-4 whitespace-nowrap text-sm">'.e($ap['appointments_pet_age_years'] ?? '').'</td>';
+                                $rowsHtml .= '<td class="px-6 py-4 whitespace-nowrap text-sm">'.e($typeDisplay).'</td>';
+                                $rowsHtml .= '<td class="px-6 py-4 whitespace-nowrap text-sm">'.e($dt).'</td>';
+                                $rowsHtml .= '<td class="px-6 py-4 whitespace-nowrap text-sm max-w-xs truncate" title="'.e($notes).'">'.e($notes).'</td>';
+                                $status = (string)($ap['appointments_status'] ?? '');
+                                $statusClassMap = [
+                                    'pending'   => 'bg-gray-100 text-gray-700 border-gray-300',
+                                    'confirmed' => 'bg-blue-100 text-blue-700 border-blue-300',
+                                    'completed' => 'bg-green-100 text-green-700 border-green-300',
+                                    'cancelled' => 'bg-red-100 text-red-700 border-red-300'
+                                ];
+                                $cls = $statusClassMap[$status] ?? 'bg-gray-100 text-gray-700 border-gray-300';
+                                $rowsHtml .= '<td class="px-6 py-4 whitespace-nowrap text-sm"><span class="px-2 py-1 text-xs rounded-full border '.$cls.'">'.e(ucfirst($status)).'</span></td>';
+                                $rowsHtml .= '<td class="px-6 py-4 whitespace-nowrap text-sm">';
+                                $rowsHtml .= '<button data-edit-appt="'.(int)$ap['appointments_id'].'" class="px-2 py-1 text-xs bg-indigo-50 text-indigo-700 hover:bg-indigo-100 rounded border border-indigo-200">Edit</button> ';
+                                $rowsHtml .= '<button data-cancel-appt="'.(int)$ap['appointments_id'].'" class="px-2 py-1 text-xs bg-red-50 text-red-700 hover:bg-red-100 rounded border border-red-200">Cancel</button>';
+                                $rowsHtml .= '</td>';
+                                $rowsHtml .= '</tr>';
+                            }
+                        }
+                        echo json_encode([
+                            'ok' => true,
+                            'tbody' => $rowsHtml,
+                            'counts' => $counts,
+                            'total' => count($appointments)
+                        ]);
+                        exit;
+                    }
                     function type_badge_class($t){
                         switch ($t){
                             case 'pet_sitting': return 'bg-orange-100 text-orange-800 border border-orange-200';
@@ -1736,6 +1801,53 @@ function resolveImageUrl($path) {
                             case 'vet': return 'bg-green-100 text-green-800 border border-green-200';
                             default: return 'bg-gray-100 text-gray-800 border border-gray-200';
                         }
+                    }
+                    // Lightweight partial refresh handler
+                    if(isset($_GET['orders_partial']) && $_GET['orders_partial']=='1'){
+                        ob_start();
+                        if(empty($orders)){
+                            echo '<tr><td colspan="9" class="px-4 py-6 text-center text-gray-500">No orders found.</td></tr>';
+                        } else {
+                            foreach($orders as $ord){
+                                $tid=(int)$ord['transactions_id'];
+                                $recipient=trim($ord['location_recipient_name'] ?? '');
+                                $buyer=$recipient !== '' ? $recipient : trim(($ord['users_firstname']??'').' '.($ord['users_lastname']??''));
+                                $items=$itemsByTxn[$tid]??[];
+                                $status=$ord['deliveries_delivery_status']??'';
+                                $addressParts=array_filter([$ord['location_address_line1']??'', $ord['location_barangay']??'', $ord['location_city']??'', $ord['location_province']??'']);
+                                $address=implode(', ',$addressParts);
+                                $eta=$ord['deliveries_estimated_delivery_date']??'';
+                                $itemsSearch = strtolower(implode(' ', array_map(function($x){ return $x['products_name']; }, $items)));
+                                echo '<tr data-tid="'.o_e($tid).'" data-buyer="'.o_e(strtolower($buyer)).'" data-status="'.o_e($status).'" data-payment="'.o_e(strtolower($ord['transactions_payment_method']??'')).'" data-address="'.o_e(strtolower($address)).'" data-items="'.o_e($itemsSearch).'">';
+                                echo '<td class="px-4 py-3 align-top"><div class="font-medium text-gray-800">'.o_e($buyer ?: 'User #'.$ord['users_id']).'</div><div class="text-[11px] text-gray-500">#'.$tid.' • ₱'.number_format((float)$ord['transactions_amount'],2).'</div><div class="text-[10px] text-gray-400">'.o_e(date('Y-m-d H:i',strtotime($ord['transactions_created_at']))).'</div></td>';
+                                // Items cell
+                                echo '<td class="px-4 py-3 align-top"><ul class="space-y-1 max-w-[170px]">';
+                                foreach($items as $it){
+                                    echo '<li class="flex items-center gap-2 text-xs"><span class="text-gray-700 truncate" title="'.o_e($it['products_name']).'">'.o_e($it['products_name']).'</span><span class="text-gray-400">x'.(int)$it['tp_quantity'].'</span></li>';
+                                }
+                                echo '</ul></td>';
+                                // Address
+                                echo '<td class="px-4 py-3 align-top"><div class="text-xs text-gray-700 max-w-[180px] truncate" title="'.o_e($address).'">'.o_e($address).'</div></td>';
+                                // Payment
+                                $pay = strtolower($ord['transactions_payment_method']??'');
+                                echo '<td class="px-4 py-3 align-top"><span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium border '.($pay==='cod'?'bg-yellow-50 text-yellow-700 border-yellow-200':($pay==='gcash'?'bg-emerald-50 text-emerald-700 border-emerald-200':'bg-indigo-50 text-indigo-700 border-indigo-200')).'">'.o_e($pay?:'n/a').'</span></td>';
+                                // Status
+                                $st = $status; $cls = 'order-status order-status-'.o_e($st);
+                                echo '<td class="px-4 py-3 align-top"><span class="'.$cls.'">'.o_e(str_replace('_',' ', $st)).'</span></td>';
+                                // Estimated, Actual, Signature
+                                echo '<td class="px-4 py-3 align-top text-xs">'.o_e($eta).'</td>';
+                                echo '<td class="px-4 py-3 align-top text-xs">'.o_e($ord['deliveries_actual_delivery_date']??'').'</td>';
+                                $sig = !empty($ord['deliveries_recipient_signature']);
+                                echo '<td class="px-4 py-3 align-top text-xs">'.($sig?'<span class="text-emerald-600 font-semibold">Received</span>':'<span class="text-gray-400">Pending</span>').'</td>';
+                                // Actions (reuse existing edit button minimal)
+                                echo '<td class="px-4 py-3 align-top"><button class="order-edit-btn inline-flex items-center gap-1 px-2 py-1 text-xs border border-gray-300 rounded hover:bg-gray-50" data-tid="'.$tid.'"><i data-lucide="edit" class="w-3 h-3"></i>Edit</button></td>';
+                                echo '</tr>';
+                            }
+                        }
+                        $tbodyHtml = ob_get_clean();
+                        header('Content-Type: application/json');
+                        echo json_encode(['ok'=>true,'count'=>count($orders),'tbody'=>$tbodyHtml]);
+                        exit;
                     }
                     ?>
                     <div class="flex items-center justify-between">
@@ -3022,6 +3134,7 @@ function resolveImageUrl($path) {
             initOrdersSectionFilters();
             initOwnersDirectory();
             initAppointments();
+            // (Removed appointments refresh button & handler per request)
             initSubscribersFilters();
             initSitters();
             initTopSellingModal();

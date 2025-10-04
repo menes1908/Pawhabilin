@@ -1,6 +1,10 @@
 <?php
 // User Promos Controller: list available promos, claim, list claimed, generate QR
 header('Content-Type: application/json; charset=UTF-8');
+// Prevent caching to ensure fresh results when user presses Refresh on the UI
+header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+header('Pragma: no-cache');
+header('Expires: 0');
 require_once __DIR__ . '/../../utils/session.php';
 require_once __DIR__ . '/../../database.php';
 session_start_if_needed();
@@ -29,6 +33,23 @@ function respond($ok,$msg,$extra=[]) { echo json_encode(array_merge(['success'=>
 	CONSTRAINT fk_up_user FOREIGN KEY (users_id) REFERENCES users(users_id) ON DELETE CASCADE,
 	CONSTRAINT fk_up_promo FOREIGN KEY (promo_id) REFERENCES promotions(promo_id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;");
+// Add QR token columns if not present (ignore errors if they already exist)
+@mysqli_query($connections, "ALTER TABLE user_promos ADD COLUMN up_qr_token VARCHAR(128) NULL");
+@mysqli_query($connections, "ALTER TABLE user_promos ADD COLUMN up_qr_token_created_at DATETIME NULL");
+@mysqli_query($connections, "ALTER TABLE user_promos ADD COLUMN up_qr_token_redeemed_at DATETIME NULL");
+
+// Ensure promotion_redemptions table to track each redemption usage (per-user limit enforcement)
+@mysqli_query($connections, "CREATE TABLE IF NOT EXISTS promotion_redemptions (
+    pr_id INT AUTO_INCREMENT PRIMARY KEY,
+    promo_id INT NOT NULL,
+    users_id INT NOT NULL,
+    up_id INT NULL,
+    pr_status ENUM('applied','rejected') NOT NULL DEFAULT 'applied',
+    pr_created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    KEY idx_user_promo(users_id, promo_id),
+    CONSTRAINT fk_pr_promo FOREIGN KEY (promo_id) REFERENCES promotions(promo_id) ON DELETE CASCADE,
+    CONSTRAINT fk_pr_user FOREIGN KEY (users_id) REFERENCES users(users_id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;");
 
 // Helper to fetch user's point balance (assuming user_points_balance table optional)
 function get_user_points($conn,$uid){
@@ -37,16 +58,16 @@ function get_user_points($conn,$uid){
 }
 
 if($action==='list'){
-	// List active promos user can see + claimed ones
-	$now = date('Y-m-d H:i:s');
-	$rows = [];
-	$sql = "SELECT p.*, up.up_id, up.up_redeemed_at, up.up_code AS user_code
-			FROM promotions p
-			LEFT JOIN user_promos up ON up.promo_id = p.promo_id AND up.users_id = $uid
-			WHERE p.promo_active=1
-			  AND (p.promo_starts_at IS NULL OR p.promo_starts_at <= '$now')
-			  AND (p.promo_ends_at IS NULL OR p.promo_ends_at >= '$now')
-			ORDER BY p.promo_points_cost ASC, p.promo_created_at DESC";
+		// List active promos user can see + claimed ones
+		// Use MySQL NOW() for time filtering to avoid PHP/MySQL timezone mismatches
+		$rows = [];
+		$sql = "SELECT p.*, up.up_id, up.up_redeemed_at, up.up_code AS user_code
+						FROM promotions p
+						LEFT JOIN user_promos up ON up.promo_id = p.promo_id AND up.users_id = $uid
+						WHERE p.promo_active=1
+							AND (p.promo_starts_at IS NULL OR p.promo_starts_at <= NOW())
+							AND (p.promo_ends_at IS NULL OR p.promo_ends_at >= NOW())
+						ORDER BY p.promo_points_cost ASC, p.promo_created_at DESC";
 	if($res = mysqli_query($connections,$sql)){
 		while($r = mysqli_fetch_assoc($res)) $rows[]=$r; mysqli_free_result($res);
 	}
@@ -54,7 +75,7 @@ if($action==='list'){
 	respond(true,'OK',[ 'promotions'=>$rows, 'user_points'=>$userPoints ]);
 }
 elseif($action==='claimed'){
-	$rows=[]; 
+    $rows=[]; 
 	// Include per-user usage count (applied redemptions) & per-user limit to allow frontend disabling
 	$query = "SELECT up.*, p.promo_name, p.promo_code, p.promo_discount_type, p.promo_discount_value, p.promo_type, p.promo_active, p.promo_per_user_limit,
 		(SELECT COUNT(*) FROM promotion_redemptions pr WHERE pr.promo_id = p.promo_id AND pr.users_id = $uid AND pr.pr_status='applied') AS usage_count
@@ -71,11 +92,10 @@ elseif($action==='claimed'){
 elseif($action==='claim'){
 	$promo_id = isset($_POST['promo_id'])? (int)$_POST['promo_id'] : 0; if($promo_id<=0) respond(false,'Invalid promo');
 	// Fetch promo
-	$now = date('Y-m-d H:i:s');
-	$res = mysqli_query($connections, "SELECT * FROM promotions WHERE promo_id=$promo_id AND promo_active=1 LIMIT 1");
+	// Validate using MySQL NOW() to avoid PHP/MySQL timezone mismatches
+	$res = mysqli_query($connections, "SELECT * FROM promotions WHERE promo_id=$promo_id AND promo_active=1 AND (promo_starts_at IS NULL OR promo_starts_at <= NOW()) AND (promo_ends_at IS NULL OR promo_ends_at >= NOW()) LIMIT 1");
 	$promo = $res? mysqli_fetch_assoc($res) : null; if($res) mysqli_free_result($res);
 	if(!$promo) respond(false,'Promo not found or inactive');
-	if(($promo['promo_starts_at'] && $promo['promo_starts_at'] > $now) || ($promo['promo_ends_at'] && $promo['promo_ends_at'] < $now)) respond(false,'Promo not in valid window');
 	// Points check
 	$cost = (int)($promo['promo_points_cost'] ?? 0); $userPoints = get_user_points($connections,$uid);
 	if($cost>0 && $userPoints < $cost) respond(false,'Not enough points');
@@ -145,6 +165,50 @@ elseif($action==='ledger'){
 		while($r=mysqli_fetch_assoc($res)) $rows[]=$r; mysqli_free_result($res);
 	}
 	respond(true,'OK',['entries'=>$rows]);
+}
+elseif($action==='redeem'){
+	// Redeem a claimed promo (simulate scanner confirm). Enforces per-user limit.
+	$up_id = isset($_POST['up_id']) ? (int)$_POST['up_id'] : 0; if($up_id<=0) respond(false,'Invalid coupon');
+	// Ensure the coupon belongs to this user
+	$res = mysqli_query($connections, "SELECT up.*, p.promo_per_user_limit, p.promo_id, p.promo_name FROM user_promos up JOIN promotions p ON p.promo_id = up.promo_id WHERE up.up_id=$up_id AND up.users_id=$uid LIMIT 1");
+	$row = $res ? mysqli_fetch_assoc($res) : null; if($res) mysqli_free_result($res);
+	if(!$row) respond(false,'Coupon not found');
+	$promo_id = (int)$row['promo_id'];
+	$limit = isset($row['promo_per_user_limit']) ? (int)$row['promo_per_user_limit'] : 1; // default 1 if null
+	if($limit<=0) $limit = 1; // safety default
+	// Current usage
+	$used = 0; $r2 = mysqli_query($connections, "SELECT COUNT(*) c FROM promotion_redemptions WHERE users_id=$uid AND promo_id=$promo_id AND pr_status='applied'");
+	if($r2 && $rr = mysqli_fetch_assoc($r2)){ $used = (int)$rr['c']; mysqli_free_result($r2);} 
+	if($used >= $limit) respond(false,'Usage limit reached',[ 'usage_count'=>$used, 'limit'=>$limit ]);
+	// Record redemption
+	$stmt = mysqli_prepare($connections, 'INSERT INTO promotion_redemptions (promo_id, users_id, up_id, pr_status) VALUES (?,?,?,\'applied\')');
+	if(!$stmt) respond(false,'Redeem prepare failed: '.mysqli_error($connections));
+	mysqli_stmt_bind_param($stmt,'iii',$promo_id,$uid,$up_id);
+	if(!mysqli_stmt_execute($stmt)){ $err = mysqli_error($connections); mysqli_stmt_close($stmt); respond(false,'Redeem failed: '.$err); }
+	mysqli_stmt_close($stmt);
+	// Mark first redemption timestamp on coupon if not set
+	mysqli_query($connections, "UPDATE user_promos SET up_redeemed_at = IFNULL(up_redeemed_at, NOW()) WHERE up_id=$up_id AND users_id=$uid LIMIT 1");
+	$used++;
+	respond(true,'Redeemed',[ 'usage_count'=>$used, 'limit'=>$limit, 'promo_name'=>$row['promo_name'] ]);
+}
+elseif($action==='mint_qr'){
+	// Generate (or return existing) unique token for a claimed coupon, owned by user
+	$up_id = isset($_REQUEST['up_id']) ? (int)$_REQUEST['up_id'] : 0; if($up_id<=0) respond(false,'Invalid coupon');
+	$res = mysqli_query($connections, "SELECT up_id, users_id, promo_id, up_qr_token FROM user_promos WHERE up_id=$up_id AND users_id=$uid LIMIT 1");
+	$row = $res ? mysqli_fetch_assoc($res) : null; if($res) mysqli_free_result($res);
+	if(!$row) respond(false,'Coupon not found');
+	$token = $row['up_qr_token'];
+	if(!$token){
+		// Create a URL-safe token
+		$raw = random_bytes(32);
+		$token = rtrim(strtr(base64_encode($raw), '+/', '-_'), '=');
+		$stmt = mysqli_prepare($connections, 'UPDATE user_promos SET up_qr_token=?, up_qr_token_created_at=NOW() WHERE up_id=? AND users_id=?');
+		if(!$stmt) respond(false,'Failed to mint token');
+		mysqli_stmt_bind_param($stmt,'sii',$token,$up_id,$uid);
+		if(!mysqli_stmt_execute($stmt)){ $err = mysqli_error($connections); mysqli_stmt_close($stmt); respond(false,'Mint failed: '.$err); }
+		mysqli_stmt_close($stmt);
+	}
+	respond(true,'OK',[ 'token'=>$token, 'up_id'=>$up_id ]);
 }
 else { respond(false,'Unsupported action'); }
 

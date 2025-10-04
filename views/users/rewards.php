@@ -281,8 +281,12 @@ function getTypeIcon($type) {
     </div>
 
     <script>
+        // Expose current authenticated user id to JS for per-user QR generation
+        const CURRENT_USER_ID = <?php echo (int)$uid; ?>;
         lucide.createIcons();
         const promosEndpoint = '../../controllers/users/userpromoscontroller.php';
+        // Path to the site logo used to overlay on QR codes (URL-encode spaces)
+        const LOGO_URL = '../../pictures/Pawhabilin%20logo.png';
         const availableList = document.getElementById('availablePromosList');
         const claimedList = document.getElementById('claimedRewardsList');
         const availFb = document.getElementById('availablePromosFeedback');
@@ -314,11 +318,12 @@ function getTypeIcon($type) {
         const PROMOS_PAGE_SIZE = 10;
         let currentUserPts = 0;
 
-        async function loadAvailable(){
+    async function loadAvailable(){
             hideFb(availFb); promosLoading && (promosLoading.style.display='block');
             availableList.innerHTML=''; availableList.appendChild(promosLoading);
             try {
-                const r = await fetch(promosEndpoint+'?action=list',{credentials:'same-origin'}); const j = await r.json();
+        const url = promosEndpoint + '?action=list&_ts=' + Date.now();
+        const r = await fetch(url,{credentials:'same-origin', cache:'no-store'}); const j = await r.json();
                 promosLoading.style.display='none';
                 if(!j.success){ fb(availFb,j.message||'Failed'); return; }
                 availablePromos = j.promotions||[]; 
@@ -408,21 +413,84 @@ function getTypeIcon($type) {
                 const rows = j.claimed||[];
                 if(rows.length===0){ claimedList.innerHTML='<div class="text-center text-gray-500 text-sm">No claimed coupons yet.</div>'; return; }
                 rows.forEach(c=>{
+                    const type = String(c.promo_type||'').toLowerCase();
+                    const isAppointment = (type === 'appointment');
+                    const limit = Math.max(1, parseInt(c.promo_per_user_limit ?? '1', 10) || 1);
+                    const used = Math.max(0, parseInt(c.usage_count ?? '0', 10) || 0);
+                    const reachedLimit = used >= limit;
                     const div = document.createElement('div');
-                    div.className='border border-gray-200 rounded-lg p-4';
+                    div.className='coupon-card border border-gray-200 rounded-lg p-4';
+
+                    // Decide button state per requirements
+                    let btnAttrs = '';
+                    let btnClass = 'px-2 py-1 text-[11px] rounded-md border flex items-center gap-1';
+                    let btnExtraClasses = '';
+                    // For product (non-appointment) promos: QR disabled, no error message/tooltip
+                    if(!isAppointment){
+                        btnAttrs = 'disabled aria-disabled="true"';
+                        btnExtraClasses = 'border-gray-200 text-gray-400 cursor-not-allowed opacity-60';
+                    } else {
+                        // Appointment promos: no card-level error. If limit reached, prefer modal message.
+                        // After user saw modal, we persist disabled state via sessionStorage flag.
+                        const flagKey = `qrDisabled:${c.up_id}`;
+                        const persistDisabled = sessionStorage.getItem(flagKey) === '1';
+                        if(reachedLimit && persistDisabled){
+                            btnAttrs = 'disabled aria-disabled="true"';
+                            btnExtraClasses = 'border-gray-200 text-gray-400 cursor-not-allowed opacity-60';
+                        } else {
+                            btnExtraClasses = 'border-gray-300 hover:border-orange-400 hover:text-orange-600';
+                        }
+                    }
+                    btnClass = `${btnClass} ${btnExtraClasses}`.trim();
+
                     div.innerHTML = `<div class='flex items-start justify-between mb-2'>
                         <div class='min-w-0 flex-1'>
                             <div class='font-medium text-sm truncate'>${escapeHtml(c.promo_name||'')}</div>
                             <div class='text-[11px] text-gray-500 mt-0.5'>Code: <code class='bg-gray-100 px-1 rounded'>${escapeHtml(c.up_code||'')}</code></div>
                         </div>
-                        <button data-qr='${c.up_id}' class='px-2 py-1 text-[11px] rounded-md border border-gray-300 hover:border-orange-400 hover:text-orange-600 flex items-center gap-1'><i data-lucide="qr-code" class="w-3 h-3"></i>QR</button>
+                        <button data-qr='${c.up_id}' data-name='${escapeHtml(c.promo_name||'')}' data-code='${escapeHtml(c.up_code||'')}' data-type='${escapeHtml(type)}' data-used='${used}' data-limit='${limit}' class='${btnClass}' ${btnAttrs}><i data-lucide="qr-code" class="w-3 h-3"></i>QR</button>
                     </div>
-                    <div class='flex justify-between items-center text-[11px] text-gray-500'><span>Claimed: ${escapeHtml((c.up_claimed_at||'').substring(0,10))}</span><span>${c.up_redeemed_at? 'Redeemed':'Not redeemed'}</span></div>`;
+                    <div class='flex justify-between items-center text-[11px] text-gray-600'>
+                        <span>Claimed: ${escapeHtml((c.up_claimed_at||'').substring(0,10))}</span>
+                        <span class='flex items-center gap-2'>
+                            <span class='font-medium ${reachedLimit?'text-red-600':'text-gray-700'}'>Usage: ${used}/${limit}</span>
+                        </span>
+                    </div>`;
                     claimedList.appendChild(div);
                 });
                 lucide.createIcons();
+                applyClaimedListLimit();
             } catch(e){ claimedLoading.style.display='none'; fb(claimedFb,'Network error'); }
         }
+        // Limit claimed coupons list to exactly 4 visible items then scroll
+        function applyClaimedListLimit(){
+            const list = document.getElementById('claimedRewardsList');
+            if(!list) return;
+            const cards = Array.from(list.querySelectorAll('.coupon-card'));
+            if(cards.length <= 4){
+                list.style.maxHeight='';
+                list.style.overflowY='';
+                return;
+            }
+            // Sum first 4 cards heights including vertical gaps between them
+            let total = 0;
+            for(let i=0;i<4;i++){
+                const el = cards[i];
+                total += el.offsetHeight;
+                // Add margin-bottom if using space-y utilities (Tailwind applies margin-top to subsequent siblings)
+                if(i < 3){
+                    // space-y-3 => margin-top: 0.75rem on next element
+                    const next = cards[i+1];
+                    if(next){
+                        const mt = parseFloat(getComputedStyle(next).marginTop||'0');
+                        total += mt;
+                    }
+                }
+            }
+            list.style.maxHeight = total + 'px';
+            list.style.overflowY = 'auto';
+        }
+        window.addEventListener('resize', ()=>{ applyClaimedListLimit(); });
         function escapeHtml(str){ return (str||'').replace(/[&<>"']/g,c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;' }[c]||c)); }
         function updatePointsDisplay(val){
             const balance = document.getElementById('pointsBalanceValue');
@@ -507,28 +575,242 @@ function getTypeIcon($type) {
             }
             const qrBtn = e.target.closest('[data-qr]');
             if(qrBtn){
-                const up = qrBtn.getAttribute('data-qr'); qrBtn.disabled=true; qrBtn.textContent='...';
-                try { const r = await fetch(promosEndpoint+'?action=qr&up_id='+encodeURIComponent(up),{credentials:'same-origin'}); const j=await r.json(); if(!j.success){ alert(j.message||'QR failed'); } else { showQrModal(j); } } catch(err){ alert('Network error'); } finally { qrBtn.disabled=false; qrBtn.textContent='QR'; }
+                if(qrBtn.hasAttribute('disabled')){ return; }
+                // Respect product-type being disabled silently
+                const type = (qrBtn.getAttribute('data-type')||'').toLowerCase();
+                if(type !== 'appointment'){
+                    return; // No modal message for product-type
+                }
+                // For appointment promos, if limit reached show modal error instead of card message
+                const used = parseInt(qrBtn.getAttribute('data-used')||'0',10);
+                const limit = parseInt(qrBtn.getAttribute('data-limit')||'1',10);
+                const upId = qrBtn.getAttribute('data-qr');
+                const name = qrBtn.getAttribute('data-name') || 'Appointment Promo';
+                if(used >= limit){
+                    showLimitErrorModal({ name, used, limit, onClose: ()=>{
+                        try{ sessionStorage.setItem(`qrDisabled:${upId}`,'1'); }catch(_e){}
+                        disableQrButton(qrBtn);
+                    }});
+                    return;
+                }
+                // Mint or get unique token for this claimed coupon, then show QR with link
+                try{
+                    const res = await fetch(`${promosEndpoint}?action=mint_qr&up_id=${encodeURIComponent(upId)}`, { credentials:'same-origin' });
+                    const j = await res.json();
+                    if(!j.success || !j.token){ alert(j.message || 'Failed to generate QR'); return; }
+                    // Build absolute link: take current path (/Pawhabilin/views/users/rewards.php) -> /Pawhabilin/redeem.php
+                    const parts = location.pathname.split('/');
+                    // Remove last 3 segments: 'views','users','rewards.php'
+                    parts.splice(-3);
+                    const rootPath = parts.join('/') || '/';
+                    const link = `${location.origin}${rootPath}/redeem.php?t=${encodeURIComponent(j.token)}`;
+                    showQrModal({ promo_name: name, link });
+                } catch(err){ alert('Failed to generate QR'); }
             }
-            if(e.target.id==='qrClose' || e.target.id==='qrDownload'){
-                if(e.target.id==='qrDownload'){ const svg = document.querySelector('#qrModal svg'); if(svg){ const blob = new Blob([svg.outerHTML],{type:'image/svg+xml'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='promo-qr.svg'; document.body.appendChild(a); a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),500); a.remove(); } }
-                document.getElementById('qrModal').remove();
+            const downloadBtn = e.target.closest('#qrDownload');
+            const closeBtn = e.target.closest('#qrClose');
+            const clickedBackdrop = e.target.id === 'qrModal';
+            if(downloadBtn){
+                e.preventDefault();
+                const imgEl = document.querySelector('#qrModal img#qrImage');
+                const qrSrc = imgEl?.src;
+                if(!qrSrc){ return; }
+                // Compose QR + center logo onto a canvas so the downloaded image includes the logo
+                const qrImg = new Image();
+                const logoImg = new Image();
+                // Try to enable CORS for drawing remote quickchart image
+                qrImg.crossOrigin = 'anonymous';
+                logoImg.crossOrigin = 'anonymous';
+                let done = false;
+                const failFallback = () => {
+                    if(done) return; done = true;
+                    // Fallback: download raw QR image (without logo)
+                    fetch(qrSrc, { mode: 'cors' })
+                        .then(r => r.ok ? r.blob() : Promise.reject(new Error('Fetch failed')))
+                        .then(blob => {
+                            const url = URL.createObjectURL(blob);
+                            const a = document.createElement('a');
+                            a.href = url; a.download = 'promo-qr.png';
+                            document.body.appendChild(a); a.click();
+                            setTimeout(()=>{ URL.revokeObjectURL(url); a.remove(); }, 400);
+                        })
+                        .catch(()=>{
+                            const a=document.createElement('a'); a.href=qrSrc; a.target='_blank';
+                            document.body.appendChild(a); a.click(); a.remove();
+                        });
+                };
+                        const draw = () => {
+                    try {
+                        const sizeW = qrImg.naturalWidth || 512;
+                        const sizeH = qrImg.naturalHeight || 512;
+                        const canvas = document.createElement('canvas');
+                        canvas.width = sizeW; canvas.height = sizeH;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(qrImg, 0, 0, sizeW, sizeH);
+                                // Draw white circular background and then the logo centered at ~28% of QR size
+                                const ratio = 0.28;
+                                const diameter = Math.round(sizeW * ratio);
+                                const radius = Math.round(diameter / 2);
+                                const cx = Math.round(sizeW / 2);
+                                const cy = Math.round(sizeH / 2);
+                                // Circle background (white)
+                                ctx.save();
+                                ctx.fillStyle = '#FFFFFF';
+                                ctx.beginPath();
+                                ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+                                ctx.closePath();
+                                ctx.fill();
+                                ctx.restore();
+                                // Draw logo at ~80% of the circle diameter to leave a margin
+                                const innerScale = 0.8;
+                                const logoW = Math.round(diameter * innerScale);
+                                const logoH = Math.round(diameter * innerScale);
+                                const x = Math.round(cx - logoW / 2);
+                                const y = Math.round(cy - logoH / 2);
+                                ctx.drawImage(logoImg, x, y, logoW, logoH);
+                        canvas.toBlob((blob)=>{
+                            if(!blob){ failFallback(); return; }
+                            const url = URL.createObjectURL(blob);
+                            const a = document.createElement('a');
+                            a.href = url; a.download = 'promo-qr.png';
+                            document.body.appendChild(a); a.click();
+                            setTimeout(()=>{ URL.revokeObjectURL(url); a.remove(); }, 400);
+                        }, 'image/png');
+                    } catch(err){
+                        failFallback();
+                    }
+                };
+                qrImg.onload = () => {
+                    // Load logo after QR
+                    logoImg.onload = () => { draw(); };
+                    logoImg.onerror = failFallback;
+                    logoImg.src = LOGO_URL;
+                };
+                qrImg.onerror = failFallback;
+                qrImg.src = qrSrc;
+            }
+            if(closeBtn || clickedBackdrop){
+                document.getElementById('qrModal')?.remove();
+                document.body.classList.remove('overflow-hidden');
             }
         });
 
+        // Helper to disable a QR button element visually and functionally
+        function disableQrButton(btn){
+            if(!btn) return;
+            btn.setAttribute('disabled','true');
+            btn.classList.add('text-gray-400','border-gray-200','cursor-not-allowed','opacity-60');
+            btn.classList.remove('hover:border-orange-400','hover:text-orange-600');
+        }
+
+        // Show a modal error for appointment promos that reached usage limit
+        function showLimitErrorModal({ name, used, limit, onClose }){
+            const id = 'limitErrorModal';
+            document.getElementById(id)?.remove();
+            const wrap = document.createElement('div');
+            wrap.id = id;
+            wrap.className = 'fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm px-4';
+            wrap.innerHTML = `
+                <div class="bg-white rounded-xl shadow-xl w-full max-w-sm p-5 text-center animate-fade-in">
+                    <div class="mx-auto w-12 h-12 rounded-full flex items-center justify-center bg-red-50 mb-3">
+                        <i data-lucide="x-octagon" class="text-red-600 w-6 h-6"></i>
+                    </div>
+                    <div class="text-sm font-semibold mb-1">Usage limit reached</div>
+                    <div class="text-sm text-gray-600">You can no longer use the coupon "${escapeHtml(name)}".</div>
+                    <div class="text-xs text-gray-500 mt-1">Usage: ${used}/${limit}</div>
+                    <div class="mt-4 flex justify-center">
+                        <button id="limitErrorClose" class="px-4 py-2 rounded-md border border-gray-300 text-sm hover:bg-gray-100">Close</button>
+                    </div>
+                </div>`;
+            document.body.appendChild(wrap);
+            lucide.createIcons();
+            function finish(){
+                wrap.remove();
+                if(typeof onClose === 'function'){ onClose(); }
+            }
+            wrap.addEventListener('click', (ev)=>{ if(ev.target===wrap) finish(); });
+            document.getElementById('limitErrorClose')?.addEventListener('click', finish);
+        }
+
         function showQrModal(payload){
-            const existing = document.getElementById('qrModal'); if(existing) existing.remove();
+            // Remove any existing modal
+            document.getElementById('qrModal')?.remove();
+            // The QR encodes the unique redemption link minted by the backend
+            const link = payload.link || '';
+            const qrData = encodeURIComponent(link);
+            // QuickChart API QR endpoint (PNG). Could also add centerImageUrl etc. Keep simple & fast.
+            // Custom colors: foreground (248, 119, 27), background (65, 91, 129)
+            const fg = 'f8771b'.toUpperCase(); // 248,119,27
+            const bg = '415b81'.toUpperCase(); // 65,91,129
+            const qrUrl = `https://quickchart.io/qr?text=${qrData}&size=260&margin=2&format=png&ecLevel=H&dark=${fg}&light=${bg}`;
+
             const wrap = document.createElement('div');
             wrap.id='qrModal';
-            wrap.className='fixed inset-0 bg-black/50 flex items-center justify-center z-50';
-            wrap.innerHTML = `<div class='bg-white rounded-lg p-6 w-full max-w-sm relative'>
-                <button id='qrClose' class='absolute top-2 right-2 text-gray-400 hover:text-gray-600'>&times;</button>
-                <h4 class='text-lg font-semibold mb-4 flex items-center gap-2'><i data-lucide="qr-code" class="w-5 h-5 text-orange-600"></i><span>${escapeHtml(payload.promo_name||'Coupon')}</span></h4>
-                <div class='flex items-center justify-center mb-4 bg-gray-50 border border-gray-200 rounded-md p-4'>${payload.svg}</div>
-                <div class='text-center text-sm mb-4'><span class='font-mono bg-gray-100 px-2 py-1 rounded'>${escapeHtml(payload.code||'')}</span></div>
-                <button id='qrDownload' class='w-full bg-orange-500 hover:bg-orange-600 text-white py-2 rounded-md text-sm font-medium'>Download QR</button>
-            </div>`;
-            document.body.appendChild(wrap); lucide.createIcons();
+            wrap.setAttribute('role','dialog');
+            wrap.setAttribute('aria-modal','true');
+            wrap.className='fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 px-4 py-6 overflow-auto';
+
+            const promoTitle = escapeHtml(payload.promo_name || 'Appointment Promo');
+            const qrHtml = `
+                <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm relative p-6 animate-fade-in">
+                    <button id="qrClose" class="absolute top-2 right-2 rounded-full p-1 text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-orange-500" aria-label="Close QR modal">
+                        <i data-lucide="x" class="w-5 h-5"></i>
+                    </button>
+                    <div class="flex flex-col items-center gap-4">
+                        <h4 class="text-lg font-semibold flex items-center gap-2">
+                            <i data-lucide="qr-code" class="w-5 h-5 text-orange-600"></i>
+                            <span>${promoTitle}</span>
+                        </h4>
+                        <div class="bg-gray-50 border border-gray-200 rounded-lg p-4 w-full flex items-center justify-center">
+                            <div class="relative w-64 h-64">
+                                <img id="qrImage" src="${qrUrl}" alt="Promo QR" class="absolute inset-0 w-full h-full object-contain" loading="lazy" onerror="this.alt='QR unavailable'; this.replaceWith(Object.assign(document.createElement('div'),{className:'text-xs text-gray-500',textContent:'Unable to load QR image. Please check your internet connection.'}));" />
+                                <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" style="width:28%; height:28%;">
+                                    <div class="absolute inset-0 rounded-full bg-white shadow"></div>
+                                    <img src="${LOGO_URL}" alt="Pawhabilin logo" class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 object-contain" style="width:80%; height:80%;" />
+                                </div>
+                            </div>
+                        </div>
+                        <div class="text-xs text-gray-500 text-center leading-snug">
+                            This QR is unique to your coupon and links to a one-time redemption URL. Once scanned, it will be marked as redeemed.
+                        </div>
+                        <div class="flex gap-2 w-full">
+                            <button id="qrDownload" class="flex-1 bg-orange-500 hover:bg-orange-600 text-white py-2 rounded-md text-sm font-medium inline-flex items-center justify-center gap-2">
+                                <i data-lucide="download" class="w-4 h-4"></i> Download QR
+                            </button>
+                        </div>
+                    </div>
+                </div>`;
+            wrap.innerHTML = qrHtml;
+            document.body.appendChild(wrap);
+            document.body.classList.add('overflow-hidden');
+            lucide.createIcons();
+
+            // Removed regen and claim actions; redemption occurs by visiting the unique URL embedded in the QR
+
+            function showClaimResult(ok, message, extra){
+                // Small success/fail modal
+                const prior = document.getElementById('claimResultModal'); prior?.remove();
+                const m = document.createElement('div');
+                m.id='claimResultModal';
+                m.className='fixed inset-0 z-[100] flex items-center justify-center bg-black/50 px-4';
+                const badge = ok ? 'bg-emerald-100 text-emerald-700 border-emerald-200' : 'bg-red-100 text-red-700 border-red-200';
+                const icon = ok ? 'check-circle' : 'x-circle';
+                const usageText = (extra && typeof extra.usage_count==='number' && typeof extra.limit==='number') ? `<div class="text-xs text-gray-500 mt-1">Usage: ${extra.usage_count}/${extra.limit}</div>` : '';
+                m.innerHTML = `
+                    <div class="bg-white rounded-xl shadow-xl w-full max-w-sm p-5 text-center">
+                        <div class="mx-auto w-12 h-12 rounded-full flex items-center justify-center ${ok?'bg-emerald-50':'bg-red-50'} mb-3">
+                            <i data-lucide="${icon}" class="${ok?'text-emerald-600':'text-red-600'} w-6 h-6"></i>
+                        </div>
+                        <div class="text-sm font-medium mb-1">${message}</div>
+                        ${usageText}
+                        <div class="mt-4 flex justify-center">
+                            <button id="claimModalClose" class="px-4 py-2 rounded-md border border-gray-300 text-sm hover:bg-gray-100">Close</button>
+                        </div>
+                    </div>`;
+                document.body.appendChild(m); lucide.createIcons();
+                document.getElementById('claimModalClose')?.addEventListener('click', ()=> m.remove());
+                m.addEventListener('click', (ev)=>{ if(ev.target===m) m.remove(); });
+            }
         }
 
         // Unified refresh: refreshes available promos + claimed coupons (and optional ledger)

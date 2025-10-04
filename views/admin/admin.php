@@ -421,6 +421,58 @@ function resolveImageUrl($path) {
             to { opacity:1; transform: translateY(0);} }
             
         .animate-fade-in { animation: fadeInUp .25s ease-out; transition: opacity .25s, transform .25s; }
+
+        /* --- Dark Mode: Make date/time inputs readable (appointments & promos edit) --- */
+        /* Target common date/time inputs used across admin (filters + modals) */
+        body.dark input[type="date"],
+        body.dark input[type="time"],
+        body.dark input[type="datetime-local"],
+        body.dark select {
+            background-color: #1f2937; /* slate-800 */
+            color: #e2e8f0;            /* slate-200 */
+            border-color: #334155;     /* slate-700 */
+        }
+        body.dark input[type="date"]::placeholder,
+        body.dark input[type="time"]::placeholder,
+        body.dark input[type="datetime-local"]::placeholder {
+            color: #94a3b8;           /* slate-400 */
+        }
+        body.dark input[type="date"]:focus,
+        body.dark input[type="time"]:focus,
+        body.dark input[type="datetime-local"]:focus,
+        body.dark select:focus {
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(249, 115, 22, 0.35); /* orange-500 ring */
+            border-color: #f97316;
+        }
+        /* Calendar/time pickers (webkit) internal text color */
+        body.dark input[type="date"]::-webkit-datetime-edit,
+        body.dark input[type="time"]::-webkit-datetime-edit,
+        body.dark input[type="datetime-local"]::-webkit-datetime-edit {
+            color: #e2e8f0;
+        }
+        body.dark input[type="date"]::-webkit-calendar-picker-indicator,
+        body.dark input[type="time"]::-webkit-calendar-picker-indicator,
+        body.dark input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+            filter: invert(0.85);
+        }
+
+        /* --- Dark Mode: Header buttons near profile hover effect --- */
+        /* Applies subtle hover on header action buttons (notifications, profile, toggles) */
+        body.dark header button,
+        body.dark header a.button,
+        body.dark header .icon-button,
+        body.dark header .dark-toggle-btn {
+            transition: background-color .2s ease, color .2s ease, box-shadow .2s ease;
+        }
+        body.dark header button:hover,
+        body.dark header a.button:hover,
+        body.dark header .icon-button:hover,
+        body.dark header .dark-toggle-btn:hover {
+            background-color: #334155; /* slate-700 */
+            color: #e2e8f0;            /* readable on dark */
+            box-shadow: 0 2px 8px rgba(0,0,0,0.35);
+        }
     </style>
        
 </head>

@@ -317,22 +317,6 @@ INSERT INTO `locations` (`location_id`, `users_id`, `location_label`, `location_
 --
 -- Triggers `locations`
 --
-DELIMITER $$
-CREATE TRIGGER `trg_locations_before_insert` BEFORE INSERT ON `locations` FOR EACH ROW BEGIN
-  IF NEW.location_is_default = 1 THEN
-    UPDATE locations SET location_is_default = 0 WHERE users_id = NEW.users_id AND location_is_default = 1;
-  END IF;
-END
-$$
-DELIMITER ;
-DELIMITER $$
-CREATE TRIGGER `trg_locations_before_update` BEFORE UPDATE ON `locations` FOR EACH ROW BEGIN
-  IF NEW.location_is_default = 1 AND (OLD.location_is_default <> NEW.location_is_default OR OLD.users_id <> NEW.users_id) THEN
-    UPDATE locations SET location_is_default = 0 WHERE users_id = NEW.users_id AND location_id <> NEW.location_id AND location_is_default = 1;
-  END IF;
-END
-$$
-DELIMITER ;
 
 -- --------------------------------------------------------
 

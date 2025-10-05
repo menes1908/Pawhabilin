@@ -3039,9 +3039,82 @@ function resolveImageUrl($path) {
         </div>
     </div>
 
+    <!-- Confirm Modal (Yes/No) -->
+    <div id="confirmModal" class="fixed inset-0 bg-black/40 hidden items-center justify-center z-50">
+        <div class="bg-white dark:bg-[#1f2937] rounded-lg shadow-lg w-full max-w-md mx-4 overflow-hidden">
+            <div class="px-5 py-4 border-b border-gray-200 dark:border-[#334155]">
+                <h3 class="text-lg font-semibold text-gray-800 dark:text-gray-100">Confirm Action</h3>
+            </div>
+            <div class="p-5">
+                <p id="confirmMessage" class="text-sm text-gray-700 dark:text-gray-300">Are you sure?</p>
+            </div>
+            <div class="px-5 py-3 border-t border-gray-200 dark:border-[#334155] flex justify-end gap-2 bg-gray-50 dark:bg-[#111827]">
+                <button id="confirmNo" type="button" class="px-4 py-2 rounded-md border border-gray-300 dark:border-[#334155] bg-white dark:bg-[#111827] text-gray-700 dark:text-gray-200 hover:bg-gray-50">No</button>
+                <button id="confirmYes" type="button" class="px-4 py-2 rounded-md bg-emerald-600 text-white hover:bg-emerald-700">Yes</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         // Dynamic reports container (filled from backend)
         const transactionData = { daily:null, weekly:null, monthly:null, annual:null };
+
+        // Reusable confirm modal helper (returns Promise<boolean>)
+        async function showConfirm(message){
+            const modal = document.getElementById('confirmModal');
+            const msgEl = document.getElementById('confirmMessage');
+            const yesBtn = document.getElementById('confirmYes');
+            const noBtn = document.getElementById('confirmNo');
+            return new Promise(resolve => {
+                msgEl.textContent = message || 'Are you sure?';
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
+                const cleanup = () => {
+                    modal.classList.add('hidden');
+                    modal.classList.remove('flex');
+                    yesBtn.removeEventListener('click', onYes);
+                    noBtn.removeEventListener('click', onNo);
+                    modal.removeEventListener('click', onBackdrop);
+                    document.removeEventListener('keydown', onEsc);
+                };
+                function onYes(){ cleanup(); resolve(true); }
+                function onNo(){ cleanup(); resolve(false); }
+                function onBackdrop(e){ if(e.target===modal){ onNo(); } }
+                function onEsc(e){ if(e.key==='Escape'){ onNo(); } }
+                yesBtn.addEventListener('click', onYes);
+                noBtn.addEventListener('click', onNo);
+                modal.addEventListener('click', onBackdrop);
+                document.addEventListener('keydown', onEsc);
+            });
+        }
+
+        // Global toast helper (dark-mode aware)
+        function showToast(msg, type = 'success'){
+            let wrap = document.getElementById('globalToastWrap');
+            if(!wrap){
+                wrap = document.createElement('div');
+                wrap.id = 'globalToastWrap';
+                wrap.className = 'fixed z-[1000] top-4 right-4 space-y-2 w-80';
+                document.body.appendChild(wrap);
+            }
+            const base = 'px-4 py-3 rounded-md shadow border text-sm flex items-start gap-2 animate-fade-in transition-all';
+            let cls = '';
+            if(type === 'error'){
+                cls = ' bg-red-50 border-red-200 text-red-700 dark:bg-red-900/60 dark:border-red-700 dark:text-red-100';
+            } else if(type === 'info'){
+                cls = ' bg-sky-50 border-sky-200 text-sky-800 dark:bg-sky-900/60 dark:border-sky-700 dark:text-sky-100';
+            } else { // success
+                cls = ' bg-emerald-50 border-emerald-200 text-emerald-800 dark:bg-emerald-900/60 dark:border-emerald-700 dark:text-emerald-100';
+            }
+            const el = document.createElement('div');
+            el.className = base + cls;
+            el.innerHTML = '<span class="flex-1">'+ (msg || '') +'</span>'+
+                           '<button type="button" aria-label="Dismiss" class="text-xs text-gray-400 dark:text-gray-300 hover:text-gray-700 dark:hover:text-gray-100">&times;</button>';
+            el.querySelector('button').onclick = ()=>{ el.remove(); };
+            wrap.appendChild(el);
+            // Auto-dismiss
+            setTimeout(()=>{ el.classList.add('opacity-0','translate-x-2'); setTimeout(()=>el.remove(), 280); }, 3500);
+        }
 
        
 
@@ -3637,7 +3710,7 @@ function resolveImageUrl($path) {
                 const actualInput = document.getElementById('order_edit_actual');
                 const sigInput = document.getElementById('order_edit_signature');
                 const closeBtns = document.querySelectorAll('[data-close-order]');
-                // Toast helper
+                // Toast helper (dark-mode aware)
                 function showToast(msg,type='success'){
                     let wrap = document.getElementById('adminToastWrap');
                     if(!wrap){
@@ -3647,8 +3720,13 @@ function resolveImageUrl($path) {
                         document.body.appendChild(wrap);
                     }
                     const el = document.createElement('div');
-                    el.className='px-4 py-3 rounded-md shadow border text-sm flex items-start gap-2 animate-fade-in '+(type==='error'?'bg-red-50 border-red-200 text-red-700':'bg-emerald-50 border-emerald-200 text-emerald-800');
-                    el.innerHTML = '<span class="flex-1">'+msg+'</span><button class="text-xs text-gray-400 hover:text-gray-700">&times;</button>';
+                    const base = 'px-4 py-3 rounded-md shadow border text-sm flex items-start gap-2 animate-fade-in transition-all';
+                    const cls = (type==='error')
+                        ? ' bg-red-50 border-red-200 text-red-700 dark:bg-red-900/60 dark:border-red-700 dark:text-red-100'
+                        : ' bg-emerald-50 border-emerald-200 text-emerald-800 dark:bg-emerald-900/60 dark:border-emerald-700 dark:text-emerald-100';
+                    el.className = base + cls;
+                    el.innerHTML = '<span class="flex-1">'+(msg||'')+'</span>'+
+                                   '<button class="text-xs text-gray-400 dark:text-gray-300 hover:text-gray-700 dark:hover:text-gray-100">&times;</button>';
                     el.querySelector('button').onclick=()=>{ el.remove(); };
                     wrap.appendChild(el);
                     setTimeout(()=>{ el.classList.add('opacity-0','translate-x-2'); setTimeout(()=>el.remove(),300); }, 3500);
@@ -4783,6 +4861,8 @@ function resolveImageUrl($path) {
 
             form.addEventListener('submit', async function(e){
                 e.preventDefault();
+                const ok = await showConfirm('Are you sure you want to add this product?');
+                if (!ok) return; // keep the add modal open
                 const fd = new FormData(form);
                 try {
                     const res = await fetch('../../controllers/admin/productcontroller.php?action=add', {
@@ -4835,7 +4915,8 @@ function resolveImageUrl($path) {
                     // Re-apply filters after adding
                     applyProductFilters();
 
-                    alert('Product added successfully!');
+                    // Toast + close the modal after successful add
+                    try { showToast('Product added'); } catch(e) {}
                     closeAddProductModal();
                     form.reset();
                     resetPreview();
@@ -5003,6 +5084,8 @@ function resolveImageUrl($path) {
             const form = document.getElementById('editProductForm');
             form.addEventListener('submit', async function(e){
                 e.preventDefault();
+                const ok = await showConfirm('Are you sure you want to update this product?');
+                if (!ok) return; // keep the edit modal open
                 const fd = new FormData(form);
                 try {
                     const res = await fetch('../../controllers/admin/productcontroller.php?action=update', { method: 'POST', body: fd });
@@ -5034,7 +5117,8 @@ function resolveImageUrl($path) {
                         }
                     }
                     applyProductFilters();
-                    alert('Product updated successfully!');
+                    // Toast + close the modal after successful update
+                    try { showToast('Product updated'); } catch(e) {}
                     closeEditProductModal();
                 } catch(err) {
                     alert(err.message);
@@ -5698,6 +5782,10 @@ function resolveImageUrl($path) {
         <span class="bg-rose-100 text-rose-800 border border-rose-200"></span>
         <span class="bg-indigo-100 text-indigo-800 border border-indigo-200"></span>
         <span class="bg-gray-100 text-gray-800 border border-gray-200"></span>
+        <!-- Toast dark-mode safelist -->
+        <span class="dark:bg-emerald-900/60 dark:border-emerald-700 dark:text-emerald-100"></span>
+        <span class="dark:bg-red-900/60 dark:border-red-700 dark:text-red-100"></span>
+        <span class="dark:bg-sky-900/60 dark:border-sky-700 dark:text-sky-100"></span>
     </div>
 </body>
 </html>

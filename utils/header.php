@@ -77,7 +77,7 @@ if ($currentUser) {
     if (cartBtn) {
         cartBtn.addEventListener('click', function(){
             try { if (typeof window.toggleCart === 'function') { window.toggleCart(); return; } } catch(e) {}
-            window.location.href = '<?= htmlspecialchars(($currentUser ? $asset('views/users/buy_products.php') : $asset('shop.php'))) ?>';
+            window.location.href = '<?= htmlspecialchars(($currentUser ? $asset('views/users/buy_products') : $asset('shops'))) ?>';
         });
     }
 })();

@@ -32,5 +32,5 @@ if ($uid) {
 session_destroy();
 
 // Redirect to site homepage
-header('Location: ../../index.php');
+header('Location: ../../index');
 exit();

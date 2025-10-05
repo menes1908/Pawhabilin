@@ -8,7 +8,7 @@ if (!isset($currentUserName) && !isset($currentUserInitial)) { http_response_cod
   <div class="mx-auto px-4 w-full max-w-7xl">
     <div class="flex h-16 items-center justify-between">
       <div class="flex items-center space-x-2">
-        <a href="<?= htmlspecialchars($asset('views/users/index.php')) ?>" class="flex items-center space-x-2">
+        <a href="<?= htmlspecialchars($asset('views/users/index')) ?>" class="flex items-center space-x-2">
           <div class="w-24 h-24 rounded-lg overflow-hidden flex items-center justify-center" style="width:77px; height:77px;">
             <img src="<?= htmlspecialchars($asset('pictures/Pawhabilin logo.png')) ?>" alt="Pawhabilin Logo" class="w-full h-full object-contain" />
           </div>
@@ -19,11 +19,11 @@ if (!isset($currentUserName) && !isset($currentUserInitial)) { http_response_cod
       </div>
 
       <nav class="hidden md:flex items-center space-x-8">
-        <a href="<?= htmlspecialchars($asset('views/users/index.php')) ?>" class="text-gray-500 hover:text-gray-900 transition-colors">About</a>
+        <a href="<?= htmlspecialchars($asset('views/users/index')) ?>" class="text-gray-500 hover:text-gray-900 transition-colors">About</a>
 
-        <a href="<?= htmlspecialchars($asset('views/users/become-sitter-logged.php')) ?>" class="text-gray-500 hover:text-gray-900 transition-colors">Become a Sitter</a>
+        <a href="<?= htmlspecialchars($asset('views/users/become-sitter-logged')) ?>" class="text-gray-500 hover:text-gray-900 transition-colors">Become a Sitter</a>
 
-        <a href="<?= htmlspecialchars($asset('views/users/buy_products.php')) ?>" class="text-gray-500 hover:text-gray-900 transition-colors">Shop</a>
+        <a href="<?= htmlspecialchars($asset('views/users/buy_products')) ?>" class="text-gray-500 hover:text-gray-900 transition-colors">Shop</a>
 
         <div class="relative" id="appointmentsWrapper">
           <button id="appointmentsButton" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="appointmentsMenu" class="text-gray-500 hover:text-gray-900 transition-colors inline-flex items-center gap-2">
@@ -32,13 +32,13 @@ if (!isset($currentUserName) && !isset($currentUserInitial)) { http_response_cod
           </button>
           <div id="appointmentsMenu" class="absolute right-0 mt-2 w-48 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 nav-dropdown opacity-0 translate-y-2 transition-all duration-200" role="menu" aria-hidden="true">
             <div class="py-1">
-              <a href="<?= htmlspecialchars($asset('views/users/book_appointment.php')) ?>" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50" role="menuitem">Grooming Appointment</a>
-              <a href="<?= htmlspecialchars($asset('views/users/book_appointment.php')) ?>" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50" role="menuitem">Vet Appointment</a>
+              <a href="<?= htmlspecialchars($asset('views/users/book_appointment')) ?>" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50" role="menuitem">Grooming Appointment</a>
+              <a href="<?= htmlspecialchars($asset('views/users/book_appointment')) ?>" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50" role="menuitem">Vet Appointment</a>
             </div>
           </div>
         </div>
 
-        <a href="<?= htmlspecialchars($asset('views/users/subscriptions.php')) ?>" class="text-gray-500 hover:text-gray-900 transition-colors">Subscription</a>
+        <a href="<?= htmlspecialchars($asset('views/users/subscriptions')) ?>" class="text-gray-500 hover:text-gray-900 transition-colors">Subscription</a>
         <a href="#support" class="text-gray-500 hover:text-gray-900 transition-colors">Support</a>
       </nav>
 
@@ -76,10 +76,10 @@ if (!isset($currentUserName) && !isset($currentUserInitial)) { http_response_cod
 
           <div id="userMenu" class="absolute right-0 mt-2 w-48 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 opacity-0 translate-y-2 transition-all duration-200" role="menu" aria-hidden="true">
             <div class="py-1">
-              <a href="<?= htmlspecialchars($asset('views/users/profile.php')) ?>" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50" role="menuitem">Profile</a>
-              <a href="<?= htmlspecialchars($asset('views/users/rewards.php')) ?>" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50" role="menuitem">My Rewards</a>
+              <a href="<?= htmlspecialchars($asset('views/users/profile')) ?>" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50" role="menuitem">Profile</a>
+              <a href="<?= htmlspecialchars($asset('views/users/rewards')) ?>" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50" role="menuitem">My Rewards</a>
               <div class="my-1 border-t"></div>
-              <a href="<?= htmlspecialchars($asset('views/users/logout.php')) ?>" class="block px-4 py-2 text-sm text-red-600 hover:bg-red-50" role="menuitem">Logout</a>
+              <a href="<?= htmlspecialchars($asset('views/users/logout')) ?>" class="block px-4 py-2 text-sm text-red-600 hover:bg-red-50" role="menuitem">Logout</a>
             </div>
           </div>
         </div>

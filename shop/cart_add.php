@@ -1,15 +1,15 @@
 <?php
-// Handles add-to-cart POST from shop.php
+// Handles add-to-cart POST from shops page
 if (session_status() === PHP_SESSION_NONE) session_start();
 require_once __DIR__.'/../database.php';
 require_once __DIR__.'/../models/product.php';
 // If user not logged in, redirect to login with redirect to authenticated shop (buy_products.php)
 if (empty($_SESSION['user'])) {
     // Preserve intended action (product + qty) via query params optionally if desired later
-    $target = 'views/users/buy_products.php';
+    $target = 'views/users/buy_products';
     // Basic protection: only allow relative internal redirect
     $redir = $target;
-    header('Location: ../login.php?redirect=' . urlencode($redir));
+    header('Location: ../login?redirect=' . urlencode($redir));
     exit;
 }
 
@@ -17,7 +17,7 @@ function redirect_with($params){
     // Preserve existing query parameters (search/category/sort/page) when redirecting back
     $keep = ['q','cat','sort','page'];
     foreach($keep as $k){ if(isset($_GET[$k]) && $_GET[$k] !== '') $params[$k] = $_GET[$k]; }
-    $base = '../shop.php';
+    $base = '../shops';
     header('Location: '.$base.'?'.http_build_query($params));
     exit;
 }

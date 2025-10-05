@@ -62,7 +62,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     // Role-based redirect: 1 => admin dashboard, else user dashboard
                     $role = (string)$row['users_role'];
                     if ($role === '1' || (int)$role === 1) {
-                        header('Location: views/admin/admin.php');
+                        header('Location: views/admin/admin');
                     } else {
                         // Prefer POST hidden redirect (survives form submission) then GET
                         $redirect = $login_redirect_target;
@@ -73,7 +73,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         if ($redirect !== '') {
                             header('Location: ' . $redirect);
                         } else {
-                            header('Location: views/users/index.php');
+                            header('Location: views/users/index');
                         }
                     }
                     exit();

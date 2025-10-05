@@ -89,5 +89,46 @@ if ($currentUser) {
             window.location.href = '<?= htmlspecialchars(($currentUser ? $asset('views/users/buy_products') : $asset('shops'))) ?>';
         });
     }
+
+    // Mobile menu toggle
+    var mobileBtn = document.getElementById('mobileMenuBtn');
+    var mobileMenu = document.getElementById('mobileMenu');
+    var mobileOverlay = document.getElementById('mobileMenuOverlay');
+    var mobilePanel = document.getElementById('mobileMenuPanel');
+    function openMobileMenu(){
+        if(!mobileMenu || !mobilePanel) return;
+        mobileMenu.classList.remove('hidden');
+        requestAnimationFrame(function(){
+            if(mobileOverlay){ mobileOverlay.classList.remove('opacity-0'); mobileOverlay.classList.add('opacity-100'); }
+            mobilePanel.classList.remove('translate-x-full');
+            mobilePanel.classList.add('translate-x-0');
+            try { mobilePanel.classList.remove('opacity-0'); } catch(e){}
+            mobileMenu.setAttribute('aria-hidden','false');
+            try { document.documentElement.classList.add('overflow-hidden'); document.body.classList.add('overflow-hidden'); } catch(e){}
+        });
+    }
+    function closeMobileMenu(){
+        if(!mobileMenu || !mobilePanel) return;
+        if(mobileOverlay){ mobileOverlay.classList.remove('opacity-100'); mobileOverlay.classList.add('opacity-0'); }
+        mobilePanel.classList.add('translate-x-full');
+        mobilePanel.classList.remove('translate-x-0');
+        try { mobilePanel.classList.add('opacity-0'); } catch(e){}
+        mobileMenu.setAttribute('aria-hidden','true');
+        setTimeout(function(){
+            if(mobileMenu.getAttribute('aria-hidden')==='true') mobileMenu.classList.add('hidden');
+            try { document.documentElement.classList.remove('overflow-hidden'); document.body.classList.remove('overflow-hidden'); } catch(e){}
+        }, 250);
+    }
+    if (mobileBtn && mobileMenu) {
+        mobileBtn.addEventListener('click', function(e){
+            e.stopPropagation();
+            var isHidden = mobileMenu.classList.contains('hidden') || mobileMenu.getAttribute('aria-hidden')==='true';
+            if (isHidden) openMobileMenu(); else closeMobileMenu();
+        });
+        if(mobileOverlay){ mobileOverlay.addEventListener('click', closeMobileMenu); }
+        document.addEventListener('keydown', function(e){ if(e.key==='Escape') closeMobileMenu(); });
+        // Close when clicking any link in the panel
+        if(mobilePanel){ mobilePanel.addEventListener('click', function(e){ var a=e.target.closest('a'); if(a) closeMobileMenu(); }); }
+    }
 })();
 </script>

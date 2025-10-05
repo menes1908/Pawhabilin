@@ -227,6 +227,94 @@ INSERT INTO `products` (`products_id`, `products_name`, `products_pet_type`, `pr
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `promotions`
+--
+
+CREATE TABLE `promotions` (
+  `promo_id` int(11) NOT NULL,
+  `promo_type` enum('product','appointment') NOT NULL,
+  `promo_code` varchar(40) DEFAULT NULL,
+  `promo_name` varchar(150) NOT NULL,
+  `promo_description` text DEFAULT NULL,
+  `promo_discount_type` enum('percent','fixed','points_bonus','free_item','none') NOT NULL DEFAULT 'none',
+  `promo_discount_value` decimal(10,2) DEFAULT NULL,
+  `promo_points_cost` int(11) DEFAULT NULL,
+  `free_product_id` int(11) DEFAULT NULL,
+  `promo_min_purchase_amount` decimal(10,2) DEFAULT NULL,
+  `promo_usage_limit` int(11) DEFAULT NULL,
+  `promo_per_user_limit` int(11) DEFAULT NULL,
+  `promo_require_active_subscription` tinyint(1) NOT NULL DEFAULT 0,
+  `promo_starts_at` datetime NOT NULL,
+  `promo_ends_at` datetime NOT NULL,
+  `promo_active` tinyint(1) NOT NULL DEFAULT 1,
+  `promo_created_at` datetime NOT NULL DEFAULT current_timestamp(),
+  `promo_updated_at` datetime DEFAULT NULL ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `promotions`
+--
+
+INSERT INTO `promotions` (`promo_id`, `promo_type`, `promo_code`, `promo_name`, `promo_description`, `promo_discount_type`, `promo_discount_value`, `promo_points_cost`, `free_product_id`, `promo_min_purchase_amount`, `promo_usage_limit`, `promo_per_user_limit`, `promo_require_active_subscription`, `promo_starts_at`, `promo_ends_at`, `promo_active`, `promo_created_at`, `promo_updated_at`) VALUES
+(1, 'appointment', 'RDSGF45', 'Free appointment', 'awdawdaw', 'free_item', NULL, 400, NULL, NULL, NULL, NULL, 1, '2025-10-01 10:41:00', '2025-10-31 23:59:00', 1, '2025-10-01 10:42:32', '2025-10-03 19:55:49'),
+(2, 'product', '3WBWPBJA', '20% OFF ON ALL PRODUCTS', 'efwsfwe', 'percent', 20.00, 100, NULL, 200.00, NULL, NULL, 1, '2025-10-01 00:00:00', '2025-10-31 23:59:00', 1, '2025-10-01 22:41:58', '2025-10-01 22:57:30'),
+(3, 'appointment', 'XYSD4N7P', 'FREE GROOMING', '', 'free_item', NULL, NULL, NULL, NULL, NULL, 1, 1, '2025-10-02 01:02:00', '2025-10-31 23:59:00', 1, '2025-10-02 01:03:04', '2025-10-03 18:12:29'),
+(4, 'product', 'RWUBC42F', 'AUTUMN SALE 10% ALL PRODUCTS', 'FEGWSRFE', 'percent', 10.00, 10, NULL, NULL, NULL, 1, 1, '2025-10-01 18:27:00', '2025-10-10 18:27:00', 1, '2025-10-03 18:27:49', '2025-10-03 18:35:01'),
+(5, 'appointment', 'SQAW2K97', '20% FOR PET SITTING', 'AWDAWSD', 'percent', 20.00, 10, NULL, NULL, NULL, 1, 1, '2025-10-05 03:00:00', '2025-10-13 08:00:00', 1, '2025-10-05 03:50:53', '2025-10-05 03:52:23'),
+(6, 'appointment', '2BULMU7J', '10% for grooming', 'wadsdwa', 'percent', 10.00, 10, NULL, NULL, NULL, 1, 1, '2025-10-05 04:07:00', '2025-10-13 04:07:00', 1, '2025-10-05 04:07:56', NULL),
+(7, 'product', 'EBR7B3EN', 'FREE PET SITTING', 'AWSDWAS', 'free_item', NULL, 10, NULL, NULL, NULL, 1, 1, '2025-10-05 13:24:00', '2025-10-13 13:24:00', 1, '2025-10-05 13:24:17', NULL);
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `promotion_codes`
+--
+
+CREATE TABLE `promotion_codes` (
+  `code_id` bigint(20) NOT NULL,
+  `promo_id` int(11) NOT NULL,
+  `users_id` int(11) DEFAULT NULL,
+  `pc_code` varchar(32) NOT NULL,
+  `pc_code_format` enum('text','qr') NOT NULL,
+  `pc_qr_image_path` varchar(255) DEFAULT NULL,
+  `pc_assigned_at` datetime DEFAULT NULL,
+  `pc_expires_at` datetime DEFAULT NULL,
+  `pc_used` tinyint(1) NOT NULL DEFAULT 0,
+  `pc_created_at` datetime NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `promotion_redemptions`
+--
+
+CREATE TABLE `promotion_redemptions` (
+  `redemption_id` bigint(20) NOT NULL,
+  `promo_id` int(11) NOT NULL,
+  `code_id` bigint(20) DEFAULT NULL,
+  `users_id` int(11) NOT NULL,
+  `transactions_id` int(11) DEFAULT NULL,
+  `appointment_id` int(11) DEFAULT NULL,
+  `pr_status` enum('reserved','applied','cancelled') NOT NULL DEFAULT 'reserved',
+  `pr_discount_amount` decimal(10,2) DEFAULT NULL,
+  `pr_points_spent` int(11) DEFAULT NULL,
+  `pr_created_at` datetime NOT NULL DEFAULT current_timestamp(),
+  `pr_applied_at` datetime DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `promotion_redemptions`
+--
+
+INSERT INTO `promotion_redemptions` (`redemption_id`, `promo_id`, `code_id`, `users_id`, `transactions_id`, `appointment_id`, `pr_status`, `pr_discount_amount`, `pr_points_spent`, `pr_created_at`, `pr_applied_at`) VALUES
+(1, 4, NULL, 2, 10, NULL, 'applied', 30.00, NULL, '2025-10-03 18:57:52', '2025-10-03 18:57:52'),
+(2, 2, NULL, 2, 11, NULL, 'applied', 69.00, NULL, '2025-10-03 18:58:27', '2025-10-03 18:58:27'),
+(3, 2, NULL, 2, 12, NULL, 'applied', 60.00, NULL, '2025-10-03 18:59:15', '2025-10-03 18:59:15'),
+(4, 2, NULL, 2, 13, NULL, 'applied', 69.00, NULL, '2025-10-03 19:07:16', '2025-10-03 19:07:16');
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `sitters`
 --
 
@@ -267,6 +355,13 @@ CREATE TABLE `subscriptions` (
   `subscriptions_active` tinyint(1) DEFAULT 1,
   `subscriptions_created_at` datetime DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `subscriptions`
+--
+
+INSERT INTO `subscriptions` (`subscriptions_id`, `subscriptions_name`, `subscriptions_description`, `subscriptions_price`, `subscriptions_duration_days`, `subscriptions_active`, `subscriptions_created_at`) VALUES
+(1, 'Premium', 'Premium Plan: Priority booking, premium sitters, support, and discounts', 299.00, 30, 1, '2025-09-29 01:38:18');
 
 -- --------------------------------------------------------
 
@@ -372,6 +467,102 @@ INSERT INTO `users` (`users_id`, `users_firstname`, `users_lastname`, `users_use
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `user_points_balance`
+--
+
+CREATE TABLE `user_points_balance` (
+  `users_id` int(11) NOT NULL,
+  `upb_points` int(11) NOT NULL DEFAULT 0,
+  `upb_points_balance` int(11) NOT NULL DEFAULT 0,
+  `upb_updated_at` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `user_points_balance`
+--
+
+INSERT INTO `user_points_balance` (`users_id`, `upb_points`, `upb_points_balance`, `upb_updated_at`) VALUES
+(2, 360, 0, '2025-10-05 13:43:47'),
+(3, 30, 0, '2025-10-03 19:39:30');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `user_points_ledger`
+--
+
+CREATE TABLE `user_points_ledger` (
+  `upl_id` bigint(20) NOT NULL,
+  `users_id` int(11) NOT NULL,
+  `upl_points` int(11) NOT NULL DEFAULT 0,
+  `upl_reason` varchar(100) DEFAULT NULL,
+  `upl_source_type` enum('purchase','promo','manual','reversal') NOT NULL,
+  `upl_source_id` bigint(20) DEFAULT NULL,
+  `upl_points_change` int(11) NOT NULL,
+  `upl_balance_after` int(11) NOT NULL,
+  `upl_note` varchar(200) DEFAULT NULL,
+  `upl_created_at` datetime NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `user_points_ledger`
+--
+
+INSERT INTO `user_points_ledger` (`upl_id`, `users_id`, `upl_points`, `upl_reason`, `upl_source_type`, `upl_source_id`, `upl_points_change`, `upl_balance_after`, `upl_note`, `upl_created_at`) VALUES
+(1, 2, 30, 'Appointment Completed', '', 6, 0, 0, NULL, '2025-10-02 21:21:45'),
+(2, 2, 30, 'Appointment Completed', '', 10, 0, 0, NULL, '2025-10-02 21:24:50'),
+(3, 2, 30, 'Appointment Completed', '', 5, 0, 0, NULL, '2025-10-02 21:25:05'),
+(4, 2, 30, 'Appointment Completed', '', 4, 0, 0, NULL, '2025-10-02 22:17:24'),
+(5, 2, 30, 'Order Received', '', 4, 0, 0, NULL, '2025-10-02 23:12:48'),
+(6, 2, -100, 'Promo Claim', 'promo', 2, 0, 0, NULL, '2025-10-02 23:13:31'),
+(7, 2, 30, 'Order Received', '', 4, 0, 0, NULL, '2025-10-03 00:33:23'),
+(8, 2, 30, 'Order Received', '', 3, 0, 0, NULL, '2025-10-03 00:33:27'),
+(9, 2, 30, 'Order Received', '', 4, 0, 0, NULL, '2025-10-03 00:55:51'),
+(10, 2, 50, 'Order Received', '', 6, 0, 0, NULL, '2025-10-03 03:07:12'),
+(11, 2, 50, 'Order Received', '', 6, 0, 0, NULL, '2025-10-03 03:15:12'),
+(12, 2, -10, 'Promo Claim', 'promo', 4, 0, 0, NULL, '2025-10-03 18:35:13'),
+(13, 3, 30, 'Order Received', '', 15, 0, 0, NULL, '2025-10-03 19:39:30'),
+(14, 2, 20, 'Order Received', '', 13, 0, 0, NULL, '2025-10-05 01:33:45'),
+(15, 2, -10, 'Promo Claim', 'promo', 5, 0, 0, NULL, '2025-10-05 04:12:32'),
+(16, 2, 30, 'Appointment Completed', '', 16, 0, 0, NULL, '2025-10-05 12:27:53'),
+(17, 2, 20, 'Order Received', '', 12, 0, 0, NULL, '2025-10-05 12:54:17'),
+(18, 2, 30, 'Appointment Completed', '', 12, 0, 0, NULL, '2025-10-05 12:54:47'),
+(19, 2, 20, 'Order Received', '', 11, 0, 0, NULL, '2025-10-05 13:40:44'),
+(20, 2, 20, 'Order Received', '', 10, 0, 0, NULL, '2025-10-05 13:43:47');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `user_promos`
+--
+
+CREATE TABLE `user_promos` (
+  `up_id` int(11) NOT NULL,
+  `users_id` int(11) NOT NULL,
+  `promo_id` int(11) NOT NULL,
+  `up_code` varchar(64) NOT NULL,
+  `up_claimed_at` datetime NOT NULL DEFAULT current_timestamp(),
+  `up_redeemed_at` datetime DEFAULT NULL,
+  `up_qr_svg` mediumtext DEFAULT NULL,
+  `up_qr_token` varchar(128) DEFAULT NULL,
+  `up_qr_token_created_at` datetime DEFAULT NULL,
+  `up_qr_token_redeemed_at` datetime DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `user_promos`
+--
+
+INSERT INTO `user_promos` (`up_id`, `users_id`, `promo_id`, `up_code`, `up_claimed_at`, `up_redeemed_at`, `up_qr_svg`, `up_qr_token`, `up_qr_token_created_at`, `up_qr_token_redeemed_at`) VALUES
+(1, 2, 3, 'XYSD4N7P-U2-528CD7', '2025-10-02 21:21:03', '2025-10-05 03:42:47', NULL, 'O3sitbmYigDpx_zzEEB-Yqe0T2jHUSRCKkq3ni0Yp98', '2025-10-05 03:42:06', '2025-10-05 03:42:47'),
+(2, 2, 2, '3WBWPBJA-U2-F90E94', '2025-10-02 23:13:31', NULL, NULL, NULL, NULL, NULL),
+(3, 2, 4, 'RWUBC42F-U2-9DEA3F', '2025-10-03 18:35:13', NULL, NULL, NULL, NULL, NULL),
+(4, 3, 3, 'XYSD4N7P-U3-AE7050', '2025-10-03 21:48:00', NULL, NULL, NULL, NULL, NULL),
+(5, 2, 5, 'SQAW2K97-U2-A4CDBC', '2025-10-05 04:12:32', '2025-10-05 04:13:01', NULL, 'ODq_qIbSSCR7bTWMSyXkjFk0uLQ_GlVUr6LzuOfGJt4', '2025-10-05 04:12:38', '2025-10-05 04:13:01');
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `user_subscriptions`
 --
 
@@ -383,6 +574,14 @@ CREATE TABLE `user_subscriptions` (
   `us_end_date` datetime DEFAULT NULL,
   `us_status` enum('active','expired','cancelled') DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `user_subscriptions`
+--
+
+INSERT INTO `user_subscriptions` (`us_id`, `users_id`, `subscriptions_id`, `us_start_date`, `us_end_date`, `us_status`) VALUES
+(1, 2, 1, '2025-09-28 19:39:02', '2025-10-28 19:39:02', 'active'),
+(2, 3, 1, '2025-10-03 13:37:57', '2025-10-03 19:39:42', 'cancelled');
 
 --
 -- Indexes for dumped tables
@@ -539,6 +738,16 @@ ALTER TABLE `products`
   MODIFY `products_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
 
 --
+-- Indexes for table `promotions`
+--
+ALTER TABLE `promotions`
+  ADD PRIMARY KEY (`promo_id`),
+  ADD UNIQUE KEY `uq_promotions_promo_code` (`promo_code`),
+  ADD KEY `idx_promotions_active_dates` (`promo_active`,`promo_starts_at`,`promo_ends_at`),
+  ADD KEY `idx_promotions_type` (`promo_type`),
+  ADD KEY `promotions_free_product_fk` (`free_product_id`);
+
+--
 -- AUTO_INCREMENT for table `sitters`
 --
 ALTER TABLE `sitters`
@@ -579,6 +788,66 @@ ALTER TABLE `users`
 --
 ALTER TABLE `user_subscriptions`
   MODIFY `us_id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- Indexes for table `promotion_codes`
+--
+ALTER TABLE `promotion_codes`
+  ADD PRIMARY KEY (`code_id`),
+  ADD UNIQUE KEY `uq_promotion_codes_code` (`pc_code`),
+  ADD KEY `idx_promotion_codes_promo` (`promo_id`),
+  ADD KEY `idx_promotion_codes_user` (`users_id`),
+  ADD KEY `idx_promotion_codes_format` (`pc_code_format`);
+
+--
+-- Indexes for table `promotion_redemptions`
+--
+ALTER TABLE `promotion_redemptions`
+  ADD PRIMARY KEY (`redemption_id`),
+  ADD KEY `idx_promo_user` (`promo_id`,`users_id`),
+  ADD KEY `idx_code_id` (`code_id`),
+  ADD KEY `idx_pr_status` (`pr_status`),
+  ADD KEY `idx_transactions` (`transactions_id`),
+  ADD KEY `idx_appointment` (`appointment_id`),
+  ADD KEY `pr_user_fk` (`users_id`),
+  ADD KEY `idx_redemptions_promo_status` (`promo_id`,`pr_status`);
+
+--
+-- Indexes for table `user_points_balance`
+--
+ALTER TABLE `user_points_balance`
+  ADD PRIMARY KEY (`users_id`);
+
+--
+-- Indexes for table `user_points_ledger`
+--
+ALTER TABLE `user_points_ledger`
+  ADD PRIMARY KEY (`upl_id`),
+  ADD KEY `idx_upl_user` (`users_id`),
+  ADD KEY `idx_upl_source` (`upl_source_type`,`upl_source_id`);
+
+--
+-- Indexes for table `user_promos`
+--
+ALTER TABLE `user_promos`
+  ADD PRIMARY KEY (`up_id`),
+  ADD UNIQUE KEY `uniq_user_promo` (`users_id`,`promo_id`),
+  ADD KEY `idx_user` (`up_id`,`users_id`),
+  ADD KEY `fk_up_promo` (`promo_id`);
+
+--
+-- AUTO_INCREMENT for new tables
+--
+ALTER TABLE `promotions`
+  MODIFY `promo_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
+ALTER TABLE `promotion_codes`
+  MODIFY `code_id` bigint(20) NOT NULL AUTO_INCREMENT;
+ALTER TABLE `promotion_redemptions`
+  MODIFY `redemption_id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+ALTER TABLE `user_points_ledger`
+  MODIFY `upl_id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=21;
+ALTER TABLE `user_promos`
+  MODIFY `up_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
 
 --
 -- Constraints for dumped tables
@@ -656,6 +925,35 @@ ALTER TABLE `user_subscriptions`
 ALTER TABLE `users`
   ADD CONSTRAINT `users_fk_default_location`
   FOREIGN KEY (`default_location_id`) REFERENCES `locations` (`location_id`) ON DELETE SET NULL;
+
+--
+-- Constraints for new promo tables
+--
+ALTER TABLE `promotions`
+  ADD CONSTRAINT `promotions_free_product_fk` FOREIGN KEY (`free_product_id`) REFERENCES `products` (`products_id`) ON DELETE SET NULL;
+
+ALTER TABLE `promotion_codes`
+  ADD CONSTRAINT `promotion_codes_promo_fk` FOREIGN KEY (`promo_id`) REFERENCES `promotions` (`promo_id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `promotion_codes_user_fk` FOREIGN KEY (`users_id`) REFERENCES `users` (`users_id`) ON DELETE SET NULL;
+
+ALTER TABLE `promotion_redemptions`
+  ADD CONSTRAINT `pr_appt_fk` FOREIGN KEY (`appointment_id`) REFERENCES `appointments` (`appointments_id`) ON DELETE SET NULL,
+  ADD CONSTRAINT `pr_code_fk` FOREIGN KEY (`code_id`) REFERENCES `promotion_codes` (`code_id`) ON DELETE SET NULL,
+  ADD CONSTRAINT `pr_promo_fk` FOREIGN KEY (`promo_id`) REFERENCES `promotions` (`promo_id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `pr_tx_fk` FOREIGN KEY (`transactions_id`) REFERENCES `transactions` (`transactions_id`) ON DELETE SET NULL,
+  ADD CONSTRAINT `pr_user_fk` FOREIGN KEY (`users_id`) REFERENCES `users` (`users_id`) ON DELETE CASCADE;
+
+--
+-- Constraints for user points and promos tables
+--
+ALTER TABLE `user_points_balance`
+  ADD CONSTRAINT `upb_user_fk` FOREIGN KEY (`users_id`) REFERENCES `users` (`users_id`) ON DELETE CASCADE;
+
+ALTER TABLE `user_points_ledger`
+  ADD CONSTRAINT `upl_user_fk` FOREIGN KEY (`users_id`) REFERENCES `users` (`users_id`) ON DELETE CASCADE;
+
+ALTER TABLE `user_promos`
+  ADD CONSTRAINT `fk_up_promo` FOREIGN KEY (`promo_id`) REFERENCES `promotions` (`promo_id`) ON DELETE CASCADE;
 
 COMMIT;
 

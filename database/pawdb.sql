@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Oct 03, 2025 at 11:56 AM
+-- Generation Time: Oct 05, 2025 at 07:48 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.0.30
 
@@ -107,7 +107,71 @@ INSERT INTO `admin_activity_logs` (`admin_activity_logs_id`, `admin_id`, `admin_
 (65, 1, 'updates', '{\"target\":\"order\",\"target_id\":\"6\",\"details\":\"{\\\"message\\\":\\\"Updated delivery status\\\",\\\"fields_changed\\\":[\\\"deliveries_delivery_status\\\",\\\"deliveries_estimated_delivery_date\\\",\\\"deliveries_actual_delivery_date\\\",\\\"deliveries_recipient_signature\\\"]}\",\"previous\":{\"deliveries_actual_delivery_date\":null,\"deliveries_recipient_signature\":0},\"new\":{\"deliveries_delivery_status\":\"out_for_delivery\",\"deliveries_estimated_delivery_date\":\"2025-10-04\",\"deliveries_actual_delivery_date\":null,\"deliveries_recipient_signature\":0},\"ip\":\"::1\",\"method\":\"POST\",\"path\":\"/Pawhabilin/controllers/admin/ordercontroller.php\",\"user_email\":\"admin256@admin.com\"}', '2025-10-03 03:06:59'),
 (66, 1, 'auth_login', '{\"target\":\"user\",\"target_id\":\"1\",\"details\":\"{\\\"message\\\":\\\"Login successful\\\",\\\"email\\\":\\\"admin256@admin.com\\\"}\",\"previous\":null,\"new\":null,\"ip\":\"::1\",\"method\":\"POST\",\"path\":\"/Pawhabilin/login\",\"user_email\":\"admin256@admin.com\"}', '2025-10-03 03:14:23'),
 (67, 1, 'updates', '{\"target\":\"order\",\"target_id\":\"6\",\"details\":\"{\\\"message\\\":\\\"Updated delivery status\\\",\\\"fields_changed\\\":[\\\"deliveries_delivery_status\\\",\\\"deliveries_estimated_delivery_date\\\",\\\"deliveries_actual_delivery_date\\\",\\\"deliveries_recipient_signature\\\"]}\",\"previous\":{\"deliveries_actual_delivery_date\":\"2025-10-03\",\"deliveries_recipient_signature\":0},\"new\":{\"deliveries_delivery_status\":\"out_for_delivery\",\"deliveries_estimated_delivery_date\":\"2025-10-04\",\"deliveries_actual_delivery_date\":\"2025-10-03\",\"deliveries_recipient_signature\":0},\"ip\":\"::1\",\"method\":\"POST\",\"path\":\"/Pawhabilin/controllers/admin/ordercontroller.php\",\"user_email\":\"admin256@admin.com\"}', '2025-10-03 03:14:58'),
-(68, 1, 'auth_login', '{\"target\":\"user\",\"target_id\":\"1\",\"details\":\"{\\\"message\\\":\\\"Login successful\\\",\\\"email\\\":\\\"admin256@admin.com\\\"}\",\"previous\":null,\"new\":null,\"ip\":\"::1\",\"method\":\"POST\",\"path\":\"/Pawhabilin/login\",\"user_email\":\"admin256@admin.com\"}', '2025-10-03 17:08:35');
+(68, 1, 'auth_login', '{\"target\":\"user\",\"target_id\":\"1\",\"details\":\"{\\\"message\\\":\\\"Login successful\\\",\\\"email\\\":\\\"admin256@admin.com\\\"}\",\"previous\":null,\"new\":null,\"ip\":\"::1\",\"method\":\"POST\",\"path\":\"/Pawhabilin/login\",\"user_email\":\"admin256@admin.com\"}', '2025-10-03 17:08:35'),
+(69, 1, 'updates', '{\"target\":\"promotion\",\"target_id\":\"3\",\"details\":\"{\\\"message\\\":\\\"Updated promotion\\\"}\",\"previous\":{\"promo_id\":\"3\",\"promo_type\":\"appointment\",\"promo_code\":\"XYSD4N7P\",\"promo_name\":\"FREE GROOMING\",\"promo_description\":\"\",\"promo_discount_type\":\"free_item\",\"promo_discount_value\":null,\"promo_points_cost\":null,\"free_product_id\":null,\"promo_min_purchase_amount\":null,\"promo_usage_limit\":null,\"promo_per_user_limit\":null,\"promo_require_active_subscription\":\"1\",\"promo_starts_at\":\"2025-10-02 01:02:00\",\"promo_ends_at\":\"2025-10-31 23:59:00\",\"promo_active\":\"1\",\"promo_created_at\":\"2025-10-02 01:03:04\",\"promo_updated_at\":null},\"new\":{\"promo_id\":\"3\",\"promo_type\":\"appointment\",\"promo_code\":\"XYSD4N7P\",\"promo_name\":\"FREE GROOMING\",\"promo_description\":\"\",\"promo_discount_type\":\"free_item\",\"promo_discount_value\":null,\"promo_points_cost\":null,\"free_product_id\":null,\"promo_min_purchase_amount\":null,\"promo_usage_limit\":\"1\",\"promo_per_user_limit\":\"1\",\"promo_require_active_subscription\":\"1\",\"promo_starts_at\":\"2025-10-02 01:02:00\",\"promo_ends_at\":\"2025-10-31 23:59:00\",\"promo_active\":\"1\",\"promo_created_at\":\"2025-10-02 01:03:04\",\"promo_updated_at\":\"2025-10-03 18:09:41\"},\"ip\":\"::1\",\"method\":\"POST\",\"path\":\"/Pawhabilin/controllers/admin/promocontroller.php\",\"user_email\":\"admin256@admin.com\"}', '2025-10-03 18:09:41'),
+(70, 1, 'updates', '{\"target\":\"promotion\",\"target_id\":\"3\",\"details\":\"{\\\"message\\\":\\\"Updated promotion\\\"}\",\"previous\":{\"promo_id\":\"3\",\"promo_type\":\"appointment\",\"promo_code\":\"XYSD4N7P\",\"promo_name\":\"FREE GROOMING\",\"promo_description\":\"\",\"promo_discount_type\":\"free_item\",\"promo_discount_value\":null,\"promo_points_cost\":null,\"free_product_id\":null,\"promo_min_purchase_amount\":null,\"promo_usage_limit\":\"1\",\"promo_per_user_limit\":\"1\",\"promo_require_active_subscription\":\"1\",\"promo_starts_at\":\"2025-10-02 01:02:00\",\"promo_ends_at\":\"2025-10-31 23:59:00\",\"promo_active\":\"1\",\"promo_created_at\":\"2025-10-02 01:03:04\",\"promo_updated_at\":\"2025-10-03 18:09:41\"},\"new\":{\"promo_id\":\"3\",\"promo_type\":\"appointment\",\"promo_code\":\"XYSD4N7P\",\"promo_name\":\"FREE GROOMING\",\"promo_description\":\"\",\"promo_discount_type\":\"free_item\",\"promo_discount_value\":null,\"promo_points_cost\":null,\"free_product_id\":null,\"promo_min_purchase_amount\":null,\"promo_usage_limit\":null,\"promo_per_user_limit\":\"1\",\"promo_require_active_subscription\":\"1\",\"promo_starts_at\":\"2025-10-02 01:02:00\",\"promo_ends_at\":\"2025-10-31 23:59:00\",\"promo_active\":\"1\",\"promo_created_at\":\"2025-10-02 01:03:04\",\"promo_updated_at\":\"2025-10-03 18:12:29\"},\"ip\":\"::1\",\"method\":\"POST\",\"path\":\"/Pawhabilin/controllers/admin/promocontroller.php\",\"user_email\":\"admin256@admin.com\"}', '2025-10-03 18:12:29'),
+(71, 1, 'updates', '{\"target\":\"promotion\",\"target_id\":\"4\",\"details\":\"{\\\"message\\\":\\\"Added promotion\\\"}\",\"previous\":null,\"new\":{\"promo_id\":\"4\",\"promo_type\":\"product\",\"promo_code\":\"RWUBC42F\",\"promo_name\":\"AUTUMN SALE 10% ALL PRODUCTS\",\"promo_description\":\"FEGWSRFE\",\"promo_discount_type\":\"percent\",\"promo_discount_value\":\"10.00\",\"promo_points_cost\":\"10\",\"free_product_id\":null,\"promo_min_purchase_amount\":null,\"promo_usage_limit\":null,\"promo_per_user_limit\":\"1\",\"promo_require_active_subscription\":\"1\",\"promo_starts_at\":\"2025-10-03 18:27:00\",\"promo_ends_at\":\"2025-10-10 18:27:00\",\"promo_active\":\"1\",\"promo_created_at\":\"2025-10-03 18:27:49\",\"promo_updated_at\":null},\"ip\":\"::1\",\"method\":\"POST\",\"path\":\"/Pawhabilin/controllers/admin/promocontroller.php\",\"user_email\":\"admin256@admin.com\"}', '2025-10-03 18:27:49'),
+(72, 1, 'updates', '{\"target\":\"promotion\",\"target_id\":\"4\",\"details\":\"{\\\"message\\\":\\\"Updated promotion\\\"}\",\"previous\":{\"promo_id\":\"4\",\"promo_type\":\"product\",\"promo_code\":\"RWUBC42F\",\"promo_name\":\"AUTUMN SALE 10% ALL PRODUCTS\",\"promo_description\":\"FEGWSRFE\",\"promo_discount_type\":\"percent\",\"promo_discount_value\":\"10.00\",\"promo_points_cost\":\"10\",\"free_product_id\":null,\"promo_min_purchase_amount\":null,\"promo_usage_limit\":null,\"promo_per_user_limit\":\"1\",\"promo_require_active_subscription\":\"1\",\"promo_starts_at\":\"2025-10-03 18:27:00\",\"promo_ends_at\":\"2025-10-10 18:27:00\",\"promo_active\":\"1\",\"promo_created_at\":\"2025-10-03 18:27:49\",\"promo_updated_at\":null},\"new\":{\"promo_id\":\"4\",\"promo_type\":\"product\",\"promo_code\":\"RWUBC42F\",\"promo_name\":\"AUTUMN SALE 10% ALL PRODUCTS\",\"promo_description\":\"FEGWSRFE\",\"promo_discount_type\":\"percent\",\"promo_discount_value\":\"10.00\",\"promo_points_cost\":\"10\",\"free_product_id\":null,\"promo_min_purchase_amount\":null,\"promo_usage_limit\":null,\"promo_per_user_limit\":\"1\",\"promo_require_active_subscription\":\"1\",\"promo_starts_at\":\"2025-10-01 18:27:00\",\"promo_ends_at\":\"2025-10-10 18:27:00\",\"promo_active\":\"1\",\"promo_created_at\":\"2025-10-03 18:27:49\",\"promo_updated_at\":\"2025-10-03 18:35:01\"},\"ip\":\"::1\",\"method\":\"POST\",\"path\":\"/Pawhabilin/controllers/admin/promocontroller.php\",\"user_email\":\"admin256@admin.com\"}', '2025-10-03 18:35:01'),
+(73, 2, 'auth_login', '{\"target\":\"user\",\"target_id\":\"2\",\"details\":\"{\\\"message\\\":\\\"Login successful\\\",\\\"email\\\":\\\"ajo23@gmail.com\\\"}\",\"previous\":null,\"new\":null,\"ip\":\"::1\",\"method\":\"POST\",\"path\":\"/Pawhabilin/login\",\"user_email\":\"ajo23@gmail.com\"}', '2025-10-03 19:19:16'),
+(74, 2, 'auth_login', '{\"target\":\"user\",\"target_id\":\"2\",\"details\":\"{\\\"message\\\":\\\"Login successful\\\",\\\"email\\\":\\\"ajo23@gmail.com\\\"}\",\"previous\":null,\"new\":null,\"ip\":\"::1\",\"method\":\"POST\",\"path\":\"/Pawhabilin/login\",\"user_email\":\"ajo23@gmail.com\"}', '2025-10-03 19:28:16'),
+(75, 2, 'auth_login', '{\"target\":\"user\",\"target_id\":\"2\",\"details\":\"{\\\"message\\\":\\\"Login successful\\\",\\\"email\\\":\\\"ajo23@gmail.com\\\"}\",\"previous\":null,\"new\":null,\"ip\":\"::1\",\"method\":\"POST\",\"path\":\"/Pawhabilin/login.php?redirect=views%2Fusers%2Fbuy_products.php\",\"user_email\":\"ajo23@gmail.com\"}', '2025-10-03 19:34:22'),
+(76, 3, 'auth_login', '{\"target\":\"user\",\"target_id\":\"3\",\"details\":\"{\\\"message\\\":\\\"Login successful\\\",\\\"email\\\":\\\"glat21@gmail.com\\\"}\",\"previous\":null,\"new\":null,\"ip\":\"::1\",\"method\":\"POST\",\"path\":\"/Pawhabilin/login.php\",\"user_email\":\"glat21@gmail.com\"}', '2025-10-03 19:37:31'),
+(77, 1, 'updates', '{\"target\":\"order\",\"target_id\":\"15\",\"details\":\"{\\\"message\\\":\\\"Updated delivery status\\\",\\\"fields_changed\\\":[\\\"deliveries_delivery_status\\\",\\\"deliveries_estimated_delivery_date\\\",\\\"deliveries_actual_delivery_date\\\",\\\"deliveries_recipient_signature\\\"]}\",\"previous\":{\"deliveries_actual_delivery_date\":null,\"deliveries_recipient_signature\":0},\"new\":{\"deliveries_delivery_status\":\"out_for_delivery\",\"deliveries_estimated_delivery_date\":\"2025-10-05\",\"deliveries_actual_delivery_date\":null,\"deliveries_recipient_signature\":0},\"ip\":\"::1\",\"method\":\"POST\",\"path\":\"/Pawhabilin/controllers/admin/ordercontroller.php\",\"user_email\":\"admin256@admin.com\"}', '2025-10-03 19:39:13'),
+(78, 1, 'updates', '{\"target\":\"order\",\"target_id\":\"16\",\"details\":\"{\\\"message\\\":\\\"Updated delivery status\\\",\\\"fields_changed\\\":[\\\"deliveries_delivery_status\\\",\\\"deliveries_estimated_delivery_date\\\",\\\"deliveries_actual_delivery_date\\\",\\\"deliveries_recipient_signature\\\"]}\",\"previous\":{\"deliveries_actual_delivery_date\":null,\"deliveries_recipient_signature\":0},\"new\":{\"deliveries_delivery_status\":\"out_for_delivery\",\"deliveries_estimated_delivery_date\":\"2025-10-05\",\"deliveries_actual_delivery_date\":null,\"deliveries_recipient_signature\":0},\"ip\":\"::1\",\"method\":\"POST\",\"path\":\"/Pawhabilin/controllers/admin/ordercontroller.php\",\"user_email\":\"admin256@admin.com\"}', '2025-10-03 19:40:54'),
+(79, 1, 'updates', '{\"target\":\"order\",\"target_id\":\"13\",\"details\":\"{\\\"message\\\":\\\"Updated delivery status\\\",\\\"fields_changed\\\":[\\\"deliveries_delivery_status\\\",\\\"deliveries_estimated_delivery_date\\\",\\\"deliveries_actual_delivery_date\\\",\\\"deliveries_recipient_signature\\\"]}\",\"previous\":{\"deliveries_actual_delivery_date\":null,\"deliveries_recipient_signature\":0},\"new\":{\"deliveries_delivery_status\":\"delivered\",\"deliveries_estimated_delivery_date\":\"2025-10-05\",\"deliveries_actual_delivery_date\":null,\"deliveries_recipient_signature\":0},\"ip\":\"::1\",\"method\":\"POST\",\"path\":\"/Pawhabilin/controllers/admin/ordercontroller.php\",\"user_email\":\"admin256@admin.com\"}', '2025-10-03 19:54:24'),
+(80, 1, 'updates', '{\"target\":\"sitter\",\"target_id\":\"2\",\"details\":\"{\\\"message\\\":\\\"Updated sitter\\\",\\\"fields_changed\\\":[\\\"years_experience\\\"]}\",\"previous\":{\"sitters_name\":\"ampuiti amputi\",\"sitters_bio\":\"gesdfgesf\",\"sitter_email\":\"amaputie@gmail.com\",\"sitters_contact\":\"0956159882\",\"sitter_specialty\":\"Dog, Cat, Fish\",\"sitter_experience\":\"\",\"sitters_image_url\":\"pictures/sitters/amaputie-gmail-com-1759042950-8787.png\",\"sitters_active\":1,\"years_experience\":2,\"sitters_verified\":1},\"new\":{\"name\":\"ampuiti amputi\",\"bio\":\"gesdfgesf\",\"email\":\"amaputie@gmail.com\",\"phone\":\"0956159882\",\"experience\":\"\",\"years_experience\":3,\"specialties\":[\"Dog\",\"Cat\",\"Fish\"],\"active\":1,\"verified\":1,\"sitters_image_url\":\"pictures/sitters/amaputie-gmail-com-1759042950-8787.png\"},\"ip\":\"::1\",\"method\":\"POST\",\"path\":\"/Pawhabilin/controllers/admin/sittercontroller.php\",\"user_email\":\"admin256@admin.com\"}', '2025-10-03 19:54:35');
+INSERT INTO `admin_activity_logs` (`admin_activity_logs_id`, `admin_id`, `admin_activity_logs_action`, `admin_activity_logs_details`, `admin_activity_logs_created_at`) VALUES
+(81, 1, 'updates', '{\"target\":\"appointment\",\"target_id\":\"12\",\"details\":\"{\\\"message\\\":\\\"Updated appointment\\\",\\\"fields_changed\\\":[\\\"full_name\\\",\\\"email\\\",\\\"phone\\\",\\\"pet_name\\\",\\\"pet_type\\\",\\\"pet_breed\\\",\\\"pet_age\\\",\\\"type\\\",\\\"datetime\\\",\\\"status\\\",\\\"notes\\\"]}\",\"previous\":null,\"new\":{\"full_name\":\"Cris Carlo\",\"email\":\"thor@gmail.com\",\"phone\":\"09023347823\",\"pet_name\":\"Fred\",\"pet_type\":\"other\",\"pet_breed\":\"Shih Tzu\",\"pet_age\":\"2\",\"type\":\"grooming\",\"datetime\":\"2025-10-11T10:00\",\"status\":\"confirmed\",\"notes\":\"\"},\"ip\":\"::1\",\"method\":\"POST\",\"path\":\"/Pawhabilin/controllers/admin/appointmentcontroller.php\",\"user_email\":\"admin256@admin.com\"}', '2025-10-03 19:54:56'),
+(82, 1, 'updates', '{\"target\":\"promotion\",\"target_id\":\"1\",\"details\":\"{\\\"message\\\":\\\"Updated promotion\\\"}\",\"previous\":{\"promo_id\":\"1\",\"promo_type\":\"appointment\",\"promo_code\":\"RDSGF45\",\"promo_name\":\"Free appointment\",\"promo_description\":\"awdawdaw\",\"promo_discount_type\":\"free_item\",\"promo_discount_value\":null,\"promo_points_cost\":\"500\",\"free_product_id\":null,\"promo_min_purchase_amount\":null,\"promo_usage_limit\":null,\"promo_per_user_limit\":null,\"promo_require_active_subscription\":\"1\",\"promo_starts_at\":\"2025-10-01 10:41:00\",\"promo_ends_at\":\"2025-10-31 23:59:00\",\"promo_active\":\"1\",\"promo_created_at\":\"2025-10-01 10:42:32\",\"promo_updated_at\":\"2025-10-01 22:57:26\"},\"new\":{\"promo_id\":\"1\",\"promo_type\":\"appointment\",\"promo_code\":\"RDSGF45\",\"promo_name\":\"Free appointment\",\"promo_description\":\"awdawdaw\",\"promo_discount_type\":\"free_item\",\"promo_discount_value\":null,\"promo_points_cost\":\"400\",\"free_product_id\":null,\"promo_min_purchase_amount\":null,\"promo_usage_limit\":null,\"promo_per_user_limit\":null,\"promo_require_active_subscription\":\"1\",\"promo_starts_at\":\"2025-10-01 10:41:00\",\"promo_ends_at\":\"2025-10-31 23:59:00\",\"promo_active\":\"1\",\"promo_created_at\":\"2025-10-01 10:42:32\",\"promo_updated_at\":\"2025-10-03 19:55:49\"},\"ip\":\"::1\",\"method\":\"POST\",\"path\":\"/Pawhabilin/controllers/admin/promocontroller.php\",\"user_email\":\"admin256@admin.com\"}', '2025-10-03 19:55:49'),
+(83, 1, 'updates', '{\"target\":\"order\",\"target_id\":\"17\",\"details\":\"{\\\"message\\\":\\\"Updated delivery status\\\",\\\"fields_changed\\\":[\\\"deliveries_delivery_status\\\",\\\"deliveries_estimated_delivery_date\\\",\\\"deliveries_actual_delivery_date\\\",\\\"deliveries_recipient_signature\\\"]}\",\"previous\":{\"deliveries_actual_delivery_date\":null,\"deliveries_recipient_signature\":0},\"new\":{\"deliveries_delivery_status\":\"out_for_delivery\",\"deliveries_estimated_delivery_date\":\"2025-10-05\",\"deliveries_actual_delivery_date\":null,\"deliveries_recipient_signature\":0},\"ip\":\"::1\",\"method\":\"POST\",\"path\":\"/Pawhabilin/controllers/admin/ordercontroller.php\",\"user_email\":\"admin256@admin.com\"}', '2025-10-03 21:07:30'),
+(84, 1, 'updates', '{\"target\":\"appointment\",\"target_id\":\"15\",\"details\":\"{\\\"message\\\":\\\"Updated appointment\\\",\\\"fields_changed\\\":[\\\"full_name\\\",\\\"email\\\",\\\"phone\\\",\\\"pet_name\\\",\\\"pet_type\\\",\\\"pet_breed\\\",\\\"pet_age\\\",\\\"type\\\",\\\"datetime\\\",\\\"status\\\",\\\"notes\\\"]}\",\"previous\":null,\"new\":{\"full_name\":\"Brian\",\"email\":\"thor@gmail.com\",\"phone\":\"09023347823\",\"pet_name\":\"Kitty\",\"pet_type\":\"dog\",\"pet_breed\":\"Persian\",\"pet_age\":\"2\",\"type\":\"vet\",\"datetime\":\"2025-10-04T10:00\",\"status\":\"confirmed\",\"notes\":\"\"},\"ip\":\"::1\",\"method\":\"POST\",\"path\":\"/Pawhabilin/controllers/admin/appointmentcontroller.php\",\"user_email\":\"admin256@admin.com\"}', '2025-10-03 21:08:07'),
+(85, 2, 'auth_login', '{\"target\":\"user\",\"target_id\":\"2\",\"details\":\"{\\\"message\\\":\\\"Login successful\\\",\\\"email\\\":\\\"ajo23@gmail.com\\\"}\",\"previous\":null,\"new\":null,\"ip\":\"::1\",\"method\":\"POST\",\"path\":\"/Pawhabilin/login.php\",\"user_email\":\"ajo23@gmail.com\"}', '2025-10-03 23:35:11'),
+(86, 2, 'auth_login_failed', '{\"target\":\"user\",\"target_id\":\"2\",\"details\":\"{\\\"message\\\":\\\"Login failed\\\",\\\"email\\\":\\\"ajo23@gmail.com\\\"}\",\"previous\":null,\"new\":null,\"ip\":\"::1\",\"method\":\"POST\",\"path\":\"/Pawhabilin/login.php\",\"user_email\":\"ajo23@gmail.com\"}', '2025-10-04 17:30:42'),
+(87, 2, 'auth_login', '{\"target\":\"user\",\"target_id\":\"2\",\"details\":\"{\\\"message\\\":\\\"Login successful\\\",\\\"email\\\":\\\"ajo23@gmail.com\\\"}\",\"previous\":null,\"new\":null,\"ip\":\"::1\",\"method\":\"POST\",\"path\":\"/Pawhabilin/login.php\",\"user_email\":\"ajo23@gmail.com\"}', '2025-10-04 17:30:51'),
+(88, 1, 'auth_login', '{\"target\":\"user\",\"target_id\":\"1\",\"details\":\"{\\\"message\\\":\\\"Login successful\\\",\\\"email\\\":\\\"admin256@admin.com\\\"}\",\"previous\":null,\"new\":null,\"ip\":\"::1\",\"method\":\"POST\",\"path\":\"/Pawhabilin/login.php\",\"user_email\":\"admin256@admin.com\"}', '2025-10-04 17:55:31'),
+(89, 2, 'auth_login_failed', '{\"target\":\"user\",\"target_id\":\"2\",\"details\":\"{\\\"message\\\":\\\"Login failed\\\",\\\"email\\\":\\\"ajo23@gmail.com\\\"}\",\"previous\":null,\"new\":null,\"ip\":\"::1\",\"method\":\"POST\",\"path\":\"/Pawhabilin/login.php\",\"user_email\":\"ajo23@gmail.com\"}', '2025-10-04 17:56:35'),
+(90, 2, 'auth_login', '{\"target\":\"user\",\"target_id\":\"2\",\"details\":\"{\\\"message\\\":\\\"Login successful\\\",\\\"email\\\":\\\"ajo23@gmail.com\\\"}\",\"previous\":null,\"new\":null,\"ip\":\"::1\",\"method\":\"POST\",\"path\":\"/Pawhabilin/login.php\",\"user_email\":\"ajo23@gmail.com\"}', '2025-10-04 17:56:45'),
+(91, 1, 'auth_login', '{\"target\":\"user\",\"target_id\":\"1\",\"details\":\"{\\\"message\\\":\\\"Login successful\\\",\\\"email\\\":\\\"admin256@admin.com\\\"}\",\"previous\":null,\"new\":null,\"ip\":\"::1\",\"method\":\"POST\",\"path\":\"/Pawhabilin/login.php\",\"user_email\":\"admin256@admin.com\"}', '2025-10-04 19:11:18'),
+(92, 1, 'auth_login', '{\"target\":\"user\",\"target_id\":\"1\",\"details\":\"{\\\"message\\\":\\\"Login successful\\\",\\\"email\\\":\\\"admin256@admin.com\\\"}\",\"previous\":null,\"new\":null,\"ip\":\"::1\",\"method\":\"POST\",\"path\":\"/Pawhabilin/login.php\",\"user_email\":\"admin256@admin.com\"}', '2025-10-04 22:44:08'),
+(93, 1, 'auth_login', '{\"target\":\"user\",\"target_id\":\"1\",\"details\":\"{\\\"message\\\":\\\"Login successful\\\",\\\"email\\\":\\\"admin256@admin.com\\\"}\",\"previous\":null,\"new\":null,\"ip\":\"192.168.1.3\",\"method\":\"POST\",\"path\":\"/Pawhabilin/login.php\",\"user_email\":\"admin256@admin.com\"}', '2025-10-05 01:06:25'),
+(94, 1, 'auth_login', '{\"target\":\"user\",\"target_id\":\"1\",\"details\":\"{\\\"message\\\":\\\"Login successful\\\",\\\"email\\\":\\\"admin256@admin.com\\\"}\",\"previous\":null,\"new\":null,\"ip\":\"192.168.1.3\",\"method\":\"POST\",\"path\":\"/Pawhabilin/login.php\",\"user_email\":\"admin256@admin.com\"}', '2025-10-05 01:18:39'),
+(95, 1, 'updates', '{\"target\":\"product\",\"target_id\":\"11\",\"details\":\"{\\\"message\\\":\\\"Updated product\\\",\\\"fields_changed\\\":[\\\"category\\\"]}\",\"previous\":{\"products_name\":\"GTR\",\"products_pet_type\":\"Dog\",\"products_description\":\"6346\",\"products_category\":\"toy\",\"products_price\":\"500.00\",\"products_stock\":\"30\",\"products_image_url\":\"pictures/products/82398136164f03ae26e2886f86524a8e-1759420310-6187.jpg\",\"products_active\":1},\"new\":{\"name\":\"GTR\",\"pet_type\":\"Dog\",\"description\":\"6346\",\"category\":\"necessity\",\"price\":500,\"stock\":\"30\",\"active\":1,\"products_image_url\":\"pictures/products/82398136164f03ae26e2886f86524a8e-1759420310-6187.jpg\"},\"ip\":\"::1\",\"method\":\"POST\",\"path\":\"/Pawhabilin/controllers/admin/productcontroller.php?action=update\",\"user_email\":\"admin256@admin.com\"}', '2025-10-05 01:32:56'),
+(96, 1, 'updates', '{\"target\":\"order\",\"target_id\":\"13\",\"details\":\"{\\\"message\\\":\\\"Updated delivery status\\\",\\\"fields_changed\\\":[\\\"deliveries_delivery_status\\\",\\\"deliveries_estimated_delivery_date\\\",\\\"deliveries_actual_delivery_date\\\",\\\"deliveries_recipient_signature\\\"]}\",\"previous\":{\"deliveries_actual_delivery_date\":null,\"deliveries_recipient_signature\":0},\"new\":{\"deliveries_delivery_status\":\"delivered\",\"deliveries_estimated_delivery_date\":\"2025-10-05\",\"deliveries_actual_delivery_date\":\"2025-10-04\",\"deliveries_recipient_signature\":1},\"ip\":\"::1\",\"method\":\"POST\",\"path\":\"/Pawhabilin/controllers/admin/ordercontroller.php\",\"user_email\":\"admin256@admin.com\"}', '2025-10-05 01:33:45'),
+(97, 1, 'updates', '{\"target\":\"appointment\",\"target_id\":\"13\",\"details\":\"{\\\"message\\\":\\\"Updated appointment\\\",\\\"fields_changed\\\":[\\\"full_name\\\",\\\"email\\\",\\\"phone\\\",\\\"pet_name\\\",\\\"pet_type\\\",\\\"pet_breed\\\",\\\"pet_age\\\",\\\"type\\\",\\\"datetime\\\",\\\"status\\\",\\\"notes\\\"]}\",\"previous\":null,\"new\":{\"full_name\":\"Ian Terennal\",\"email\":\"ajo23@gmail.com\",\"phone\":\"09423782233\",\"pet_name\":\"Kitty\",\"pet_type\":\"other\",\"pet_breed\":\"Egyptian\",\"pet_age\":\"\",\"type\":\"pet_sitting\",\"datetime\":\"2025-10-10T09:00\",\"status\":\"confirmed\",\"notes\":\"\"},\"ip\":\"::1\",\"method\":\"POST\",\"path\":\"/Pawhabilin/controllers/admin/appointmentcontroller.php\",\"user_email\":\"admin256@admin.com\"}', '2025-10-05 01:33:54'),
+(98, 2, 'auth_login', '{\"target\":\"user\",\"target_id\":\"2\",\"details\":\"{\\\"message\\\":\\\"Login successful\\\",\\\"email\\\":\\\"ajo23@gmail.com\\\"}\",\"previous\":null,\"new\":null,\"ip\":\"::1\",\"method\":\"POST\",\"path\":\"/Pawhabilin/login.php\",\"user_email\":\"ajo23@gmail.com\"}', '2025-10-05 01:42:37'),
+(99, 1, 'updates', '{\"target\":\"appointment\",\"target_id\":\"16\",\"details\":\"{\\\"message\\\":\\\"Updated appointment\\\",\\\"fields_changed\\\":[\\\"full_name\\\",\\\"email\\\",\\\"phone\\\",\\\"pet_name\\\",\\\"pet_type\\\",\\\"pet_breed\\\",\\\"pet_age\\\",\\\"type\\\",\\\"datetime\\\",\\\"status\\\",\\\"notes\\\"]}\",\"previous\":null,\"new\":{\"full_name\":\"Jenny\",\"email\":\"j@gmail.com\",\"phone\":\"09623423948\",\"pet_name\":\"Bruno\",\"pet_type\":\"dog\",\"pet_breed\":\"Pug\",\"pet_age\":\"1\",\"type\":\"vet\",\"datetime\":\"2025-10-07T11:00\",\"status\":\"confirmed\",\"notes\":\"\"},\"ip\":\"::1\",\"method\":\"POST\",\"path\":\"/Pawhabilin/controllers/admin/appointmentcontroller.php\",\"user_email\":\"admin256@admin.com\"}', '2025-10-05 01:44:17'),
+(100, 2, 'auth_login', '{\"target\":\"user\",\"target_id\":\"2\",\"details\":\"{\\\"message\\\":\\\"Login successful\\\",\\\"email\\\":\\\"ajo23@gmail.com\\\"}\",\"previous\":null,\"new\":null,\"ip\":\"192.168.1.3\",\"method\":\"POST\",\"path\":\"/Pawhabilin/login.php\",\"user_email\":\"ajo23@gmail.com\"}', '2025-10-05 02:09:02'),
+(101, 1, 'auth_login', '{\"target\":\"user\",\"target_id\":\"1\",\"details\":\"{\\\"message\\\":\\\"Login successful\\\",\\\"email\\\":\\\"admin256@admin.com\\\"}\",\"previous\":null,\"new\":null,\"ip\":\"192.168.1.3\",\"method\":\"POST\",\"path\":\"/Pawhabilin/login.php\",\"user_email\":\"admin256@admin.com\"}', '2025-10-05 02:18:13'),
+(102, 1, 'auth_login', '{\"target\":\"user\",\"target_id\":\"1\",\"details\":\"{\\\"message\\\":\\\"Login successful\\\",\\\"email\\\":\\\"admin256@admin.com\\\"}\",\"previous\":null,\"new\":null,\"ip\":\"192.168.1.3\",\"method\":\"POST\",\"path\":\"/Pawhabilin/login.php\",\"user_email\":\"admin256@admin.com\"}', '2025-10-05 02:52:37'),
+(103, 1, 'updates', '{\"target\":\"promotion\",\"target_id\":\"3\",\"details\":\"{\\\"message\\\":\\\"Updated promotion\\\"}\",\"previous\":{\"promo_id\":\"3\",\"promo_type\":\"appointment\",\"promo_code\":\"XYSD4N7P\",\"promo_name\":\"FREE GROOMING\",\"promo_description\":\"\",\"promo_discount_type\":\"free_item\",\"promo_discount_value\":null,\"promo_points_cost\":null,\"free_product_id\":null,\"promo_min_purchase_amount\":null,\"promo_usage_limit\":null,\"promo_per_user_limit\":\"1\",\"promo_require_active_subscription\":\"1\",\"promo_starts_at\":\"2025-10-02 01:02:00\",\"promo_ends_at\":\"2025-10-31 23:59:00\",\"promo_active\":\"1\",\"promo_created_at\":\"2025-10-02 01:03:04\",\"promo_updated_at\":\"2025-10-03 18:12:29\"},\"new\":{\"promo_id\":\"3\",\"promo_type\":\"appointment\",\"promo_code\":\"XYSD4N7P\",\"promo_name\":\"FREE GROOMING\",\"promo_description\":\"\",\"promo_discount_type\":\"free_item\",\"promo_discount_value\":null,\"promo_points_cost\":null,\"free_product_id\":null,\"promo_min_purchase_amount\":null,\"promo_usage_limit\":null,\"promo_per_user_limit\":\"1\",\"promo_require_active_subscription\":\"1\",\"promo_starts_at\":\"2025-10-02 01:02:00\",\"promo_ends_at\":\"2025-10-31 23:59:00\",\"promo_active\":\"1\",\"promo_created_at\":\"2025-10-02 01:03:04\",\"promo_updated_at\":\"2025-10-03 18:12:29\"},\"ip\":\"::1\",\"method\":\"POST\",\"path\":\"/Pawhabilin/controllers/admin/promocontroller.php\",\"user_email\":\"admin256@admin.com\"}', '2025-10-05 03:49:23'),
+(104, 1, 'updates', '{\"target\":\"promotion\",\"target_id\":\"5\",\"details\":\"{\\\"message\\\":\\\"Added promotion\\\"}\",\"previous\":null,\"new\":{\"promo_id\":\"5\",\"promo_type\":\"appointment\",\"promo_code\":\"SQAW2K97\",\"promo_name\":\"2% FOR PET SITTING\",\"promo_description\":\"AWDAWSD\",\"promo_discount_type\":\"free_item\",\"promo_discount_value\":null,\"promo_points_cost\":\"10\",\"free_product_id\":null,\"promo_min_purchase_amount\":null,\"promo_usage_limit\":null,\"promo_per_user_limit\":\"1\",\"promo_require_active_subscription\":\"1\",\"promo_starts_at\":\"2025-10-06 10:00:00\",\"promo_ends_at\":\"2025-10-13 08:00:00\",\"promo_active\":\"1\",\"promo_created_at\":\"2025-10-05 03:50:53\",\"promo_updated_at\":null},\"ip\":\"::1\",\"method\":\"POST\",\"path\":\"/Pawhabilin/controllers/admin/promocontroller.php\",\"user_email\":\"admin256@admin.com\"}', '2025-10-05 03:50:53'),
+(105, 1, 'updates', '{\"target\":\"promotion\",\"target_id\":\"5\",\"details\":\"{\\\"message\\\":\\\"Updated promotion\\\"}\",\"previous\":{\"promo_id\":\"5\",\"promo_type\":\"appointment\",\"promo_code\":\"SQAW2K97\",\"promo_name\":\"2% FOR PET SITTING\",\"promo_description\":\"AWDAWSD\",\"promo_discount_type\":\"free_item\",\"promo_discount_value\":null,\"promo_points_cost\":\"10\",\"free_product_id\":null,\"promo_min_purchase_amount\":null,\"promo_usage_limit\":null,\"promo_per_user_limit\":\"1\",\"promo_require_active_subscription\":\"1\",\"promo_starts_at\":\"2025-10-06 10:00:00\",\"promo_ends_at\":\"2025-10-13 08:00:00\",\"promo_active\":\"1\",\"promo_created_at\":\"2025-10-05 03:50:53\",\"promo_updated_at\":null},\"new\":{\"promo_id\":\"5\",\"promo_type\":\"appointment\",\"promo_code\":\"SQAW2K97\",\"promo_name\":\"20% FOR PET SITTING\",\"promo_description\":\"AWDAWSD\",\"promo_discount_type\":\"percent\",\"promo_discount_value\":\"20.00\",\"promo_points_cost\":\"10\",\"free_product_id\":null,\"promo_min_purchase_amount\":null,\"promo_usage_limit\":null,\"promo_per_user_limit\":\"1\",\"promo_require_active_subscription\":\"1\",\"promo_starts_at\":\"2025-10-06 10:00:00\",\"promo_ends_at\":\"2025-10-13 08:00:00\",\"promo_active\":\"1\",\"promo_created_at\":\"2025-10-05 03:50:53\",\"promo_updated_at\":\"2025-10-05 03:51:17\"},\"ip\":\"::1\",\"method\":\"POST\",\"path\":\"/Pawhabilin/controllers/admin/promocontroller.php\",\"user_email\":\"admin256@admin.com\"}', '2025-10-05 03:51:17'),
+(106, 1, 'updates', '{\"target\":\"promotion\",\"target_id\":\"5\",\"details\":\"{\\\"message\\\":\\\"Updated promotion\\\"}\",\"previous\":{\"promo_id\":\"5\",\"promo_type\":\"appointment\",\"promo_code\":\"SQAW2K97\",\"promo_name\":\"20% FOR PET SITTING\",\"promo_description\":\"AWDAWSD\",\"promo_discount_type\":\"percent\",\"promo_discount_value\":\"20.00\",\"promo_points_cost\":\"10\",\"free_product_id\":null,\"promo_min_purchase_amount\":null,\"promo_usage_limit\":null,\"promo_per_user_limit\":\"1\",\"promo_require_active_subscription\":\"1\",\"promo_starts_at\":\"2025-10-06 10:00:00\",\"promo_ends_at\":\"2025-10-13 08:00:00\",\"promo_active\":\"1\",\"promo_created_at\":\"2025-10-05 03:50:53\",\"promo_updated_at\":\"2025-10-05 03:51:17\"},\"new\":{\"promo_id\":\"5\",\"promo_type\":\"appointment\",\"promo_code\":\"SQAW2K97\",\"promo_name\":\"20% FOR PET SITTING\",\"promo_description\":\"AWDAWSD\",\"promo_discount_type\":\"percent\",\"promo_discount_value\":\"20.00\",\"promo_points_cost\":\"10\",\"free_product_id\":null,\"promo_min_purchase_amount\":null,\"promo_usage_limit\":null,\"promo_per_user_limit\":\"1\",\"promo_require_active_subscription\":\"1\",\"promo_starts_at\":\"2025-10-05 03:00:00\",\"promo_ends_at\":\"2025-10-13 08:00:00\",\"promo_active\":\"1\",\"promo_created_at\":\"2025-10-05 03:50:53\",\"promo_updated_at\":\"2025-10-05 03:52:23\"},\"ip\":\"::1\",\"method\":\"POST\",\"path\":\"/Pawhabilin/controllers/admin/promocontroller.php\",\"user_email\":\"admin256@admin.com\"}', '2025-10-05 03:52:23'),
+(107, 1, 'updates', '{\"target\":\"promotion\",\"target_id\":\"6\",\"details\":\"{\\\"message\\\":\\\"Added promotion\\\"}\",\"previous\":null,\"new\":{\"promo_id\":\"6\",\"promo_type\":\"appointment\",\"promo_code\":\"2BULMU7J\",\"promo_name\":\"10% for grooming\",\"promo_description\":\"wadsdwa\",\"promo_discount_type\":\"percent\",\"promo_discount_value\":\"10.00\",\"promo_points_cost\":\"10\",\"free_product_id\":null,\"promo_min_purchase_amount\":null,\"promo_usage_limit\":null,\"promo_per_user_limit\":\"1\",\"promo_require_active_subscription\":\"1\",\"promo_starts_at\":\"2025-10-05 04:07:00\",\"promo_ends_at\":\"2025-10-13 04:07:00\",\"promo_active\":\"1\",\"promo_created_at\":\"2025-10-05 04:07:56\",\"promo_updated_at\":null},\"ip\":\"::1\",\"method\":\"POST\",\"path\":\"/Pawhabilin/controllers/admin/promocontroller.php\",\"user_email\":\"admin256@admin.com\"}', '2025-10-05 04:07:56'),
+(108, 1, 'auth_login', '{\"target\":\"user\",\"target_id\":\"1\",\"details\":\"{\\\"message\\\":\\\"Login successful\\\",\\\"email\\\":\\\"admin256@admin.com\\\"}\",\"previous\":null,\"new\":null,\"ip\":\"::1\",\"method\":\"POST\",\"path\":\"/Pawhabilin/login.php\",\"user_email\":\"admin256@admin.com\"}', '2025-10-05 04:14:09'),
+(109, 1, 'updates', '{\"target\":\"product\",\"target_id\":\"11\",\"details\":\"{\\\"message\\\":\\\"Updated product\\\",\\\"fields_changed\\\":[\\\"stock\\\"]}\",\"previous\":{\"products_name\":\"GTR\",\"products_pet_type\":\"Dog\",\"products_description\":\"6346\",\"products_category\":\"necessity\",\"products_price\":\"500.00\",\"products_stock\":\"30\",\"products_image_url\":\"pictures/products/82398136164f03ae26e2886f86524a8e-1759420310-6187.jpg\",\"products_active\":1},\"new\":{\"name\":\"GTR\",\"pet_type\":\"Dog\",\"description\":\"6346\",\"category\":\"necessity\",\"price\":500,\"stock\":\"20\",\"active\":1,\"products_image_url\":\"pictures/products/82398136164f03ae26e2886f86524a8e-1759420310-6187.jpg\"},\"ip\":\"::1\",\"method\":\"POST\",\"path\":\"/Pawhabilin/controllers/admin/productcontroller.php?action=update\",\"user_email\":\"admin256@admin.com\"}', '2025-10-05 12:27:39'),
+(110, 1, 'stock_changes', '{\"target\":\"product\",\"target_id\":\"11\",\"details\":\"{\\\"message\\\":\\\"Stock changed\\\"}\",\"previous\":{\"stock\":\"30\"},\"new\":{\"stock\":\"20\"},\"ip\":\"::1\",\"method\":\"POST\",\"path\":\"/Pawhabilin/controllers/admin/productcontroller.php?action=update\",\"user_email\":\"admin256@admin.com\"}', '2025-10-05 12:27:39'),
+(111, 1, 'updates', '{\"target\":\"appointment\",\"target_id\":\"16\",\"details\":\"{\\\"message\\\":\\\"Updated appointment\\\",\\\"fields_changed\\\":[\\\"full_name\\\",\\\"email\\\",\\\"phone\\\",\\\"pet_name\\\",\\\"pet_type\\\",\\\"pet_breed\\\",\\\"pet_age\\\",\\\"type\\\",\\\"datetime\\\",\\\"status\\\",\\\"notes\\\"]}\",\"previous\":null,\"new\":{\"full_name\":\"Jenny\",\"email\":\"j@gmail.com\",\"phone\":\"09623423948\",\"pet_name\":\"Bruno\",\"pet_type\":\"dog\",\"pet_breed\":\"Pug\",\"pet_age\":\"1\",\"type\":\"vet\",\"datetime\":\"2025-10-07T11:00\",\"status\":\"completed\",\"notes\":\"\"},\"ip\":\"::1\",\"method\":\"POST\",\"path\":\"/Pawhabilin/controllers/admin/appointmentcontroller.php\",\"user_email\":\"admin256@admin.com\"}', '2025-10-05 12:27:53'),
+(112, 1, 'updates', '{\"target\":\"product\",\"target_id\":\"11\",\"details\":\"{\\\"message\\\":\\\"Updated product\\\",\\\"fields_changed\\\":[\\\"category\\\"]}\",\"previous\":{\"products_name\":\"GTR\",\"products_pet_type\":\"Dog\",\"products_description\":\"6346\",\"products_category\":\"necessity\",\"products_price\":\"500.00\",\"products_stock\":\"20\",\"products_image_url\":\"pictures/products/82398136164f03ae26e2886f86524a8e-1759420310-6187.jpg\",\"products_active\":1},\"new\":{\"name\":\"GTR\",\"pet_type\":\"Dog\",\"description\":\"6346\",\"category\":\"accessory\",\"price\":500,\"stock\":\"20\",\"active\":1,\"products_image_url\":\"pictures/products/82398136164f03ae26e2886f86524a8e-1759420310-6187.jpg\"},\"ip\":\"::1\",\"method\":\"POST\",\"path\":\"/Pawhabilin/controllers/admin/productcontroller.php?action=update\",\"user_email\":\"admin256@admin.com\"}', '2025-10-05 12:50:21'),
+(113, 1, 'updates', '{\"target\":\"order\",\"target_id\":\"17\",\"details\":\"{\\\"message\\\":\\\"Updated delivery status\\\",\\\"fields_changed\\\":[\\\"deliveries_delivery_status\\\",\\\"deliveries_estimated_delivery_date\\\",\\\"deliveries_actual_delivery_date\\\",\\\"deliveries_recipient_signature\\\"]}\",\"previous\":{\"deliveries_actual_delivery_date\":null,\"deliveries_recipient_signature\":0},\"new\":{\"deliveries_delivery_status\":\"delivered\",\"deliveries_estimated_delivery_date\":\"2025-10-05\",\"deliveries_actual_delivery_date\":null,\"deliveries_recipient_signature\":0},\"ip\":\"::1\",\"method\":\"POST\",\"path\":\"/Pawhabilin/controllers/admin/ordercontroller.php\",\"user_email\":\"admin256@admin.com\"}', '2025-10-05 12:54:05'),
+(114, 1, 'updates', '{\"target\":\"order\",\"target_id\":\"12\",\"details\":\"{\\\"message\\\":\\\"Updated delivery status\\\",\\\"fields_changed\\\":[\\\"deliveries_delivery_status\\\",\\\"deliveries_estimated_delivery_date\\\",\\\"deliveries_actual_delivery_date\\\",\\\"deliveries_recipient_signature\\\"]}\",\"previous\":{\"deliveries_actual_delivery_date\":null,\"deliveries_recipient_signature\":0},\"new\":{\"deliveries_delivery_status\":\"delivered\",\"deliveries_estimated_delivery_date\":\"2025-10-05\",\"deliveries_actual_delivery_date\":\"2025-10-05\",\"deliveries_recipient_signature\":1},\"ip\":\"::1\",\"method\":\"POST\",\"path\":\"/Pawhabilin/controllers/admin/ordercontroller.php\",\"user_email\":\"admin256@admin.com\"}', '2025-10-05 12:54:17'),
+(115, 1, 'updates', '{\"target\":\"appointment\",\"target_id\":\"15\",\"details\":\"{\\\"message\\\":\\\"Updated appointment\\\",\\\"fields_changed\\\":[\\\"full_name\\\",\\\"email\\\",\\\"phone\\\",\\\"pet_name\\\",\\\"pet_type\\\",\\\"pet_breed\\\",\\\"pet_age\\\",\\\"type\\\",\\\"datetime\\\",\\\"status\\\",\\\"notes\\\"]}\",\"previous\":null,\"new\":{\"full_name\":\"Brian\",\"email\":\"thor@gmail.com\",\"phone\":\"09023347823\",\"pet_name\":\"Kitty\",\"pet_type\":\"dog\",\"pet_breed\":\"Persian\",\"pet_age\":\"2\",\"type\":\"vet\",\"datetime\":\"2025-10-04T10:00\",\"status\":\"completed\",\"notes\":\"\"},\"ip\":\"::1\",\"method\":\"POST\",\"path\":\"/Pawhabilin/controllers/admin/appointmentcontroller.php\",\"user_email\":\"admin256@admin.com\"}', '2025-10-05 12:54:40'),
+(116, 1, 'updates', '{\"target\":\"appointment\",\"target_id\":\"12\",\"details\":\"{\\\"message\\\":\\\"Updated appointment\\\",\\\"fields_changed\\\":[\\\"full_name\\\",\\\"email\\\",\\\"phone\\\",\\\"pet_name\\\",\\\"pet_type\\\",\\\"pet_breed\\\",\\\"pet_age\\\",\\\"type\\\",\\\"datetime\\\",\\\"status\\\",\\\"notes\\\"]}\",\"previous\":null,\"new\":{\"full_name\":\"Cris Carlo\",\"email\":\"thor@gmail.com\",\"phone\":\"09023347823\",\"pet_name\":\"Fred\",\"pet_type\":\"other\",\"pet_breed\":\"Shih Tzu\",\"pet_age\":\"2\",\"type\":\"grooming\",\"datetime\":\"2025-10-11T10:00\",\"status\":\"completed\",\"notes\":\"\"},\"ip\":\"::1\",\"method\":\"POST\",\"path\":\"/Pawhabilin/controllers/admin/appointmentcontroller.php\",\"user_email\":\"admin256@admin.com\"}', '2025-10-05 12:54:47'),
+(117, 1, 'updates', '{\"target\":\"product\",\"target_id\":\"11\",\"details\":\"{\\\"message\\\":\\\"Updated product\\\",\\\"fields_changed\\\":[\\\"description\\\",\\\"image\\\"]}\",\"previous\":{\"products_name\":\"GTR\",\"products_pet_type\":\"Dog\",\"products_description\":\"6346\",\"products_category\":\"accessory\",\"products_price\":\"500.00\",\"products_stock\":\"20\",\"products_image_url\":\"pictures/products/82398136164f03ae26e2886f86524a8e-1759420310-6187.jpg\",\"products_active\":1},\"new\":{\"name\":\"GTR\",\"pet_type\":\"Dog\",\"description\":\"IUAJSHFD\",\"category\":\"accessory\",\"price\":500,\"stock\":\"20\",\"active\":1,\"products_image_url\":\"pictures/products/d7342d7b51c4f04a20753c64a69f9f73-1759641594-5867.jpg\"},\"ip\":\"::1\",\"method\":\"POST\",\"path\":\"/Pawhabilin/controllers/admin/productcontroller.php?action=update\",\"user_email\":\"admin256@admin.com\"}', '2025-10-05 13:19:54'),
+(118, 1, 'updates', '{\"target\":\"product\",\"target_id\":\"11\",\"details\":\"{\\\"message\\\":\\\"Updated product\\\",\\\"fields_changed\\\":[\\\"description\\\"]}\",\"previous\":{\"products_name\":\"GTR\",\"products_pet_type\":\"Dog\",\"products_description\":\"IUAJSHFD\",\"products_category\":\"accessory\",\"products_price\":\"500.00\",\"products_stock\":\"20\",\"products_image_url\":\"pictures/products/d7342d7b51c4f04a20753c64a69f9f73-1759641594-5867.jpg\",\"products_active\":1},\"new\":{\"name\":\"GTR\",\"pet_type\":\"Dog\",\"description\":\"SDFSDEF\",\"category\":\"accessory\",\"price\":500,\"stock\":\"20\",\"active\":1,\"products_image_url\":\"pictures/products/d7342d7b51c4f04a20753c64a69f9f73-1759641594-5867.jpg\"},\"ip\":\"::1\",\"method\":\"POST\",\"path\":\"/Pawhabilin/controllers/admin/productcontroller.php?action=update\",\"user_email\":\"admin256@admin.com\"}', '2025-10-05 13:21:07'),
+(119, 1, 'additions', '{\"target\":\"product\",\"target_id\":\"12\",\"details\":\"{\\\"message\\\":\\\"Added product\\\",\\\"fields_changed\\\":[\\\"name\\\",\\\"pet_type\\\",\\\"description\\\",\\\"category\\\",\\\"price\\\",\\\"stock\\\",\\\"active\\\",\\\"image\\\"]}\",\"previous\":null,\"new\":{\"id\":12,\"name\":\"skyline\",\"pet_type\":\"Fish\",\"description\":\"dsgsedf\",\"category\":\"accessory\",\"price\":50,\"stock\":\"10\",\"active\":1,\"db_image_url\":null},\"ip\":\"::1\",\"method\":\"POST\",\"path\":\"/Pawhabilin/controllers/admin/productcontroller.php?action=add\",\"user_email\":\"admin256@admin.com\"}', '2025-10-05 13:21:56'),
+(120, 1, 'updates', '{\"target\":\"order\",\"target_id\":\"17\",\"details\":\"{\\\"message\\\":\\\"Updated delivery status\\\",\\\"fields_changed\\\":[\\\"deliveries_delivery_status\\\",\\\"deliveries_estimated_delivery_date\\\",\\\"deliveries_actual_delivery_date\\\",\\\"deliveries_recipient_signature\\\"]}\",\"previous\":{\"deliveries_actual_delivery_date\":null,\"deliveries_recipient_signature\":0},\"new\":{\"deliveries_delivery_status\":\"delivered\",\"deliveries_estimated_delivery_date\":\"2025-10-05\",\"deliveries_actual_delivery_date\":\"2025-10-05\",\"deliveries_recipient_signature\":1},\"ip\":\"::1\",\"method\":\"POST\",\"path\":\"/Pawhabilin/controllers/admin/ordercontroller.php\",\"user_email\":\"admin256@admin.com\"}', '2025-10-05 13:22:22'),
+(121, 1, 'updates', '{\"target\":\"sitter\",\"target_id\":\"2\",\"details\":\"{\\\"message\\\":\\\"Updated sitter\\\",\\\"fields_changed\\\":[\\\"years_experience\\\",\\\"specialties\\\"]}\",\"previous\":{\"sitters_name\":\"ampuiti amputi\",\"sitters_bio\":\"gesdfgesf\",\"sitter_email\":\"amaputie@gmail.com\",\"sitters_contact\":\"0956159882\",\"sitter_specialty\":\"Dog, Cat, Fish\",\"sitter_experience\":\"\",\"sitters_image_url\":\"pictures/sitters/amaputie-gmail-com-1759042950-8787.png\",\"sitters_active\":1,\"years_experience\":3,\"sitters_verified\":1},\"new\":{\"name\":\"ampuiti amputi\",\"bio\":\"gesdfgesf\",\"email\":\"amaputie@gmail.com\",\"phone\":\"0956159882\",\"experience\":\"\",\"years_experience\":4,\"specialties\":[\"Dog\",\"Cat\",\"Bird\",\"Fish\"],\"active\":1,\"verified\":1,\"sitters_image_url\":\"pictures/sitters/amaputie-gmail-com-1759042950-8787.png\"},\"ip\":\"::1\",\"method\":\"POST\",\"path\":\"/Pawhabilin/controllers/admin/sittercontroller.php\",\"user_email\":\"admin256@admin.com\"}', '2025-10-05 13:22:55'),
+(122, 1, 'updates', '{\"target\":\"appointment\",\"target_id\":\"14\",\"details\":\"{\\\"message\\\":\\\"Updated appointment\\\",\\\"fields_changed\\\":[\\\"full_name\\\",\\\"email\\\",\\\"phone\\\",\\\"pet_name\\\",\\\"pet_type\\\",\\\"pet_breed\\\",\\\"pet_age\\\",\\\"type\\\",\\\"datetime\\\",\\\"status\\\",\\\"notes\\\"]}\",\"previous\":null,\"new\":{\"full_name\":\"Thea\",\"email\":\"t@gmail.com\",\"phone\":\"09781263489\",\"pet_name\":\"Blackie\",\"pet_type\":\"bird\",\"pet_breed\":\"Parrot\",\"pet_age\":\"2\",\"type\":\"grooming\",\"datetime\":\"2025-10-04T11:00\",\"status\":\"completed\",\"notes\":\"\"},\"ip\":\"::1\",\"method\":\"POST\",\"path\":\"/Pawhabilin/controllers/admin/appointmentcontroller.php\",\"user_email\":\"admin256@admin.com\"}', '2025-10-05 13:23:05'),
+(123, 1, 'updates', '{\"target\":\"promotion\",\"target_id\":\"7\",\"details\":\"{\\\"message\\\":\\\"Added promotion\\\"}\",\"previous\":null,\"new\":{\"promo_id\":\"7\",\"promo_type\":\"product\",\"promo_code\":\"EBR7B3EN\",\"promo_name\":\"FREE PET SITTING\",\"promo_description\":\"AWSDWAS\",\"promo_discount_type\":\"free_item\",\"promo_discount_value\":null,\"promo_points_cost\":\"10\",\"free_product_id\":null,\"promo_min_purchase_amount\":null,\"promo_usage_limit\":null,\"promo_per_user_limit\":\"1\",\"promo_require_active_subscription\":\"1\",\"promo_starts_at\":\"2025-10-05 13:24:00\",\"promo_ends_at\":\"2025-10-13 13:24:00\",\"promo_active\":\"1\",\"promo_created_at\":\"2025-10-05 13:24:17\",\"promo_updated_at\":null},\"ip\":\"::1\",\"method\":\"POST\",\"path\":\"/Pawhabilin/controllers/admin/promocontroller.php\",\"user_email\":\"admin256@admin.com\"}', '2025-10-05 13:24:17'),
+(124, 1, 'updates', '{\"target\":\"product\",\"target_id\":\"12\",\"details\":\"{\\\"message\\\":\\\"Updated product\\\",\\\"fields_changed\\\":[\\\"stock\\\"]}\",\"previous\":{\"products_name\":\"skyline\",\"products_pet_type\":\"Fish\",\"products_description\":\"dsgsedf\",\"products_category\":\"accessory\",\"products_price\":\"50.00\",\"products_stock\":\"10\",\"products_image_url\":null,\"products_active\":1},\"new\":{\"name\":\"skyline\",\"pet_type\":\"Fish\",\"description\":\"dsgsedf\",\"category\":\"accessory\",\"price\":50,\"stock\":\"410\",\"active\":1,\"products_image_url\":null},\"ip\":\"::1\",\"method\":\"POST\",\"path\":\"/Pawhabilin/controllers/admin/productcontroller.php?action=update\",\"user_email\":\"admin256@admin.com\"}', '2025-10-05 13:37:13'),
+(125, 1, 'stock_changes', '{\"target\":\"product\",\"target_id\":\"12\",\"details\":\"{\\\"message\\\":\\\"Stock changed\\\"}\",\"previous\":{\"stock\":\"10\"},\"new\":{\"stock\":\"410\"},\"ip\":\"::1\",\"method\":\"POST\",\"path\":\"/Pawhabilin/controllers/admin/productcontroller.php?action=update\",\"user_email\":\"admin256@admin.com\"}', '2025-10-05 13:37:13'),
+(126, 1, 'updates', '{\"target\":\"product\",\"target_id\":\"12\",\"details\":\"{\\\"message\\\":\\\"Updated product\\\",\\\"fields_changed\\\":[\\\"category\\\"]}\",\"previous\":{\"products_name\":\"skyline\",\"products_pet_type\":\"Fish\",\"products_description\":\"dsgsedf\",\"products_category\":\"accessory\",\"products_price\":\"50.00\",\"products_stock\":\"410\",\"products_image_url\":null,\"products_active\":1},\"new\":{\"name\":\"skyline\",\"pet_type\":\"Fish\",\"description\":\"dsgsedf\",\"category\":\"food\",\"price\":50,\"stock\":\"410\",\"active\":1,\"products_image_url\":null},\"ip\":\"::1\",\"method\":\"POST\",\"path\":\"/Pawhabilin/controllers/admin/productcontroller.php?action=update\",\"user_email\":\"admin256@admin.com\"}', '2025-10-05 13:40:03'),
+(127, 1, 'updates', '{\"target\":\"product\",\"target_id\":\"12\",\"details\":\"{\\\"message\\\":\\\"Updated product\\\",\\\"fields_changed\\\":[\\\"stock\\\"]}\",\"previous\":{\"products_name\":\"skyline\",\"products_pet_type\":\"Fish\",\"products_description\":\"dsgsedf\",\"products_category\":\"food\",\"products_price\":\"50.00\",\"products_stock\":\"410\",\"products_image_url\":null,\"products_active\":1},\"new\":{\"name\":\"skyline\",\"pet_type\":\"Fish\",\"description\":\"dsgsedf\",\"category\":\"food\",\"price\":50,\"stock\":\"300\",\"active\":1,\"products_image_url\":null},\"ip\":\"::1\",\"method\":\"POST\",\"path\":\"/Pawhabilin/controllers/admin/productcontroller.php?action=update\",\"user_email\":\"admin256@admin.com\"}', '2025-10-05 13:40:12'),
+(128, 1, 'stock_changes', '{\"target\":\"product\",\"target_id\":\"12\",\"details\":\"{\\\"message\\\":\\\"Stock changed\\\"}\",\"previous\":{\"stock\":\"410\"},\"new\":{\"stock\":\"300\"},\"ip\":\"::1\",\"method\":\"POST\",\"path\":\"/Pawhabilin/controllers/admin/productcontroller.php?action=update\",\"user_email\":\"admin256@admin.com\"}', '2025-10-05 13:40:12'),
+(129, 1, 'updates', '{\"target\":\"order\",\"target_id\":\"11\",\"details\":\"{\\\"message\\\":\\\"Updated delivery status\\\",\\\"fields_changed\\\":[\\\"deliveries_delivery_status\\\",\\\"deliveries_estimated_delivery_date\\\",\\\"deliveries_actual_delivery_date\\\",\\\"deliveries_recipient_signature\\\"]}\",\"previous\":{\"deliveries_actual_delivery_date\":null,\"deliveries_recipient_signature\":0},\"new\":{\"deliveries_delivery_status\":\"delivered\",\"deliveries_estimated_delivery_date\":\"2025-10-05\",\"deliveries_actual_delivery_date\":\"2025-10-05\",\"deliveries_recipient_signature\":1},\"ip\":\"::1\",\"method\":\"POST\",\"path\":\"/Pawhabilin/controllers/admin/ordercontroller.php\",\"user_email\":\"admin256@admin.com\"}', '2025-10-05 13:40:44'),
+(130, 1, 'updates', '{\"target\":\"order\",\"target_id\":\"10\",\"details\":\"{\\\"message\\\":\\\"Updated delivery status\\\",\\\"fields_changed\\\":[\\\"deliveries_delivery_status\\\",\\\"deliveries_estimated_delivery_date\\\",\\\"deliveries_actual_delivery_date\\\",\\\"deliveries_recipient_signature\\\"]}\",\"previous\":{\"deliveries_actual_delivery_date\":null,\"deliveries_recipient_signature\":0},\"new\":{\"deliveries_delivery_status\":\"out_for_delivery\",\"deliveries_estimated_delivery_date\":\"2025-10-05\",\"deliveries_actual_delivery_date\":null,\"deliveries_recipient_signature\":0},\"ip\":\"::1\",\"method\":\"POST\",\"path\":\"/Pawhabilin/controllers/admin/ordercontroller.php\",\"user_email\":\"admin256@admin.com\"}', '2025-10-05 13:43:37'),
+(131, 1, 'updates', '{\"target\":\"order\",\"target_id\":\"10\",\"details\":\"{\\\"message\\\":\\\"Updated delivery status\\\",\\\"fields_changed\\\":[\\\"deliveries_delivery_status\\\",\\\"deliveries_estimated_delivery_date\\\",\\\"deliveries_actual_delivery_date\\\",\\\"deliveries_recipient_signature\\\"]}\",\"previous\":{\"deliveries_actual_delivery_date\":null,\"deliveries_recipient_signature\":0},\"new\":{\"deliveries_delivery_status\":\"delivered\",\"deliveries_estimated_delivery_date\":\"2025-10-05\",\"deliveries_actual_delivery_date\":\"2025-10-05\",\"deliveries_recipient_signature\":1},\"ip\":\"::1\",\"method\":\"POST\",\"path\":\"/Pawhabilin/controllers/admin/ordercontroller.php\",\"user_email\":\"admin256@admin.com\"}', '2025-10-05 13:43:47');
 
 -- --------------------------------------------------------
 
@@ -149,9 +213,11 @@ INSERT INTO `appointments` (`appointments_id`, `users_id`, `appointments_full_na
 (9, 2, 'Brian', 'thor@gmail.com', '09023347823', 'Fred', 'dog', 'Shih Tzu', '', 'vet', '2025-09-30 09:00:00', NULL, NULL, 'pending', '2025-09-29 02:32:45'),
 (10, 2, 'Cris Carlo', 'cc@gmail.com', '09237846239', 'Fred', 'other', 'Shih Tzu', '2', 'vet', '2025-10-02 09:00:00', NULL, NULL, 'completed', '2025-10-02 00:47:29'),
 (11, 2, 'Cris Carlo', 'cc@gmail.com', '09162342389', 'Kitty', 'other', 'Egyptian', '', 'grooming', '2025-10-03 10:00:00', NULL, NULL, 'completed', '2025-10-02 00:50:54'),
-(12, 2, 'Cris Carlo', 'thor@gmail.com', '09023347823', 'Fred', 'other', 'Shih Tzu', '2', 'grooming', '2025-10-11 10:00:00', NULL, NULL, 'pending', '2025-10-03 00:58:09'),
-(13, 2, 'Ian Terennal', 'ajo23@gmail.com', '09423782233', 'Kitty', 'other', 'Egyptian', '', 'pet_sitting', '2025-10-10 09:00:00', NULL, 5, 'pending', '2025-10-03 01:10:36'),
-(14, 3, 'Thea', 't@gmail.com', '09781263489', 'Blackie', 'bird', 'Parrot', '2', 'grooming', '2025-10-04 11:00:00', NULL, NULL, 'confirmed', '2025-10-03 01:13:25');
+(12, 2, 'Cris Carlo', 'thor@gmail.com', '09023347823', 'Fred', 'other', 'Shih Tzu', '2', 'grooming', '2025-10-11 10:00:00', NULL, NULL, 'completed', '2025-10-03 00:58:09'),
+(13, 2, 'Ian Terennal', 'ajo23@gmail.com', '09423782233', 'Kitty', 'other', 'Egyptian', '', 'pet_sitting', '2025-10-10 09:00:00', NULL, 5, 'confirmed', '2025-10-03 01:10:36'),
+(14, 3, 'Thea', 't@gmail.com', '09781263489', 'Blackie', 'bird', 'Parrot', '2', 'grooming', '2025-10-04 11:00:00', NULL, NULL, 'completed', '2025-10-03 01:13:25'),
+(15, 3, 'Brian', 'thor@gmail.com', '09023347823', 'Kitty', 'dog', 'Persian', '2', 'vet', '2025-10-04 10:00:00', NULL, NULL, 'completed', '2025-10-03 20:52:02'),
+(16, 2, 'Jenny', 'j@gmail.com', '09623423948', 'Bruno', 'dog', 'Pug', '1', 'vet', '2025-10-07 11:00:00', NULL, NULL, 'completed', '2025-10-05 01:43:54');
 
 -- --------------------------------------------------------
 
@@ -205,7 +271,17 @@ INSERT INTO `deliveries` (`deliveries_id`, `transactions_id`, `location_id`, `de
 (1, 3, 1, 'delivered', '2025-09-30', '2025-09-29', '1'),
 (2, 4, 1, 'delivered', '2025-10-04', '2025-10-02', '1'),
 (3, 5, 2, 'processing', '2025-10-04', NULL, '0'),
-(4, 6, 1, 'delivered', '2025-10-04', '2025-10-03', 'Received 2025-10-03 03:15:12');
+(4, 6, 1, 'delivered', '2025-10-04', '2025-10-03', 'Received 2025-10-03 03:15:12'),
+(5, 7, 1, 'processing', '2025-10-05', NULL, NULL),
+(6, 8, 1, 'processing', '2025-10-05', NULL, NULL),
+(7, 9, 1, 'processing', '2025-10-05', NULL, NULL),
+(8, 10, 1, 'delivered', '2025-10-05', '2025-10-05', '1'),
+(9, 11, 1, 'delivered', '2025-10-05', '2025-10-05', '1'),
+(10, 12, 1, 'delivered', '2025-10-05', '2025-10-05', '1'),
+(11, 13, 1, 'delivered', '2025-10-05', '2025-10-04', '1'),
+(12, 15, 2, 'delivered', '2025-10-05', '2025-10-03', 'Received 2025-10-03 19:39:30'),
+(13, 16, 2, 'delivered', '2025-10-05', '2025-10-03', 'Received 2025-10-03 19:41:09'),
+(14, 17, 2, 'delivered', '2025-10-05', '2025-10-05', '1');
 
 -- --------------------------------------------------------
 
@@ -318,7 +394,8 @@ INSERT INTO `products` (`products_id`, `products_name`, `products_pet_type`, `pr
 (8, '23qwra', 'Cat', 'waqdc', 'necessity', 234.00, NULL, '234', NULL, 1, '2025-09-20 12:05:36'),
 (9, 'q3awr3weqr', 'Cat', '23wetfesdf', 'necessity', 345.00, NULL, '234', NULL, 1, '2025-09-20 12:05:50'),
 (10, 't43wegdxz', 'Bird', 'sdregsdfg', 'necessity', 3425.00, NULL, '200', NULL, 1, '2025-09-20 12:06:20'),
-(11, 'GTR', 'Dog', '6346', 'toy', 500.00, NULL, '30', 'pictures/products/82398136164f03ae26e2886f86524a8e-1759420310-6187.jpg', 1, '2025-09-20 12:06:36');
+(11, 'GTR', 'Dog', 'SDFSDEF', 'accessory', 500.00, NULL, '20', 'pictures/products/d7342d7b51c4f04a20753c64a69f9f73-1759641594-5867.jpg', 1, '2025-09-20 12:06:36'),
+(12, 'skyline', 'Fish', 'dsgsedf', 'food', 50.00, NULL, '300', NULL, 1, '2025-10-05 13:21:56');
 
 -- --------------------------------------------------------
 
@@ -352,9 +429,13 @@ CREATE TABLE `promotions` (
 --
 
 INSERT INTO `promotions` (`promo_id`, `promo_type`, `promo_code`, `promo_name`, `promo_description`, `promo_discount_type`, `promo_discount_value`, `promo_points_cost`, `free_product_id`, `promo_min_purchase_amount`, `promo_usage_limit`, `promo_per_user_limit`, `promo_require_active_subscription`, `promo_starts_at`, `promo_ends_at`, `promo_active`, `promo_created_at`, `promo_updated_at`) VALUES
-(1, 'appointment', 'RDSGF45', 'Free appointment', 'awdawdaw', 'free_item', NULL, 500, NULL, NULL, NULL, NULL, 1, '2025-10-01 10:41:00', '2025-10-31 23:59:00', 1, '2025-10-01 10:42:32', '2025-10-01 22:57:26'),
+(1, 'appointment', 'RDSGF45', 'Free appointment', 'awdawdaw', 'free_item', NULL, 400, NULL, NULL, NULL, NULL, 1, '2025-10-01 10:41:00', '2025-10-31 23:59:00', 1, '2025-10-01 10:42:32', '2025-10-03 19:55:49'),
 (2, 'product', '3WBWPBJA', '20% OFF ON ALL PRODUCTS', 'efwsfwe', 'percent', 20.00, 100, NULL, 200.00, NULL, NULL, 1, '2025-10-01 00:00:00', '2025-10-31 23:59:00', 1, '2025-10-01 22:41:58', '2025-10-01 22:57:30'),
-(3, 'appointment', 'XYSD4N7P', 'FREE GROOMING', '', 'free_item', NULL, NULL, NULL, NULL, NULL, NULL, 1, '2025-10-02 01:02:00', '2025-10-31 23:59:00', 1, '2025-10-02 01:03:04', NULL);
+(3, 'appointment', 'XYSD4N7P', 'FREE GROOMING', '', 'free_item', NULL, NULL, NULL, NULL, NULL, 1, 1, '2025-10-02 01:02:00', '2025-10-31 23:59:00', 1, '2025-10-02 01:03:04', '2025-10-03 18:12:29'),
+(4, 'product', 'RWUBC42F', 'AUTUMN SALE 10% ALL PRODUCTS', 'FEGWSRFE', 'percent', 10.00, 10, NULL, NULL, NULL, 1, 1, '2025-10-01 18:27:00', '2025-10-10 18:27:00', 1, '2025-10-03 18:27:49', '2025-10-03 18:35:01'),
+(5, 'appointment', 'SQAW2K97', '20% FOR PET SITTING', 'AWDAWSD', 'percent', 20.00, 10, NULL, NULL, NULL, 1, 1, '2025-10-05 03:00:00', '2025-10-13 08:00:00', 1, '2025-10-05 03:50:53', '2025-10-05 03:52:23'),
+(6, 'appointment', '2BULMU7J', '10% for grooming', 'wadsdwa', 'percent', 10.00, 10, NULL, NULL, NULL, 1, 1, '2025-10-05 04:07:00', '2025-10-13 04:07:00', 1, '2025-10-05 04:07:56', NULL),
+(7, 'product', 'EBR7B3EN', 'FREE PET SITTING', 'AWSDWAS', 'free_item', NULL, 10, NULL, NULL, NULL, 1, 1, '2025-10-05 13:24:00', '2025-10-13 13:24:00', 1, '2025-10-05 13:24:17', NULL);
 
 -- --------------------------------------------------------
 
@@ -395,6 +476,16 @@ CREATE TABLE `promotion_redemptions` (
   `pr_applied_at` datetime DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+--
+-- Dumping data for table `promotion_redemptions`
+--
+
+INSERT INTO `promotion_redemptions` (`redemption_id`, `promo_id`, `code_id`, `users_id`, `transactions_id`, `appointment_id`, `pr_status`, `pr_discount_amount`, `pr_points_spent`, `pr_created_at`, `pr_applied_at`) VALUES
+(1, 4, NULL, 2, 10, NULL, 'applied', 30.00, NULL, '2025-10-03 18:57:52', '2025-10-03 18:57:52'),
+(2, 2, NULL, 2, 11, NULL, 'applied', 69.00, NULL, '2025-10-03 18:58:27', '2025-10-03 18:58:27'),
+(3, 2, NULL, 2, 12, NULL, 'applied', 60.00, NULL, '2025-10-03 18:59:15', '2025-10-03 18:59:15'),
+(4, 2, NULL, 2, 13, NULL, 'applied', 69.00, NULL, '2025-10-03 19:07:16', '2025-10-03 19:07:16');
+
 -- --------------------------------------------------------
 
 --
@@ -422,7 +513,7 @@ CREATE TABLE `sitters` (
 
 INSERT INTO `sitters` (`sitters_id`, `sitters_name`, `sitters_bio`, `sitter_email`, `sitters_contact`, `sitter_specialty`, `sitter_experience`, `sitters_image_url`, `sitters_active`, `sitters_created_at`, `sitters_verified`, `years_experience`) VALUES
 (1, 'John Ricardo', 'qw3aed', 'jr@gmail.com', '0956 789 0999', 'Dog, Cat, Fish', '', 'pictures/sitters/images-1758347866-6335.jpg', 1, '2025-09-20 13:57:46', 1, 4),
-(2, 'ampuiti amputi', 'gesdfgesf', 'amaputie@gmail.com', '0956159882', 'Dog, Cat, Fish', '', 'pictures/sitters/amaputie-gmail-com-1759042950-8787.png', 1, '2025-09-28 15:02:36', 1, 2);
+(2, 'ampuiti amputi', 'gesdfgesf', 'amaputie@gmail.com', '0956159882', 'Dog, Cat, Bird, Fish', '', 'pictures/sitters/amaputie-gmail-com-1759042950-8787.png', 1, '2025-09-28 15:02:36', 1, 4);
 
 -- --------------------------------------------------------
 
@@ -471,7 +562,18 @@ INSERT INTO `transactions` (`transactions_id`, `users_id`, `transactions_amount`
 (3, 2, 320.00, 'product', 'gcash', '2025-09-29 01:39:38'),
 (4, 2, 360.50, 'product', 'gcash', '2025-10-02 23:11:54'),
 (5, 3, 550.00, 'product', 'cod', '2025-10-03 01:19:12'),
-(6, 2, 500.00, 'product', 'cod', '2025-10-03 03:05:57');
+(6, 2, 500.00, 'product', 'cod', '2025-10-03 03:05:57'),
+(7, 2, 500.00, 'product', 'cod', '2025-10-03 18:05:59'),
+(8, 2, 360.50, 'product', 'cod', '2025-10-03 18:38:08'),
+(9, 2, 260.60, 'product', 'cod', '2025-10-03 18:46:05'),
+(10, 2, 293.00, 'product', 'cod', '2025-10-03 18:57:52'),
+(11, 2, 298.40, 'product', 'cod', '2025-10-03 18:58:27'),
+(12, 2, 266.00, 'product', 'cod', '2025-10-03 18:59:15'),
+(13, 2, 298.40, 'product', 'gcash', '2025-10-03 19:07:16'),
+(14, 3, 299.00, 'subscription', 'gcash', '2025-10-03 19:37:57'),
+(15, 3, 320.00, 'product', 'cod', '2025-10-03 19:38:45'),
+(16, 3, 550.00, 'product', 'cod', '2025-10-03 19:40:17'),
+(17, 3, 73.00, 'product', 'cod', '2025-10-03 20:50:30');
 
 -- --------------------------------------------------------
 
@@ -494,7 +596,17 @@ INSERT INTO `transaction_products` (`tp_id`, `transactions_id`, `products_id`, `
 (2, 3, 3, '1'),
 (3, 4, 9, '1'),
 (4, 5, 11, '1'),
-(5, 6, 11, '1');
+(5, 6, 11, '1'),
+(6, 7, 11, '1'),
+(7, 8, 9, '1'),
+(8, 9, 8, '1'),
+(9, 10, 3, '1'),
+(10, 11, 9, '1'),
+(11, 12, 3, '1'),
+(12, 13, 9, '1'),
+(13, 15, 3, '1'),
+(14, 16, 11, '1'),
+(15, 17, 5, '1');
 
 -- --------------------------------------------------------
 
@@ -513,7 +625,8 @@ CREATE TABLE `transaction_subscriptions` (
 --
 
 INSERT INTO `transaction_subscriptions` (`ts_id`, `transactions_id`, `us_id`) VALUES
-(1, 2, 1);
+(1, 2, 1),
+(2, 14, 2);
 
 -- --------------------------------------------------------
 
@@ -560,7 +673,8 @@ CREATE TABLE `user_points_balance` (
 --
 
 INSERT INTO `user_points_balance` (`users_id`, `upb_points`, `upb_points_balance`, `upb_updated_at`) VALUES
-(2, 240, 0, '2025-10-03 03:15:12');
+(2, 360, 0, '2025-10-05 13:43:47'),
+(3, 30, 0, '2025-10-03 19:39:30');
 
 -- --------------------------------------------------------
 
@@ -596,7 +710,16 @@ INSERT INTO `user_points_ledger` (`upl_id`, `users_id`, `upl_points`, `upl_reaso
 (8, 2, 30, 'Order Received', '', 3, 0, 0, NULL, '2025-10-03 00:33:27'),
 (9, 2, 30, 'Order Received', '', 4, 0, 0, NULL, '2025-10-03 00:55:51'),
 (10, 2, 50, 'Order Received', '', 6, 0, 0, NULL, '2025-10-03 03:07:12'),
-(11, 2, 50, 'Order Received', '', 6, 0, 0, NULL, '2025-10-03 03:15:12');
+(11, 2, 50, 'Order Received', '', 6, 0, 0, NULL, '2025-10-03 03:15:12'),
+(12, 2, -10, 'Promo Claim', 'promo', 4, 0, 0, NULL, '2025-10-03 18:35:13'),
+(13, 3, 30, 'Order Received', '', 15, 0, 0, NULL, '2025-10-03 19:39:30'),
+(14, 2, 20, 'Order Received', '', 13, 0, 0, NULL, '2025-10-05 01:33:45'),
+(15, 2, -10, 'Promo Claim', 'promo', 5, 0, 0, NULL, '2025-10-05 04:12:32'),
+(16, 2, 30, 'Appointment Completed', '', 16, 0, 0, NULL, '2025-10-05 12:27:53'),
+(17, 2, 20, 'Order Received', '', 12, 0, 0, NULL, '2025-10-05 12:54:17'),
+(18, 2, 30, 'Appointment Completed', '', 12, 0, 0, NULL, '2025-10-05 12:54:47'),
+(19, 2, 20, 'Order Received', '', 11, 0, 0, NULL, '2025-10-05 13:40:44'),
+(20, 2, 20, 'Order Received', '', 10, 0, 0, NULL, '2025-10-05 13:43:47');
 
 -- --------------------------------------------------------
 
@@ -611,16 +734,22 @@ CREATE TABLE `user_promos` (
   `up_code` varchar(64) NOT NULL,
   `up_claimed_at` datetime NOT NULL DEFAULT current_timestamp(),
   `up_redeemed_at` datetime DEFAULT NULL,
-  `up_qr_svg` mediumtext DEFAULT NULL
+  `up_qr_svg` mediumtext DEFAULT NULL,
+  `up_qr_token` varchar(128) DEFAULT NULL,
+  `up_qr_token_created_at` datetime DEFAULT NULL,
+  `up_qr_token_redeemed_at` datetime DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `user_promos`
 --
 
-INSERT INTO `user_promos` (`up_id`, `users_id`, `promo_id`, `up_code`, `up_claimed_at`, `up_redeemed_at`, `up_qr_svg`) VALUES
-(1, 2, 3, 'XYSD4N7P-U2-528CD7', '2025-10-02 21:21:03', NULL, NULL),
-(2, 2, 2, '3WBWPBJA-U2-F90E94', '2025-10-02 23:13:31', NULL, NULL);
+INSERT INTO `user_promos` (`up_id`, `users_id`, `promo_id`, `up_code`, `up_claimed_at`, `up_redeemed_at`, `up_qr_svg`, `up_qr_token`, `up_qr_token_created_at`, `up_qr_token_redeemed_at`) VALUES
+(1, 2, 3, 'XYSD4N7P-U2-528CD7', '2025-10-02 21:21:03', '2025-10-05 03:42:47', NULL, 'O3sitbmYigDpx_zzEEB-Yqe0T2jHUSRCKkq3ni0Yp98', '2025-10-05 03:42:06', '2025-10-05 03:42:47'),
+(2, 2, 2, '3WBWPBJA-U2-F90E94', '2025-10-02 23:13:31', NULL, NULL, NULL, NULL, NULL),
+(3, 2, 4, 'RWUBC42F-U2-9DEA3F', '2025-10-03 18:35:13', NULL, NULL, NULL, NULL, NULL),
+(4, 3, 3, 'XYSD4N7P-U3-AE7050', '2025-10-03 21:48:00', NULL, NULL, NULL, NULL, NULL),
+(5, 2, 5, 'SQAW2K97-U2-A4CDBC', '2025-10-05 04:12:32', '2025-10-05 04:13:01', NULL, 'ODq_qIbSSCR7bTWMSyXkjFk0uLQ_GlVUr6LzuOfGJt4', '2025-10-05 04:12:38', '2025-10-05 04:13:01');
 
 -- --------------------------------------------------------
 
@@ -642,7 +771,8 @@ CREATE TABLE `user_subscriptions` (
 --
 
 INSERT INTO `user_subscriptions` (`us_id`, `users_id`, `subscriptions_id`, `us_start_date`, `us_end_date`, `us_status`) VALUES
-(1, 2, 1, '2025-09-28 19:39:02', '2025-10-28 19:39:02', 'active');
+(1, 2, 1, '2025-09-28 19:39:02', '2025-10-28 19:39:02', 'active'),
+(2, 3, 1, '2025-10-03 13:37:57', '2025-10-03 19:39:42', 'cancelled');
 
 --
 -- Indexes for dumped tables
@@ -815,13 +945,13 @@ ALTER TABLE `user_subscriptions`
 -- AUTO_INCREMENT for table `admin_activity_logs`
 --
 ALTER TABLE `admin_activity_logs`
-  MODIFY `admin_activity_logs_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=69;
+  MODIFY `admin_activity_logs_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=132;
 
 --
 -- AUTO_INCREMENT for table `appointments`
 --
 ALTER TABLE `appointments`
-  MODIFY `appointments_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=15;
+  MODIFY `appointments_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=17;
 
 --
 -- AUTO_INCREMENT for table `appointment_address`
@@ -833,7 +963,7 @@ ALTER TABLE `appointment_address`
 -- AUTO_INCREMENT for table `deliveries`
 --
 ALTER TABLE `deliveries`
-  MODIFY `deliveries_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+  MODIFY `deliveries_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=15;
 
 --
 -- AUTO_INCREMENT for table `locations`
@@ -851,13 +981,13 @@ ALTER TABLE `pets`
 -- AUTO_INCREMENT for table `products`
 --
 ALTER TABLE `products`
-  MODIFY `products_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=12;
+  MODIFY `products_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
 
 --
 -- AUTO_INCREMENT for table `promotions`
 --
 ALTER TABLE `promotions`
-  MODIFY `promo_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+  MODIFY `promo_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
 
 --
 -- AUTO_INCREMENT for table `promotion_codes`
@@ -869,7 +999,7 @@ ALTER TABLE `promotion_codes`
 -- AUTO_INCREMENT for table `promotion_redemptions`
 --
 ALTER TABLE `promotion_redemptions`
-  MODIFY `redemption_id` bigint(20) NOT NULL AUTO_INCREMENT;
+  MODIFY `redemption_id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
 -- AUTO_INCREMENT for table `sitters`
@@ -887,19 +1017,19 @@ ALTER TABLE `subscriptions`
 -- AUTO_INCREMENT for table `transactions`
 --
 ALTER TABLE `transactions`
-  MODIFY `transactions_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
+  MODIFY `transactions_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=18;
 
 --
 -- AUTO_INCREMENT for table `transaction_products`
 --
 ALTER TABLE `transaction_products`
-  MODIFY `tp_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+  MODIFY `tp_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=16;
 
 --
 -- AUTO_INCREMENT for table `transaction_subscriptions`
 --
 ALTER TABLE `transaction_subscriptions`
-  MODIFY `ts_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `ts_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- AUTO_INCREMENT for table `users`
@@ -911,19 +1041,19 @@ ALTER TABLE `users`
 -- AUTO_INCREMENT for table `user_points_ledger`
 --
 ALTER TABLE `user_points_ledger`
-  MODIFY `upl_id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=12;
+  MODIFY `upl_id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=21;
 
 --
 -- AUTO_INCREMENT for table `user_promos`
 --
 ALTER TABLE `user_promos`
-  MODIFY `up_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `up_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
 
 --
 -- AUTO_INCREMENT for table `user_subscriptions`
 --
 ALTER TABLE `user_subscriptions`
-  MODIFY `us_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `us_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- Constraints for dumped tables

@@ -440,7 +440,7 @@ $currentUserName = user_display_name($currentUser);
 $currentUserInitial = user_initial($currentUser);
 $currentUserImg = user_image_url($currentUser);
 ?>
-<body class="min-h-screen bg-gray-50">
+<body class="min-h-screen bg-gray-50 overflow-x-hidden">
     <!-- Header (shared include) -->
     <?php $basePrefix = '../..'; include __DIR__ . '/../../utils/header-users.php'; ?>
 

@@ -197,7 +197,7 @@ function h($v){ return htmlspecialchars($v ?? '', ENT_QUOTES, 'UTF-8'); }
         }
     </style>
     </head>
-<body class="min-h-screen bg-gray-50">
+<body class="min-h-screen bg-gray-50 overflow-x-hidden">
     <?php $basePrefix = '../..'; include __DIR__ . '/../../utils/header-users.php'; ?>
 
     <!-- Hero Section -->
